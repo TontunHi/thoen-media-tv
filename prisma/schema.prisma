@@ -1,0 +1,90 @@
+datasource db {
+  provider = "sqlite"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String
+  role         String   @default("ADMIN")
+  createdAt    DateTime @default(now())
+}
+
+model Screen {
+  id           String    @id @default(cuid())
+  name         String
+  slug         String    @unique
+  location     String?
+  description  String?
+  playlistId   String?
+  playlist     Playlist? @relation(fields: [playlistId], references: [id], onDelete: SetNull)
+  isOnline     Boolean   @default(false)
+  lastPingAt   DateTime?
+  screenKey    String    @unique @default(uuid())
+  loop         Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Playlist {
+  id          String         @id @default(cuid())
+  name        String
+  description String?
+  isDefault   Boolean        @default(false)
+  items       PlaylistItem[]
+  screens     Screen[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+model MediaFolder {
+  id        String      @id @default(cuid())
+  name      String
+  color     String?     @default("blue")
+  items     MediaItem[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+}
+
+model MediaItem {
+  id              String         @id @default(cuid())
+  title           String
+  filename        String
+  filePath        String
+  mimeType        String
+  type            String         // IMAGE or VIDEO
+  size            Int
+  width           Int?
+  height          Int?
+  duration        Int?           // video duration in seconds
+  defaultDuration Int            @default(10)
+  thumbnailPath   String?
+  folderId        String?
+  folder          MediaFolder?   @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  playlistItems   PlaylistItem[]
+  createdAt       DateTime       @default(now())
+}
+
+model PlaylistItem {
+  id             String    @id @default(cuid())
+  playlistId     String
+  playlist       Playlist  @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  mediaItemId    String
+  mediaItem      MediaItem @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
+  order          Int
+  customDuration Int?
+  isActive       Boolean   @default(true)
+  startDate      DateTime?
+  endDate        DateTime?
+  startTime      String?
+  endTime        String?
+  daysOfWeek     String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([playlistId, order])
+}
