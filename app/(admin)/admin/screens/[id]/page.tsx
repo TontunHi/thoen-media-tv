@@ -17,6 +17,20 @@ export interface ScreenScheduleItem {
   playlist?: any
 }
 
+// Helper to convert Date object or ISO string to local "YYYY-MM-DDTHH:mm" for input datetime-local
+function toLocalDatetimeString(dateInput: Date | string | null): string {
+  if (!dateInput) return ''
+  const d = new Date(dateInput)
+  if (isNaN(d.getTime())) return ''
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const year = d.getFullYear()
+  const month = pad(d.getMonth() + 1)
+  const day = pad(d.getDate())
+  const hours = pad(d.getHours())
+  const minutes = pad(d.getMinutes())
+  return `${year}-${month}-${day}T${hours}:${minutes}`
+}
+
 export default function EditScreenPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const router = useRouter()
@@ -73,8 +87,8 @@ export default function EditScreenPage({ params }: { params: Promise<{ id: strin
             id: s.id,
             playlistId: s.playlistId,
             priority: s.priority,
-            startDate: s.startDate ? new Date(s.startDate).toISOString().slice(0, 16) : '',
-            endDate: s.endDate ? new Date(s.endDate).toISOString().slice(0, 16) : '',
+            startDate: toLocalDatetimeString(s.startDate),
+            endDate: toLocalDatetimeString(s.endDate),
             startTime: s.startTime || '',
             endTime: s.endTime || '',
             isActive: s.isActive !== undefined ? s.isActive : true,
