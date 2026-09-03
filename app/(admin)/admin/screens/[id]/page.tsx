@@ -242,149 +242,172 @@ export default function EditScreenPage({ params }: { params: Promise<{ id: strin
   if (!screen) return null
 
   return (
-    <div className="max-w-4xl mx-auto pb-20">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center">
-          <Link href="/admin/screens" className="mr-4 p-2 text-gray-500 hover:bg-gray-200 rounded-full transition-colors">
+    <div className="max-w-4xl mx-auto space-y-6 pb-20">
+      {/* Top action bar */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Link 
+            href="/admin/screens" 
+            className="p-2.5 text-slate-500 hover:text-slate-800 bg-white hover:bg-slate-100 rounded-xl border border-slate-200/80 transition-all shadow-2xs"
+          >
             <ArrowLeft className="w-5 h-5" />
           </Link>
-          <h1 className="text-2xl font-bold text-gray-900">{isNew ? 'เพิ่มจอทีวีใหม่' : 'ตั้งค่าจอทีวี'}</h1>
+          <div>
+            <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+              {isNew ? 'เพิ่มจอทีวีใหม่' : 'ตั้งค่าจอทีวี'}
+            </h1>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {isNew ? 'สร้างหน้าจอประชาสัมพันธ์ใหม่ในระบบ' : `จัดการการตั้งค่าและเลเยอร์ของ ${screen.name || 'หน้าจอ'}`}
+            </p>
+          </div>
         </div>
         
         {!isNew && (
           <button
             onClick={handleDelete}
-            className="flex items-center px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg font-medium transition-colors"
+            className="inline-flex items-center px-4 py-2 text-red-600 hover:bg-red-50 rounded-xl text-xs font-bold transition-colors border border-red-200/60"
           >
-            <Trash2 className="w-5 h-5 mr-2" />
+            <Trash2 className="w-4 h-4 mr-1.5" />
             ลบจอทีวี
           </button>
         )}
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <form onSubmit={handleSave} className="p-6 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                ชื่อจอทีวี (Name) <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={screen.name}
-                onChange={(e) => setScreen({ ...screen, name: e.target.value })}
-                placeholder="เช่น จอหน้าห้องฉุกเฉิน, จอโถงรับรอง"
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Slug (URL ประจำจอ) <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={screen.slug}
-                onChange={(e) => setScreen({ ...screen, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') })}
-                placeholder="เช่น er-screen-1"
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-              />
-              <p className="text-xs text-gray-500 mt-1">ใช้ตัวอักษรภาษาอังกฤษ ตัวเลข และขีดกลาง (-) เท่านั้น</p>
-            </div>
-          </div>
+      <div className="bg-white rounded-3xl shadow-xs border border-slate-100 overflow-hidden">
+        <form onSubmit={handleSave} className="p-6 sm:p-8 space-y-8">
+          {/* Section: Basic Info */}
+          <div className="space-y-4">
+            <h2 className="text-base font-bold text-slate-900 pb-2 border-b border-slate-100 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-blue-600"></span>
+              ข้อมูลพื้นฐานของจอทีวี
+            </h2>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">สถานที่ตั้ง (Location)</label>
-            <input
-              type="text"
-              value={screen.location || ''}
-              onChange={(e) => setScreen({ ...screen, location: e.target.value })}
-              placeholder="ระบุสถานที่ติดตั้งจอให้ชัดเจน"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">คำอธิบายเพิ่มเติม</label>
-            <textarea
-              value={screen.description || ''}
-              onChange={(e) => setScreen({ ...screen, description: e.target.value })}
-              rows={2}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 resize-none"
-            />
-          </div>
-
-          {/* Multi-Playlist Layers & Schedule */}
-          <div className="border-t border-gray-200 pt-6">
-            <div className="flex items-center justify-between mb-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  ชื่อจอทีวี (Name) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={screen.name}
+                  onChange={(e) => setScreen({ ...screen, name: e.target.value })}
+                  placeholder="เช่น จอหน้าห้องฉุกเฉิน, จอโถงรับรอง"
+                  required
+                  className="w-full px-4 py-2.5 text-sm bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all outline-hidden"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Slug (URL ประจำจอ) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={screen.slug}
+                  onChange={(e) => setScreen({ ...screen, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') })}
+                  placeholder="เช่น er-screen-1"
+                  required
+                  className="w-full px-4 py-2.5 text-sm bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all outline-hidden"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">ใช้ตัวอักษรภาษาอังกฤษ ตัวเลข และขีดกลาง (-) เท่านั้น</p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">สถานที่ตั้ง (Location)</label>
+              <input
+                type="text"
+                value={screen.location || ''}
+                onChange={(e) => setScreen({ ...screen, location: e.target.value })}
+                placeholder="ระบุตำแหน่งติดตั้ง เช่น ชั้น 1 อาคารผู้ป่วยนอก"
+                className="w-full px-4 py-2.5 text-sm bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all outline-hidden"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">คำอธิบายเพิ่มเติม</label>
+              <textarea
+                value={screen.description || ''}
+                onChange={(e) => setScreen({ ...screen, description: e.target.value })}
+                rows={2}
+                placeholder="หมายเหตุหรือรายละเอียดของจอนี้..."
+                className="w-full px-4 py-2.5 text-sm bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all outline-hidden resize-none"
+              />
+            </div>
+          </div>
+
+          {/* Section: Multi-Playlist Layers & Schedule */}
+          <div className="space-y-4 pt-4 border-t border-slate-100">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100">
+              <div>
+                <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
                   <Layers className="w-5 h-5 text-blue-600" />
                   Playlist Layers & Schedule (ลำดับความสำคัญ)
-                </h3>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  ระบบจะเล่น Playlist <b>ลำดับบนสุด (Priority 1)</b> ที่ถึงเวลาและ Active อยู่ ณ ปัจจุบัน หากยังไม่ถึงเวลาจะเล่นลำดับถัดไปลงมาอัตโนมัติ (เล่นทีละ 1 Playlist)
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  ระบบจะเลือก Playlist <b>ลำดับบนสุด (Priority 1)</b> ที่เข้าเงื่อนไขวันเวลาปัจจุบันมาเล่น หากยังไม่ถึงเวลาจะเล่นลำดับถัดไปลงมา
                 </p>
               </div>
               <button
                 type="button"
                 onClick={handleAddSchedule}
-                className="flex items-center px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg text-sm font-medium transition-colors border border-blue-200"
+                className="inline-flex items-center px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-xl text-xs font-bold transition-all border border-blue-200/80 shadow-2xs self-start sm:self-auto"
               >
-                <Plus className="w-4 h-4 mr-1" />
+                <Plus className="w-4 h-4 mr-1.5" />
                 เพิ่ม Layer
               </button>
             </div>
 
             {schedules.length === 0 ? (
-              <div className="text-center py-6 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50/50">
-                <p className="text-sm text-gray-500">ยังไม่มี Playlist Layers ที่กำหนด (จะใช้ Default Playlist ด้านล่างแทน)</p>
+              <div className="text-center py-10 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+                <Layers className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                <p className="text-sm font-semibold text-slate-600">ยังไม่มี Playlist Layers ในจอนี้</p>
+                <p className="text-xs text-slate-400 mt-0.5">ระบบจะแสดง Playlist สำรองด้านล่าง หรือหน้าจอสแตนด์บาย</p>
                 <button
                   type="button"
                   onClick={handleAddSchedule}
-                  className="mt-2 text-sm text-blue-600 hover:underline font-medium"
+                  className="mt-3 inline-flex items-center text-xs font-bold text-blue-600 hover:text-blue-800 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-2xs"
                 >
-                  + เพิ่ม Playlist Layer แรก
+                  <Plus className="w-3.5 h-3.5 mr-1" />
+                  เพิ่ม Layer แรก
                 </button>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-3.5">
                 {schedules.map((sched, idx) => {
                   const isPlayingNow = activeNowIndex === idx
 
                   return (
                     <div
                       key={sched.id || idx}
-                      className={`p-4 rounded-xl border transition-all ${
+                      className={`p-5 rounded-2xl border transition-all duration-200 ${
                         isPlayingNow
-                          ? 'border-green-500 bg-green-50/40 shadow-sm'
-                          : 'border-gray-200 bg-gray-50/70'
+                          ? 'border-emerald-500/80 bg-emerald-50/30 shadow-sm ring-2 ring-emerald-500/10'
+                          : 'border-slate-200/80 bg-slate-50/50 hover:bg-white'
                       }`}
                     >
-                      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-gray-200/80">
-                        <div className="flex items-center gap-2">
-                          <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-600 text-white text-xs font-bold shadow-sm">
+                      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-200/60">
+                        <div className="flex items-center gap-2.5">
+                          <span className="flex items-center justify-center w-7 h-7 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white text-xs font-black shadow-xs">
                             {idx + 1}
                           </span>
-                          <span className="font-semibold text-gray-800 text-sm">
+                          <span className="font-bold text-slate-800 text-sm">
                             Priority #{idx + 1}
                           </span>
                           {isPlayingNow && (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-800 border border-green-300">
-                              <span className="w-2 h-2 rounded-full bg-green-500 mr-1.5 animate-pulse"></span>
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                              <span className="w-2 h-2 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span>
                               Active (กำลังเล่นบนจอ)
                             </span>
                           )}
                         </div>
 
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1.5">
                           <button
                             type="button"
                             disabled={idx === 0}
                             onClick={() => handleMoveSchedule(idx, 'up')}
-                            className="p-1 text-gray-500 hover:text-blue-600 hover:bg-white rounded disabled:opacity-30"
+                            className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-white rounded-lg border border-transparent hover:border-slate-200 disabled:opacity-25 transition-all"
                             title="เลื่อนความสำคัญขึ้น (Priority สูงขึ้น)"
                           >
                             <ArrowUp className="w-4 h-4" />
@@ -393,7 +416,7 @@ export default function EditScreenPage({ params }: { params: Promise<{ id: strin
                             type="button"
                             disabled={idx === schedules.length - 1}
                             onClick={() => handleMoveSchedule(idx, 'down')}
-                            className="p-1 text-gray-500 hover:text-blue-600 hover:bg-white rounded disabled:opacity-30"
+                            className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-white rounded-lg border border-transparent hover:border-slate-200 disabled:opacity-25 transition-all"
                             title="เลื่อนความสำคัญลง"
                           >
                             <ArrowDown className="w-4 h-4" />
@@ -401,7 +424,7 @@ export default function EditScreenPage({ params }: { params: Promise<{ id: strin
                           <button
                             type="button"
                             onClick={() => handleRemoveSchedule(idx)}
-                            className="p-1 text-red-500 hover:bg-red-50 rounded ml-2"
+                            className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg ml-1 transition-colors"
                             title="ลบ Layer นี้"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -409,13 +432,13 @@ export default function EditScreenPage({ params }: { params: Promise<{ id: strin
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-3">
-                        <div className="md:col-span-1">
-                          <label className="block text-xs font-medium text-gray-700 mb-1">เลือก Playlist</label>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1.5">เลือก Playlist</label>
                           <select
                             value={sched.playlistId}
                             onChange={(e) => handleScheduleChange(idx, 'playlistId', e.target.value)}
-                            className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-hidden font-medium text-slate-800"
                           >
                             {playlists.map((p) => (
                               <option key={p.id} value={p.id}>
@@ -425,47 +448,47 @@ export default function EditScreenPage({ params }: { params: Promise<{ id: strin
                           </select>
                         </div>
 
-                        <div className="md:col-span-1">
-                          <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center gap-1">
-                            <Calendar className="w-3.5 h-3.5 text-gray-500" />
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                            <Calendar className="w-3.5 h-3.5 text-slate-400" />
                             วันเวลาเริ่มต้น (Start)
                           </label>
                           <input
                             type="datetime-local"
                             value={sched.startDate}
                             onChange={(e) => handleScheduleChange(idx, 'startDate', e.target.value)}
-                            className="w-full px-3 py-1.5 text-xs border border-gray-300 rounded-lg bg-white focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-hidden font-mono"
                           />
-                          <p className="text-[10px] text-gray-400 mt-0.5">เว้นว่างไว้ = เริ่มทันที</p>
+                          <p className="text-[11px] text-slate-400 mt-1">เว้นว่างไว้ = เริ่มทันที</p>
                         </div>
 
-                        <div className="md:col-span-1">
-                          <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center gap-1">
-                            <Calendar className="w-3.5 h-3.5 text-gray-500" />
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                            <Calendar className="w-3.5 h-3.5 text-slate-400" />
                             วันเวลาสิ้นสุด (End)
                           </label>
                           <input
                             type="datetime-local"
                             value={sched.endDate}
                             onChange={(e) => handleScheduleChange(idx, 'endDate', e.target.value)}
-                            className="w-full px-3 py-1.5 text-xs border border-gray-300 rounded-lg bg-white focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-hidden font-mono"
                           />
-                          <p className="text-[10px] text-gray-400 mt-0.5">เว้นว่างไว้ = ไม่จำกัดวันสิ้นสุด</p>
+                          <p className="text-[11px] text-slate-400 mt-1">เว้นว่างไว้ = ไม่มีกำหนดสิ้นสุด</p>
                         </div>
                       </div>
 
-                      <div className="mt-3 flex items-center justify-between text-xs pt-2 border-t border-gray-100">
+                      <div className="mt-4 flex items-center justify-between text-xs pt-3 border-t border-slate-100">
                         <label className="inline-flex items-center cursor-pointer">
                           <input
                             type="checkbox"
                             checked={sched.isActive}
                             onChange={(e) => handleScheduleChange(idx, 'isActive', e.target.checked)}
-                            className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                            className="w-4 h-4 text-blue-600 rounded-md border-slate-300 focus:ring-blue-500"
                           />
-                          <span className="ml-2 text-gray-700 font-medium">เปิดใช้งาน Layer นี้</span>
+                          <span className="ml-2 text-slate-700 font-bold">เปิดใช้งาน Layer นี้</span>
                         </label>
                         {!sched.startDate && !sched.endDate && (
-                          <span className="text-gray-500 italic">Always Active (Fallback/Base Layer)</span>
+                          <span className="text-slate-400 font-medium italic">Always Active (Fallback/Base Layer)</span>
                         )}
                       </div>
                     </div>
@@ -475,18 +498,24 @@ export default function EditScreenPage({ params }: { params: Promise<{ id: strin
             )}
           </div>
 
-          <div className="border-t border-gray-200 pt-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">การแสดงผลสำรอง (Legacy Fallback)</h3>
+          {/* Section: Legacy Fallback & Loop */}
+          <div className="space-y-4 pt-4 border-t border-slate-100">
+            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+              การแสดงผลสำรอง (Fallback) & วนลูป
+            </h2>
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Playlist สำรองเมื่อไม่มี Layer ทำงาน</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Playlist สำรองเมื่อไม่มี Layer ทำงาน
+                </label>
                 <select
                   value={screen.playlistId || ''}
                   onChange={(e) => setScreen({ ...screen, playlistId: e.target.value || null })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 bg-white"
+                  className="w-full px-4 py-2.5 text-sm bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all outline-hidden text-slate-800"
                 >
-                  <option value="">-- ไม่เลือก (แสดงหน้าจอ Standby) --</option>
+                  <option value="">-- ไม่เลือก (แสดงหน้าจอสแตนด์บาย) --</option>
                   {playlists.map(p => (
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
@@ -499,52 +528,54 @@ export default function EditScreenPage({ params }: { params: Promise<{ id: strin
                   type="checkbox"
                   checked={screen.loop ?? true}
                   onChange={(e) => setScreen({ ...screen, loop: e.target.checked })}
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
                 />
-                <label htmlFor="loop" className="ml-2 block text-sm text-gray-900">
-                  เล่นวนซ้ำอัตโนมัติ (Loop)
+                <label htmlFor="loop" className="ml-2.5 text-xs font-bold text-slate-700 cursor-pointer">
+                  เล่นวนซ้ำอัตโนมัติ (Loop continuously)
                 </label>
               </div>
             </div>
           </div>
 
-          <div className="flex justify-end pt-6 border-t border-gray-100">
+          <div className="flex justify-end pt-6 border-t border-slate-100">
             <button
               type="submit"
               disabled={saving}
-              className="flex items-center px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+              className="inline-flex items-center px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold shadow-md shadow-blue-500/20 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
             >
-              {saving ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Save className="w-5 h-5 mr-2" />}
+              {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
               บันทึกการตั้งค่า
             </button>
           </div>
         </form>
 
         {!isNew && (
-          <div className="bg-gray-50 p-6 border-t border-gray-200">
-            <h3 className="text-sm font-bold text-gray-900 mb-3">ลิงก์สำหรับเปิดบนทีวี</h3>
+          <div className="bg-slate-50/70 p-6 sm:p-8 border-t border-slate-100">
+            <h3 className="text-sm font-bold text-slate-900 mb-2">ลิงก์สำหรับเปิดบนจอทีวี (TV URL)</h3>
             <div className="flex items-center">
-              <div className="flex-1 bg-white border border-gray-300 rounded-l-lg px-4 py-2 text-sm text-gray-600 font-mono overflow-x-auto whitespace-nowrap">
+              <div className="flex-1 bg-white border border-slate-200 rounded-l-xl px-4 py-2.5 text-xs font-mono text-slate-600 overflow-x-auto whitespace-nowrap shadow-2xs">
                 {typeof window !== 'undefined' ? `${window.location.origin}/tv/${screen.slug}` : `/tv/${screen.slug}`}
               </div>
               <button
                 onClick={copyUrl}
-                className="flex items-center px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 border-y border-r border-gray-300 font-medium transition-colors"
+                className="flex items-center px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border-y border-r border-slate-200 text-xs font-bold transition-colors"
                 title="คัดลอกลิงก์"
               >
-                {copied ? <Check className="w-5 h-5 text-green-600" /> : <Copy className="w-5 h-5" />}
+                {copied ? <Check className="w-4 h-4 text-emerald-600 mr-1.5" /> : <Copy className="w-4 h-4 mr-1.5" />}
+                {copied ? 'คัดลอกแล้ว' : 'คัดลอก'}
               </button>
               <Link
                 href={`/tv/${screen.slug}`}
                 target="_blank"
-                className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-r-lg font-medium transition-colors"
+                className="flex items-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-r-xl text-xs font-bold transition-colors shadow-2xs"
                 title="เปิดดู"
               >
-                <ExternalLink className="w-5 h-5" />
+                <ExternalLink className="w-4 h-4 mr-1.5" />
+                เปิดดู
               </Link>
             </div>
-            <p className="text-xs text-gray-500 mt-2">
-              นำลิงก์นี้ไปเปิดในเว็บเบราว์เซอร์ของ Smart TV หรือ Android Box แล้วกด F11 เพื่อแสดงเต็มจอ
+            <p className="text-xs text-slate-400 mt-2">
+              นำลิงก์นี้ไปเปิดในเว็บเบราว์เซอร์ของ Smart TV หรือ Android Box แล้วกด <b>F11</b> เพื่อเปิดเต็มหน้าจอ
             </p>
           </div>
         )}

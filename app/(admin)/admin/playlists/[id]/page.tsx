@@ -133,20 +133,27 @@ export default function EditPlaylistPage({ params }: { params: Promise<{ id: str
   if (!playlist) return null
 
   return (
-    <div className="max-w-5xl mx-auto pb-20">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center">
-          <Link href="/admin/playlists" className="mr-4 p-2 text-gray-500 hover:bg-gray-200 rounded-full transition-colors">
+    <div className="max-w-5xl mx-auto space-y-6 pb-20">
+      {/* Action Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Link 
+            href="/admin/playlists" 
+            className="p-2.5 text-slate-500 hover:text-slate-800 bg-white hover:bg-slate-100 rounded-xl border border-slate-200/80 transition-all shadow-2xs"
+          >
             <ArrowLeft className="w-5 h-5" />
           </Link>
-          <h1 className="text-2xl font-bold text-gray-900">แก้ไข Playlist</h1>
+          <div>
+            <h1 className="text-2xl font-black text-slate-900 tracking-tight">แก้ไข Playlist</h1>
+            <p className="text-xs text-slate-500 mt-0.5">จัดเรียงและกำหนดระยะเวลาแสดงผลของสื่อในรายการนี้</p>
+          </div>
         </div>
         <button
           onClick={handleSave}
           disabled={saving}
-          className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+          className="inline-flex items-center px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/20 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
         >
-          {saving ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Save className="w-5 h-5 mr-2" />}
+          {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
           บันทึกการเปลี่ยนแปลง
         </button>
       </div>
@@ -154,25 +161,30 @@ export default function EditPlaylistPage({ params }: { params: Promise<{ id: str
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Playlist Info */}
         <div className="lg:col-span-1 space-y-6">
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">ข้อมูลทั่วไป</h2>
+          <div className="bg-white rounded-3xl shadow-xs p-6 border border-slate-100 space-y-4">
+            <h2 className="text-base font-bold text-slate-900 pb-2 border-b border-slate-100 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-purple-600"></span>
+              ข้อมูล Playlist
+            </h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ Playlist</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">ชื่อ Playlist</label>
                 <input
                   type="text"
                   value={playlist.name}
                   onChange={(e) => setPlaylist({ ...playlist, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="เช่น ประชาสัมพันธ์ทั่วไป 2026"
+                  className="w-full px-4 py-2.5 text-sm bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-600 transition-all outline-hidden font-medium"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">คำอธิบาย</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">คำอธิบาย</label>
                 <textarea
                   value={playlist.description || ''}
                   onChange={(e) => setPlaylist({ ...playlist, description: e.target.value })}
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 resize-none"
+                  placeholder="รายละเอียดเนื้อหาในเพลย์ลิสต์นี้..."
+                  className="w-full px-4 py-2.5 text-sm bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-purple-500/20 focus:border-purple-600 transition-all outline-hidden resize-none"
                 />
               </div>
             </div>
@@ -181,33 +193,40 @@ export default function EditPlaylistPage({ params }: { params: Promise<{ id: str
 
         {/* Playlist Items */}
         <div className="lg:col-span-2">
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 h-full">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-gray-900">รายการสื่อ ({playlist.items?.length || 0} รายการ)</h2>
+          <div className="bg-white rounded-3xl shadow-xs p-6 sm:p-8 border border-slate-100 h-full space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div>
+                <h2 className="text-base font-bold text-slate-900">
+                  รายการสื่อ ({playlist.items?.length || 0} รายการ)
+                </h2>
+                <p className="text-xs text-slate-400 mt-0.5">เรียงจากบนลงล่าง และวนลูปตามลำดับ</p>
+              </div>
               <button
                 onClick={() => {
                   setShowMediaModal(true)
                   fetchMediaLibrary()
                 }}
-                className="flex items-center px-3 py-1.5 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors"
+                className="inline-flex items-center px-4 py-2 bg-purple-50 text-purple-700 hover:bg-purple-100 rounded-xl text-xs font-bold transition-all border border-purple-200/80 shadow-2xs"
               >
-                <Plus className="w-4 h-4 mr-1" />
-                เพิ่มสื่อ
+                <Plus className="w-4 h-4 mr-1.5" />
+                เพิ่มสื่อเข้าคิว
               </button>
             </div>
 
             {(!playlist.items || playlist.items.length === 0) ? (
-              <div className="text-center py-12 border-2 border-dashed border-gray-200 rounded-xl">
-                <ImageIcon className="w-12 h-12 mx-auto text-gray-300 mb-3" />
-                <p className="text-gray-500">ยังไม่มีสื่อใน Playlist นี้</p>
+              <div className="text-center py-16 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+                <ImageIcon className="w-12 h-12 mx-auto text-slate-300 mb-3" />
+                <p className="text-sm font-semibold text-slate-600">ยังไม่มีสื่อใน Playlist นี้</p>
+                <p className="text-xs text-slate-400 mt-0.5">กดปุ่มด้านล่างเพื่อเลือกรูปภาพหรือวิดีโอจากคลังสื่อ</p>
                 <button
                   onClick={() => {
                     setShowMediaModal(true)
                     fetchMediaLibrary()
                   }}
-                  className="mt-3 text-blue-600 font-medium hover:underline text-sm"
+                  className="mt-3 inline-flex items-center text-xs font-bold text-purple-600 hover:text-purple-800 bg-white px-3.5 py-1.5 rounded-lg border border-slate-200 shadow-2xs"
                 >
-                  คลิกเพื่อเพิ่มสื่อ
+                  <Plus className="w-3.5 h-3.5 mr-1" />
+                  เลือกสื่อเพิ่ม
                 </button>
               </div>
             ) : (
@@ -219,25 +238,33 @@ export default function EditPlaylistPage({ params }: { params: Promise<{ id: str
                   const isImage = media.type === 'IMAGE' || media.type === 'image'
 
                   return (
-                    <div key={item.id} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg border border-gray-200 group">
-                      <div className="flex flex-col gap-1">
+                    <div 
+                      key={item.id} 
+                      className="flex flex-col sm:flex-row sm:items-center gap-4 p-3.5 bg-slate-50/70 hover:bg-white rounded-2xl border border-slate-200/80 hover:border-slate-300 hover:shadow-sm transition-all group"
+                    >
+                      {/* Priority indicator & reorder arrows */}
+                      <div className="flex items-center gap-2 sm:flex-col sm:gap-1">
                         <button 
                           onClick={() => moveItem(index, 'up')}
                           disabled={index === 0}
-                          className="p-1 text-gray-400 hover:text-blue-600 disabled:opacity-30"
+                          className="p-1 text-slate-400 hover:text-purple-600 hover:bg-white rounded-md disabled:opacity-20 transition-colors"
+                          title="เลื่อนขึ้น"
                         >
                           ▲
                         </button>
+                        <span className="text-[10px] font-black text-slate-400">#{index + 1}</span>
                         <button 
                           onClick={() => moveItem(index, 'down')}
                           disabled={index === playlist.items.length - 1}
-                          className="p-1 text-gray-400 hover:text-blue-600 disabled:opacity-30"
+                          className="p-1 text-slate-400 hover:text-purple-600 hover:bg-white rounded-md disabled:opacity-20 transition-colors"
+                          title="เลื่อนลง"
                         >
                           ▼
                         </button>
                       </div>
                       
-                      <div className="w-20 h-14 bg-gray-900 rounded overflow-hidden flex-shrink-0 flex items-center justify-center relative">
+                      {/* Thumbnail */}
+                      <div className="w-24 h-16 bg-slate-950 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center relative shadow-2xs">
                         {isImage ? (
                           <img src={thumbUrl || mediaUrl} alt="" className="w-full h-full object-cover" />
                         ) : (
@@ -248,50 +275,57 @@ export default function EditPlaylistPage({ params }: { params: Promise<{ id: str
                         )}
                       </div>
                       
+                      {/* Title & Type */}
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">{media.title || 'ไม่มีชื่อ'}</p>
-                        <p className="text-xs text-gray-500 uppercase">{media.type || 'IMAGE'}</p>
+                        <p className="text-xs font-bold text-slate-900 truncate">{media.title || 'ไม่มีชื่อ'}</p>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black mt-1 uppercase ${
+                          isImage ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-purple-50 text-purple-700 border border-purple-200'
+                        }`}>
+                          {media.type || 'IMAGE'}
+                        </span>
                       </div>
                       
-                      <div className="flex flex-col items-end gap-2">
+                      {/* Duration Controls */}
+                      <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200/60">
                         {isImage ? (
-                          <>
-                            <div className="flex items-center">
-                              <label className="text-xs text-gray-500 mr-2">ระยะเวลา (วินาที)</label>
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center bg-white border border-slate-200 rounded-lg px-2 py-1 shadow-2xs">
+                              <span className="text-[11px] text-slate-400 mr-1.5">เวลา:</span>
                               <input
                                 type="number"
                                 min={1}
                                 value={item.customDuration ?? media.defaultDuration ?? 15}
                                 onChange={(e) => updateItemDuration(index, parseInt(e.target.value) || 0)}
-                                className="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-blue-500"
+                                className="w-10 text-xs font-bold text-slate-800 text-center outline-hidden"
                               />
+                              <span className="text-[11px] text-slate-400 ml-0.5">วินาที</span>
                             </div>
-                            <div className="flex gap-1">
+                            <div className="hidden md:flex gap-1">
                               {[5, 10, 15, 30].map(s => (
                                 <button
                                   key={s}
                                   onClick={() => updateItemDuration(index, s)}
-                                  className="px-1.5 py-0.5 text-[10px] bg-gray-200 hover:bg-gray-300 rounded text-gray-700 font-medium"
+                                  className="px-2 py-1 text-[10px] bg-slate-200/80 hover:bg-purple-600 hover:text-white rounded-md text-slate-700 font-bold transition-colors"
                                 >
                                   {s}s
                                 </button>
                               ))}
                             </div>
-                          </>
+                          </div>
                         ) : (
-                          <div className="flex items-center px-3 py-1 bg-purple-50 border border-purple-200 rounded-lg">
-                            <span className="text-xs font-semibold text-purple-700">🎬 เล่นตามความยาววิดีโอจนจบ</span>
+                          <div className="flex items-center px-3 py-1 bg-purple-50 border border-purple-200 rounded-xl">
+                            <span className="text-[11px] font-bold text-purple-700">🎬 ตามความยาววิดีโอ</span>
                           </div>
                         )}
+                        
+                        <button
+                          onClick={() => removeItem(index)}
+                          className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                          title="นำออกจากคิว"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
-                      
-                      <button
-                        onClick={() => removeItem(index)}
-                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors ml-2"
-                        title="ลบ"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
                     </div>
                   )
                 })}

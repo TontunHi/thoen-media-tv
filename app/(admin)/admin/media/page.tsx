@@ -223,21 +223,21 @@ export default function MediaPage() {
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
             <Layers className="w-7 h-7 text-blue-600" />
             คลังสื่อ (Media Library)
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            จัดการรูปภาพ วิดีโอประชาสัมพันธ์ และจัดหมวดหมู่โฟลเดอร์
+          <p className="text-sm text-slate-500 mt-1">
+            จัดการรูปภาพ วิดีโอประชาสัมพันธ์ และจัดหมวดหมู่โฟลเดอร์สำหรับนำไปใช้ใน Playlist
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <button
             onClick={() => setShowNewFolderModal(true)}
-            className="flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors shadow-xs"
+            className="inline-flex items-center px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 font-bold text-xs transition-all shadow-2xs"
           >
-            <FolderPlus className="w-5 h-5 mr-2 text-blue-600" />
+            <FolderPlus className="w-4 h-4 mr-2 text-blue-600" />
             สร้างโฟลเดอร์
           </button>
 
@@ -252,27 +252,27 @@ export default function MediaPage() {
           <button 
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors disabled:opacity-50 shadow-xs"
+            className="inline-flex items-center px-4.5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-bold text-xs shadow-md shadow-blue-500/20 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
           >
-            {uploading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Upload className="w-5 h-5 mr-2" />}
+            {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
             {uploading ? 'กำลังอัปโหลด...' : 'อัปโหลดสื่อใหม่'}
           </button>
         </div>
       </div>
 
-      {/* Folders Bar */}
-      <div className="bg-white rounded-xl shadow-xs border border-gray-200 p-4">
-        <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 px-1">
-          โฟลเดอร์และหมวดหมู่
+      {/* Modern Folders Bar */}
+      <div className="bg-white rounded-2xl shadow-xs border border-slate-100 p-4">
+        <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2.5 px-1">
+          หมวดหมู่และโฟลเดอร์
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {/* All Media */}
           <button
             onClick={() => setActiveFolder('all')}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
               activeFolder === 'all'
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
+                : 'bg-slate-100/80 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900'
             }`}
           >
             <FolderOpen className="w-4 h-4" />
@@ -284,10 +284,10 @@ export default function MediaPage() {
             <div
               key={folder.id}
               onClick={() => setActiveFolder(folder.id)}
-              className={`group flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium cursor-pointer transition-all ${
+              className={`group inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all ${
                 activeFolder === folder.id
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
+                  : 'bg-slate-100/80 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900'
               }`}
             >
               <Folder className="w-4 h-4 text-amber-500" />
@@ -295,7 +295,7 @@ export default function MediaPage() {
               <button
                 onClick={(e) => handleDeleteFolder(folder.id, folder.name, e)}
                 className={`opacity-0 group-hover:opacity-100 hover:text-red-500 p-0.5 rounded transition-opacity ${
-                  activeFolder === folder.id ? 'text-white/80 hover:text-white' : 'text-gray-400'
+                  activeFolder === folder.id ? 'text-white/80 hover:text-white' : 'text-slate-400'
                 }`}
                 title="ลบโฟลเดอร์"
               >
@@ -307,13 +307,13 @@ export default function MediaPage() {
           {/* Uncategorized */}
           <button
             onClick={() => setActiveFolder('none')}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
               activeFolder === 'none'
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
+                : 'bg-slate-100/80 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900'
             }`}
           >
-            <Folder className="w-4 h-4 text-gray-400" />
+            <Folder className="w-4 h-4 text-slate-400" />
             ยังไม่ได้จัดหมวดหมู่ ({uncategorizedCount})
           </button>
         </div>
@@ -325,17 +325,24 @@ export default function MediaPage() {
           <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
         </div>
       ) : mediaList.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-xs p-16 text-center text-gray-500 border border-gray-200">
-          <ImageIcon className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-          <p className="text-lg font-bold text-gray-700">ไม่มีสื่อในโฟลเดอร์นี้</p>
-          <p className="text-sm mt-1 text-gray-500">คลิกปุ่ม "อัปโหลดสื่อใหม่" เพื่อเพิ่มรูปภาพหรือวิดีโอเข้าโฟลเดอร์นี้</p>
+        <div className="bg-white rounded-3xl shadow-xs p-16 text-center text-slate-400 border border-slate-100">
+          <div className="w-16 h-16 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-4">
+            <ImageIcon className="w-8 h-8" />
+          </div>
+          <p className="text-base font-bold text-slate-800">ไม่มีไฟล์สื่อในโฟลเดอร์นี้</p>
+          <p className="text-xs mt-1 text-slate-400 max-w-xs mx-auto">
+            กดปุ่ม "อัปโหลดสื่อใหม่" ด้านบนเพื่อเพิ่มรูปภาพหรือวิดีโอเข้าสู่โฟลเดอร์นี้
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {mediaList.map((media) => (
-            <div key={media.id} className="bg-white rounded-xl shadow-xs overflow-hidden border border-gray-200 hover:shadow-md transition-shadow group flex flex-col">
+            <div 
+              key={media.id} 
+              className="bg-white rounded-2xl shadow-xs overflow-hidden border border-slate-100 hover:shadow-md hover:border-slate-200 transition-all duration-200 group flex flex-col"
+            >
               {/* Media Thumbnail Container */}
-              <div className="aspect-video bg-gray-900 relative flex items-center justify-center overflow-hidden">
+              <div className="aspect-video bg-slate-900 relative flex items-center justify-center overflow-hidden">
                 {media.type === 'IMAGE' ? (
                   <img 
                     src={media.thumbnailUrl || media.url} 
@@ -344,7 +351,7 @@ export default function MediaPage() {
                     loading="lazy"
                   />
                 ) : (
-                  <div className="w-full h-full relative flex items-center justify-center bg-gray-950">
+                  <div className="w-full h-full relative flex items-center justify-center bg-slate-950">
                     <video 
                       src={media.url}
                       className="w-full h-full object-cover opacity-80"
@@ -361,15 +368,15 @@ export default function MediaPage() {
                 )}
                 
                 {/* Hover Actions Overlay */}
-                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-2xs">
                   <button 
                     onClick={() => {
                       setSelectedMedia(media)
                       setTargetFolderId(media.folderId || 'none')
                       setShowMoveModal(true)
                     }}
-                    className="p-2.5 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors shadow-md"
-                    title="ย้ายโฟลเดอร์"
+                    className="p-2 bg-white/20 hover:bg-white text-white hover:text-blue-600 rounded-xl backdrop-blur-md transition-colors"
+                    title="ย้ายไปยังโฟลเดอร์อื่น"
                   >
                     <MoveRight className="w-4 h-4" />
                   </button>
