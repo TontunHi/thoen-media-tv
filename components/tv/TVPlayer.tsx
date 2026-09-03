@@ -111,16 +111,28 @@ export default function TVPlayer({ screenSlug, screenName, initialItems, isLoopi
     return () => clearInterval(intervalId)
   }, [])
 
-  // SSE for real-time updates
+  // SSE and periodic schedule evaluation for instant playlist switching
   useEffect(() => {
     let eventSource: EventSource | null = null;
+    let currentActiveScheduleId: string | null = null;
+    let currentPlaylistId: string | null = null;
 
     const reloadData = async () => {
       try {
-        console.log('[TVPlayer] Reloading screen playlist data...');
         const res = await fetch(`/api/screens/${screenSlug}?t=${Date.now()}`);
         if (res.ok) {
           const screenData = await res.json();
+          const newActiveScheduleId = screenData?.activeScheduleId || null;
+          const newPlaylistId = screenData?.playlist?.id || null;
+
+          // Check if the active playlist or active schedule layer has changed
+          const hasPlaylistChanged = 
+            (currentPlaylistId !== null && currentPlaylistId !== newPlaylistId) ||
+            (currentActiveScheduleId !== null && currentActiveScheduleId !== newActiveScheduleId);
+
+          currentPlaylistId = newPlaylistId;
+          currentActiveScheduleId = newActiveScheduleId;
+
           if (screenData && screenData.playlist && Array.isArray(screenData.playlist.items) && screenData.playlist.items.length > 0) {
             const formatted = screenData.playlist.items.map((item: any) => ({
               id: item.id,
@@ -134,10 +146,14 @@ export default function TVPlayer({ screenSlug, screenName, initialItems, isLoopi
             
             setItems(formatted);
             localStorage.setItem(`tv_cache_${screenSlug}`, JSON.stringify(formatted));
-            console.log('[TVPlayer] Playlist updated with', formatted.length, 'items');
+
+            // If playlist transitioned to another priority layer, immediately restart from first item
+            if (hasPlaylistChanged) {
+              setCurrentIndex(0);
+              setIsTransitioning(false);
+            }
           } else {
             // No playlist or playlist has 0 items -> Switch to Standby
-            console.log('[TVPlayer] No items found in screen playlist. Switching to Standby Fallback.');
             setItems([]);
             localStorage.removeItem(`tv_cache_${screenSlug}`);
           }
@@ -147,6 +163,9 @@ export default function TVPlayer({ screenSlug, screenName, initialItems, isLoopi
       }
     };
 
+    // Evaluate every 15 seconds so when a scheduled layer starts, player switches immediately
+    const scheduleInterval = setInterval(reloadData, 15000);
+
     try {
       eventSource = new EventSource(`/api/screens/${screenSlug}/events`);
 
@@ -155,7 +174,6 @@ export default function TVPlayer({ screenSlug, screenName, initialItems, isLoopi
       });
 
       eventSource.addEventListener('SCREEN_RELOAD', () => {
-        console.log('[TVPlayer] SCREEN_RELOAD event received. Reloading screen data...');
         reloadData();
       });
 
@@ -172,6 +190,7 @@ export default function TVPlayer({ screenSlug, screenName, initialItems, isLoopi
     }
 
     return () => {
+      clearInterval(scheduleInterval);
       if (eventSource) eventSource.close();
     };
   }, [screenSlug])

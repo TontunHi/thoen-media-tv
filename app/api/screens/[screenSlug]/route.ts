@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { appEmitter, EVENT_TYPES } from '@/lib/events';
-import { isItemActiveNow } from '@/lib/schedule';
+import { isItemActiveNow, resolveActiveSchedule } from '@/lib/schedule';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,6 +22,19 @@ export async function GET(request: NextRequest, context: RouteContext) {
         ]
       },
       include: {
+        schedules: {
+          include: {
+            playlist: {
+              include: {
+                items: {
+                  include: { mediaItem: true },
+                  orderBy: { order: 'asc' }
+                }
+              }
+            }
+          },
+          orderBy: { priority: 'asc' }
+        },
         playlist: {
           include: {
             items: {
@@ -37,11 +50,43 @@ export async function GET(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Screen not found' }, { status: 404 });
     }
 
-    if (screen.playlist) {
-      screen.playlist.items = screen.playlist.items.filter(item => isItemActiveNow(item as any));
+    // Determine active playlist based on multi-playlist schedule layers
+    let effectivePlaylist = null;
+    let activeScheduleId = null;
+
+    if (screen.schedules && screen.schedules.length > 0) {
+      const activeSchedule = resolveActiveSchedule(screen.schedules, new Date());
+      if (activeSchedule && activeSchedule.playlist) {
+        effectivePlaylist = activeSchedule.playlist;
+        activeScheduleId = activeSchedule.id;
+      }
     }
 
-    return NextResponse.json(screen);
+    // Fallback to legacy single playlist if no active schedule found
+    if (!effectivePlaylist && screen.playlist) {
+      effectivePlaylist = screen.playlist;
+    }
+
+    if (effectivePlaylist) {
+      effectivePlaylist.items = effectivePlaylist.items.filter(item => isItemActiveNow(item as any));
+    }
+
+    return NextResponse.json({
+      ...screen,
+      playlist: effectivePlaylist,
+      activeScheduleId,
+      schedules: screen.schedules.map(s => ({
+        id: s.id,
+        screenId: s.screenId,
+        playlistId: s.playlistId,
+        priority: s.priority,
+        startDate: s.startDate,
+        endDate: s.endDate,
+        startTime: s.startTime,
+        endTime: s.endTime,
+        isActive: s.isActive
+      }))
+    });
   } catch (error) {
     console.error('Error fetching screen:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

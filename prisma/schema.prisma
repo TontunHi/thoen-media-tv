@@ -21,24 +21,44 @@ model Screen {
   location     String?
   description  String?
   playlistId   String?
-  playlist     Playlist? @relation(fields: [playlistId], references: [id], onDelete: SetNull)
-  isOnline     Boolean   @default(false)
+  playlist     Playlist?                @relation(fields: [playlistId], references: [id], onDelete: SetNull)
+  schedules    ScreenPlaylistSchedule[]
+  isOnline     Boolean                  @default(false)
   lastPingAt   DateTime?
-  screenKey    String    @unique @default(uuid())
-  loop         Boolean   @default(true)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  screenKey    String                   @unique @default(uuid())
+  loop         Boolean                  @default(true)
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
 }
 
 model Playlist {
-  id          String         @id @default(cuid())
+  id          String                   @id @default(cuid())
   name        String
   description String?
-  isDefault   Boolean        @default(false)
+  isDefault   Boolean                  @default(false)
   items       PlaylistItem[]
   screens     Screen[]
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  schedules   ScreenPlaylistSchedule[]
+  createdAt   DateTime                 @default(now())
+  updatedAt   DateTime                 @updatedAt
+}
+
+model ScreenPlaylistSchedule {
+  id         String    @id @default(cuid())
+  screenId   String
+  screen     Screen    @relation(fields: [screenId], references: [id], onDelete: Cascade)
+  playlistId String
+  playlist   Playlist  @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  priority   Int       @default(1)
+  startDate  DateTime?
+  endDate    DateTime?
+  startTime  String?
+  endTime    String?
+  isActive   Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([screenId, priority])
 }
 
 model MediaFolder {
