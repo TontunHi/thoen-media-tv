@@ -4,6 +4,7 @@ import { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Save, Trash2, Copy, Check, ExternalLink, Loader2, Plus, ArrowUp, ArrowDown, Layers, Calendar, Clock } from 'lucide-react'
+import DateTimePicker from '@/components/ui/DateTimePicker'
 
 export interface ScreenScheduleItem {
   id?: string
@@ -450,28 +451,28 @@ export default function EditScreenPage({ params }: { params: Promise<{ id: strin
 
                         <div>
                           <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
-                            <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                            <Calendar className="w-3.5 h-3.5 text-blue-600" />
                             วันเวลาเริ่มต้น (Start)
                           </label>
-                          <input
-                            type="datetime-local"
+                          <DateTimePicker
                             value={sched.startDate}
-                            onChange={(e) => handleScheduleChange(idx, 'startDate', e.target.value)}
-                            className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-hidden font-mono"
+                            onChange={(val) => handleScheduleChange(idx, 'startDate', val)}
+                            placeholder="เว้นว่าง = เริ่มทันที"
+                            isEnd={false}
                           />
                           <p className="text-[11px] text-slate-400 mt-1">เว้นว่างไว้ = เริ่มทันที</p>
                         </div>
 
                         <div>
                           <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
-                            <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                            <Calendar className="w-3.5 h-3.5 text-blue-600" />
                             วันเวลาสิ้นสุด (End)
                           </label>
-                          <input
-                            type="datetime-local"
+                          <DateTimePicker
                             value={sched.endDate}
-                            onChange={(e) => handleScheduleChange(idx, 'endDate', e.target.value)}
-                            className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-hidden font-mono"
+                            onChange={(val) => handleScheduleChange(idx, 'endDate', val)}
+                            placeholder="เว้นว่าง = ไม่มีสิ้นสุด"
+                            isEnd={true}
                           />
                           <p className="text-[11px] text-slate-400 mt-1">เว้นว่างไว้ = ไม่มีกำหนดสิ้นสุด</p>
                         </div>
