@@ -65,8 +65,8 @@ async function initDB() {
     `);
 
     // Ensure default admin user exists
-    const adminUsername = process.env.ADMIN_USERNAME || 'admin';
-    const adminPassword = process.env.ADMIN_PASSWORD || 'admin';
+    const adminUsername = process.env.ADMIN_USERNAME || 'thoen';
+    const adminPassword = process.env.ADMIN_PASSWORD || 'thlp11152';
     const [existingUsers] = await connection.query('SELECT * FROM users WHERE username = ?', [adminUsername]);
     if (existingUsers.length === 0) {
       const hash = await bcrypt.hash(adminPassword, 10);
