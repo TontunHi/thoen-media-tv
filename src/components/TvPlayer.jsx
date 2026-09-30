@@ -18,6 +18,10 @@ export default function TvPlayer() {
   const [showControls, setShowControls] = useState(false);
   const [cycleTick, setCycleTick] = useState(0);
 
+  const [hasInteracted, setHasInteracted] = useState(() => {
+    return sessionStorage.getItem('tv_audio_unlocked') === '1';
+  });
+
   const videoRef = useRef(null);
   const timerRef = useRef(null);
   const controlsTimeoutRef = useRef(null);
@@ -58,22 +62,24 @@ export default function TvPlayer() {
     }
   }, []);
 
+  const unlockAudio = useCallback(() => {
+    setHasInteracted(true);
+    sessionStorage.setItem('tv_audio_unlocked', '1');
+    setIsMuted(false);
+    if (videoRef.current) {
+      videoRef.current.muted = false;
+      videoRef.current.play().catch(() => {});
+    }
+    if (fbPlayerRef.current) {
+      try {
+        fbPlayerRef.current.unmute();
+        fbPlayerRef.current.play();
+      } catch (e) {}
+    }
+  }, []);
+
   // Global Audio Unlock Listener (Bypasses strict browser autoplay policy upon user tap/click/key)
   useEffect(() => {
-    const unlockAudio = () => {
-      setIsMuted(false);
-      if (videoRef.current) {
-        videoRef.current.muted = false;
-        videoRef.current.play().catch(() => {});
-      }
-      if (fbPlayerRef.current) {
-        try {
-          fbPlayerRef.current.unmute();
-          fbPlayerRef.current.play();
-        } catch (e) {}
-      }
-    };
-
     window.addEventListener('click', unlockAudio, { once: true });
     window.addEventListener('touchstart', unlockAudio, { once: true });
     window.addEventListener('keydown', unlockAudio, { once: true });
@@ -83,7 +89,7 @@ export default function TvPlayer() {
       window.removeEventListener('touchstart', unlockAudio);
       window.removeEventListener('keydown', unlockAudio);
     };
-  }, []);
+  }, [unlockAudio]);
 
   // Load TV Playback data
   const loadTvData = async (silent = false) => {
@@ -383,6 +389,17 @@ export default function TvPlayer() {
           {currentTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
         </div>
       </div>
+
+      {/* One-Touch Audio Activation Floating Pill (shown on initial load before any user interaction) */}
+      {!hasInteracted && (
+        <div
+          onClick={unlockAudio}
+          className="absolute bottom-20 left-1/2 -translate-x-1/2 z-40 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-xs sm:text-sm rounded-full shadow-2xl flex items-center gap-2.5 cursor-pointer hover:scale-105 transition animate-bounce border border-white/25 backdrop-blur-md"
+        >
+          <Volume2 size={18} className="animate-pulse" />
+          <span>คลิก/แตะที่หน้าจอ 1 ครั้ง เพื่อเปิดระบบเสียงการออกอากาศสด</span>
+        </div>
+      )}
 
       {/* Interactive Controls Bar (Appears on Mouse Move) */}
       <div
