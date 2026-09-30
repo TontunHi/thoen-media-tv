@@ -162,6 +162,8 @@ router.get('/', authenticateToken, async (req, res) => {
     console.error('Error fetching media files:', error);
     res.status(500).json({ error: 'Failed to fetch media files' });
   }
+});
+
 // Create Live / Online stream media item (YouTube, Facebook Live, Web Stream)
 router.post('/stream', authenticateToken, async (req, res) => {
   const { name, url, folder_id, default_duration, file_type } = req.body;
