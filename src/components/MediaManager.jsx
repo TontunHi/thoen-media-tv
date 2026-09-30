@@ -17,7 +17,18 @@ import {
   FileCheck,
   Eye,
   Edit2,
+  Radio,
+  Link2,
+  Play,
+  Tv,
 } from 'lucide-react';
+import {
+  extractYouTubeId,
+  getYouTubeThumbnail,
+  getYouTubeEmbedUrl,
+  getFacebookEmbedUrl,
+  detectMediaType,
+} from '../utils/mediaHelper';
 
 export default function MediaManager() {
   const [folders, setFolders] = useState([]);
@@ -34,6 +45,13 @@ export default function MediaManager() {
   const [targetFolderId, setTargetFolderId] = useState('');
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef(null);
+
+  // Live Stream / Online Video Modal state
+  const [showStreamModal, setShowStreamModal] = useState(false);
+  const [streamName, setStreamName] = useState('');
+  const [streamUrl, setStreamUrl] = useState('');
+  const [streamDuration, setStreamDuration] = useState(60);
+  const [streamSubmitting, setStreamSubmitting] = useState(false);
 
   // Load folders & media
   const loadData = async () => {
@@ -125,9 +143,37 @@ export default function MediaManager() {
     }
   };
 
+  // Handle Add Live / Online Stream Media
+  const handleAddStreamMedia = async (e) => {
+    e.preventDefault();
+    if (!streamName.trim() || !streamUrl.trim()) return;
+
+    setStreamSubmitting(true);
+    try {
+      const detectedType = detectMediaType(streamUrl);
+      await api.createStreamMedia({
+        name: streamName.trim(),
+        url: streamUrl.trim(),
+        file_type: detectedType,
+        folder_id: selectedFolder?.id || null,
+        default_duration: parseInt(streamDuration) || 60,
+      });
+
+      setShowStreamModal(false);
+      setStreamName('');
+      setStreamUrl('');
+      setStreamDuration(60);
+      loadData();
+    } catch (err) {
+      alert(err.message || 'ไม่สามารถเพิ่มลิงก์ Live Video ได้');
+    } finally {
+      setStreamSubmitting(false);
+    }
+  };
+
   // Handle Media Delete
   const handleDeleteMedia = async (id) => {
-    if (!confirm('ยืนยันลบไฟล์สื่อนี้?')) return;
+    if (!confirm('ยืนยันลบสื่อนี้?')) return;
     try {
       await api.deleteMedia(id);
       loadData();
@@ -152,12 +198,14 @@ export default function MediaManager() {
   };
 
   const formatFileSize = (bytes) => {
-    if (!bytes) return '0 B';
+    if (!bytes || bytes === 0) return 'ออนไลน์ (Live/URL)';
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
   };
+
+  const currentDetectedStreamType = detectMediaType(streamUrl);
 
   return (
     <div
@@ -167,7 +215,6 @@ export default function MediaManager() {
         setIsDragOver(true);
       }}
       onDragLeave={(e) => {
-        // Only set false if left window
         if (e.relatedTarget === null) setIsDragOver(false);
       }}
       onDrop={(e) => {
@@ -200,11 +247,21 @@ export default function MediaManager() {
             <span>คลังจัดการสื่อ (Media Assets)</span>
           </h2>
           <p className="text-slate-500 text-sm mt-1">
-            อัปโหลด จัดระเบียบโฟลเดอร์ตามแผนก ลากวางไฟล์ได้ตลอดเวลา พร้อมเปลี่ยนชื่อโฟลเดอร์ได้อย่างอิสระ
+            อัปโหลดไฟล์ จัดการโฟลเดอร์ และแนบวิดีโอสด Live Video (YouTube, Facebook Live) เพื่อจัดฉายบนจอทีวี
           </p>
         </div>
 
-        <div className="flex items-center gap-3 self-start sm:self-auto">
+        <div className="flex flex-wrap items-center gap-3 self-start sm:self-auto">
+          {/* Add Live Video / Stream Button */}
+          <button
+            onClick={() => setShowStreamModal(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white rounded-xl text-sm font-semibold shadow-md shadow-rose-500/20 transition-all duration-200 cursor-pointer hover:-translate-y-0.5"
+          >
+            <Radio size={17} className="animate-pulse" />
+            <span>แนบ Live VDO (YouTube / FB)</span>
+          </button>
+
+          {/* New Folder Button */}
           <button
             onClick={() => setShowNewFolderModal(true)}
             className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/90 rounded-xl text-sm font-semibold transition cursor-pointer shadow-xs"
@@ -213,6 +270,7 @@ export default function MediaManager() {
             <span>สร้างโฟลเดอร์</span>
           </button>
 
+          {/* File Upload Input */}
           <input
             type="file"
             ref={fileInputRef}
@@ -222,6 +280,7 @@ export default function MediaManager() {
             className="hidden"
           />
 
+          {/* Upload Files Button */}
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
@@ -385,20 +444,35 @@ export default function MediaManager() {
               </div>
               <h4 className="text-slate-800 font-bold text-base">ยังไม่มีไฟล์สื่อในส่วนนี้</h4>
               <p className="text-slate-400 text-xs mt-1 mb-5 max-w-sm mx-auto">
-                ลากไฟล์มาวางตรงนี้เพื่ออัปโหลดทันที หรือคลิกปุ่มด้านล่างเพื่อเลือกไฟล์จากคอมพิวเตอร์
-                (รองรับ JPG, PNG, GIF, WebP, MP4, WebM)
+                ลากไฟล์มาวางเพื่ออัปโหลดทันที หรือแนบลิงก์ Live Video (YouTube, Facebook Live)
               </p>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs rounded-xl font-semibold transition cursor-pointer shadow-sm"
-              >
-                เลือกไฟล์จากเครื่อง
-              </button>
+              <div className="flex flex-wrap justify-center gap-3">
+                <button
+                  onClick={() => setShowStreamModal(true)}
+                  className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs rounded-xl font-semibold transition cursor-pointer shadow-sm flex items-center gap-2"
+                >
+                  <Radio size={15} />
+                  <span>แนบ Live Video</span>
+                </button>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs rounded-xl font-semibold transition cursor-pointer shadow-sm"
+                >
+                  เลือกไฟล์จากเครื่อง
+                </button>
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
               {mediaFiles.map((media) => {
                 const isVideo = media.file_type === 'video';
+                const isYouTube = media.file_type === 'youtube';
+                const isFacebook = media.file_type === 'facebook';
+                const isStream = media.file_type === 'stream';
+                const isLiveOrEmbed = isYouTube || isFacebook || isStream;
+
+                const ytThumb = isYouTube ? getYouTubeThumbnail(media.file_path) : null;
+
                 return (
                   <div
                     key={media.id}
@@ -409,7 +483,23 @@ export default function MediaManager() {
                       onClick={() => setPreviewMedia(media)}
                       className="relative aspect-video bg-slate-950 flex items-center justify-center cursor-pointer overflow-hidden"
                     >
-                      {isVideo ? (
+                      {isYouTube && ytThumb ? (
+                        <img
+                          src={ytThumb}
+                          alt={media.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                        />
+                      ) : isFacebook ? (
+                        <div className="w-full h-full bg-gradient-to-br from-blue-900 via-indigo-950 to-slate-950 flex flex-col items-center justify-center text-white p-3 text-center">
+                          <Radio size={28} className="text-blue-400 mb-1 animate-pulse" />
+                          <span className="text-[11px] font-bold text-blue-200">Facebook Video / Live</span>
+                        </div>
+                      ) : isStream ? (
+                        <div className="w-full h-full bg-gradient-to-br from-purple-950 via-slate-900 to-black flex flex-col items-center justify-center text-white p-3 text-center">
+                          <Radio size={28} className="text-purple-400 mb-1 animate-pulse" />
+                          <span className="text-[11px] font-bold text-purple-200">Web Live Stream</span>
+                        </div>
+                      ) : isVideo ? (
                         <video
                           src={media.file_path}
                           className="w-full h-full object-cover opacity-90 group-hover:scale-105 transition duration-300"
@@ -424,17 +514,37 @@ export default function MediaManager() {
                       )}
 
                       {/* Badge indicator */}
-                      <span className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-md text-[10px] font-bold text-white flex items-center gap-1 border border-white/20">
-                        {isVideo ? (
-                          <Film size={11} className="text-amber-400" />
+                      <span className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-md text-[10px] font-bold text-white flex items-center gap-1 border border-white/20">
+                        {isYouTube ? (
+                          <>
+                            <Radio size={11} className="text-rose-400 animate-pulse" />
+                            <span className="text-rose-300">YOUTUBE</span>
+                          </>
+                        ) : isFacebook ? (
+                          <>
+                            <Radio size={11} className="text-blue-400 animate-pulse" />
+                            <span className="text-blue-300">FB LIVE</span>
+                          </>
+                        ) : isStream ? (
+                          <>
+                            <Radio size={11} className="text-purple-400 animate-pulse" />
+                            <span className="text-purple-300">STREAM</span>
+                          </>
+                        ) : isVideo ? (
+                          <>
+                            <Film size={11} className="text-amber-400" />
+                            <span>VIDEO</span>
+                          </>
                         ) : (
-                          <ImageIcon size={11} className="text-emerald-400" />
+                          <>
+                            <ImageIcon size={11} className="text-emerald-400" />
+                            <span>IMAGE</span>
+                          </>
                         )}
-                        <span>{isVideo ? 'VIDEO' : 'IMAGE'}</span>
                       </span>
 
                       {/* Quick Preview Hover Overlay */}
-                      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white">
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white">
                         <Eye size={22} className="drop-shadow" />
                       </div>
                     </div>
@@ -449,8 +559,8 @@ export default function MediaManager() {
                       </p>
 
                       <div className="flex items-center justify-between text-xs text-slate-400 mt-2.5 pt-2 border-t border-slate-100">
-                        <span className="text-[11px] font-medium">
-                          {formatFileSize(media.size)}
+                        <span className="text-[11px] font-medium truncate max-w-[110px]" title={media.file_path}>
+                          {isLiveOrEmbed ? `${media.default_duration || 60} วินาที` : formatFileSize(media.size)}
                         </span>
 
                         <div className="flex items-center gap-1">
@@ -470,7 +580,7 @@ export default function MediaManager() {
                           <button
                             onClick={() => handleDeleteMedia(media.id)}
                             className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
-                            title="ลบไฟล์"
+                            title="ลบสื่อ"
                           >
                             <Trash2 size={15} />
                           </button>
@@ -484,6 +594,124 @@ export default function MediaManager() {
           )}
         </div>
       </div>
+
+      {/* Add Live Video / Stream Modal */}
+      {showStreamModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600 shadow-xs">
+                  <Radio size={20} className="animate-pulse" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">แนบ Live Video / สตรีมมิ่งสด</h3>
+                  <p className="text-[11px] text-slate-400">รองรับ YouTube Live, Facebook Live และวิดีโอออนไลน์</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowStreamModal(false)}
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddStreamMedia} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  ชื่อสื่อ / หัวข้อสตรีม <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={streamName}
+                  onChange={(e) => setStreamName(e.target.value)}
+                  placeholder="เช่น ถ่ายทอดสดข่าวสารโรงพยาบาล, สาระสุขภาพช่อง 3"
+                  required
+                  autoFocus
+                  className="w-full px-4 py-2.5 bg-slate-50/60 border border-slate-200 rounded-xl text-slate-900 text-sm focus:ring-2 focus:ring-teal-500 focus:bg-white focus:outline-none transition"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  ลิงก์ URL (YouTube / Facebook Live) <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <Link2 size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="url"
+                    value={streamUrl}
+                    onChange={(e) => setStreamUrl(e.target.value)}
+                    placeholder="https://www.youtube.com/watch?v=... หรือ https://fb.watch/..."
+                    required
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50/60 border border-slate-200 rounded-xl text-slate-900 text-sm focus:ring-2 focus:ring-teal-500 focus:bg-white focus:outline-none transition font-mono"
+                  />
+                </div>
+              </div>
+
+              {/* Detected Type Badge & Preview Hint */}
+              {streamUrl.trim() && (
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 flex items-center justify-between">
+                  <span className="text-xs text-slate-500 font-medium">ประเภทที่ตรวจพบ:</span>
+                  <span
+                    className={`text-xs px-2.5 py-0.5 rounded-md font-bold ${
+                      currentDetectedStreamType === 'youtube'
+                        ? 'bg-rose-100 text-rose-700 border border-rose-200'
+                        : currentDetectedStreamType === 'facebook'
+                        ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                        : 'bg-purple-100 text-purple-700 border border-purple-200'
+                    }`}
+                  >
+                    {currentDetectedStreamType === 'youtube'
+                      ? '📺 YouTube Live / Video'
+                      : currentDetectedStreamType === 'facebook'
+                      ? '📘 Facebook Live / Video'
+                      : '🌐 Web Stream'}
+                  </span>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  ระยะเวลาแสดงผลใน Playlist (วินาที)
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="10"
+                    max="86400"
+                    value={streamDuration}
+                    onChange={(e) => setStreamDuration(e.target.value)}
+                    className="w-32 px-4 py-2 bg-slate-50/60 border border-slate-200 rounded-xl text-slate-900 text-sm focus:ring-2 focus:ring-teal-500 focus:bg-white focus:outline-none transition font-bold"
+                  />
+                  <span className="text-xs text-slate-500">วินาที (เช่น 60 วิ, 300 วิ = 5 นาที, 1800 วิ = 30 นาที)</span>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  * หากใน Playlist มีสื่อนี้เพียงรายการเดียว ระบบจะเล่นสตรีมต่อเนื่องไม่ตัด
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowStreamModal(false)}
+                  className="px-4 py-2 text-xs font-medium text-slate-600 hover:text-slate-800 cursor-pointer"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  disabled={streamSubmitting}
+                  className="px-5 py-2.5 bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white rounded-xl text-xs font-bold shadow-md shadow-rose-500/20 cursor-pointer transition disabled:opacity-50"
+                >
+                  {streamSubmitting ? 'กำลังบันทึก...' : 'แนบสื่อ Live'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Rename Folder Modal */}
       {editingFolder && (
@@ -677,7 +905,23 @@ export default function MediaManager() {
               </button>
             </div>
             <div className="aspect-video bg-black flex items-center justify-center">
-              {previewMedia.file_type === 'video' ? (
+              {previewMedia.file_type === 'youtube' ? (
+                <iframe
+                  src={getYouTubeEmbedUrl(previewMedia.file_path, true, false)}
+                  className="w-full h-full border-0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  title={previewMedia.name}
+                />
+              ) : previewMedia.file_type === 'facebook' ? (
+                <iframe
+                  src={getFacebookEmbedUrl(previewMedia.file_path, true, false)}
+                  className="w-full h-full border-0"
+                  allow="autoplay; clipboard-write; encrypted-media; picture-in-picture"
+                  allowFullScreen
+                  title={previewMedia.name}
+                />
+              ) : previewMedia.file_type === 'video' ? (
                 <video src={previewMedia.file_path} controls autoPlay className="max-h-[72vh] w-full" />
               ) : (
                 <img

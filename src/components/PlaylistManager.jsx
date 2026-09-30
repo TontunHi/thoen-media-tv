@@ -21,7 +21,10 @@ import {
   Calendar,
   Check,
   Edit2,
+  Radio,
+  Tv,
 } from 'lucide-react';
+import { getYouTubeThumbnail } from '../utils/mediaHelper';
 
 export default function PlaylistManager() {
   const [playlists, setPlaylists] = useState([]);
@@ -494,6 +497,10 @@ export default function PlaylistManager() {
 
                     {playlistDetail.items.map((item, idx) => {
                       const isVideo = item.file_type === 'video';
+                      const isYouTube = item.file_type === 'youtube';
+                      const isFacebook = item.file_type === 'facebook';
+                      const isStream = item.file_type === 'stream';
+                      const isLiveStream = isYouTube || isFacebook || isStream;
                       const sched = getScheduleStatus(item);
 
                       return (
@@ -543,7 +550,23 @@ export default function PlaylistManager() {
 
                             {/* Mini Thumbnail */}
                             <div className="w-16 h-11 bg-slate-900 rounded-xl overflow-hidden shrink-0 border border-slate-200/80 shadow-xs flex items-center justify-center relative">
-                              {isVideo ? (
+                              {isYouTube ? (
+                                <img
+                                  src={getYouTubeThumbnail(item.file_path) || ''}
+                                  alt=""
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : isFacebook ? (
+                                <div className="w-full h-full bg-blue-900/90 flex flex-col items-center justify-center p-1 text-center">
+                                  <Radio size={14} className="text-blue-300 animate-pulse mb-0.5" />
+                                  <span className="text-[8px] text-blue-200 font-bold leading-tight">FB Live</span>
+                                </div>
+                              ) : isStream ? (
+                                <div className="w-full h-full bg-indigo-950 flex flex-col items-center justify-center p-1 text-center">
+                                  <Tv size={14} className="text-indigo-400 animate-pulse mb-0.5" />
+                                  <span className="text-[8px] text-indigo-200 font-bold leading-tight">Stream</span>
+                                </div>
+                              ) : isVideo ? (
                                 <video
                                   src={item.file_path}
                                   className="w-full h-full object-cover"
@@ -556,15 +579,39 @@ export default function PlaylistManager() {
                                   className="w-full h-full object-cover"
                                 />
                               )}
-                              <span className="absolute bottom-0.5 right-0.5 px-1 py-0.2 bg-black/70 rounded text-[8px] font-mono text-white">
-                                {isVideo ? 'VID' : 'IMG'}
+                              <span
+                                className={`absolute bottom-0.5 right-0.5 px-1 py-0.2 rounded text-[8px] font-mono text-white font-bold ${
+                                  isYouTube
+                                    ? 'bg-rose-600/90'
+                                    : isFacebook
+                                    ? 'bg-blue-600/90'
+                                    : isStream
+                                    ? 'bg-indigo-600/90'
+                                    : 'bg-black/70'
+                                }`}
+                              >
+                                {isYouTube
+                                  ? 'YT LIVE'
+                                  : isFacebook
+                                  ? 'FB LIVE'
+                                  : isStream
+                                  ? 'STREAM'
+                                  : isVideo
+                                  ? 'VID'
+                                  : 'IMG'}
                               </span>
                             </div>
 
                             {/* Media Name & Schedule Status */}
                             <div className="truncate flex-1 min-w-0">
                               <div className="text-sm font-bold text-slate-800 truncate flex items-center gap-1.5">
-                                {isVideo ? (
+                                {isYouTube ? (
+                                  <Radio size={14} className="text-rose-500 shrink-0 animate-pulse" />
+                                ) : isFacebook ? (
+                                  <Radio size={14} className="text-blue-500 shrink-0 animate-pulse" />
+                                ) : isStream ? (
+                                  <Tv size={14} className="text-indigo-500 shrink-0" />
+                                ) : isVideo ? (
                                   <Film size={14} className="text-amber-500 shrink-0" />
                                 ) : (
                                   <ImageIcon size={14} className="text-emerald-500 shrink-0" />
@@ -592,6 +639,23 @@ export default function PlaylistManager() {
                                 <span className="text-amber-700 font-bold text-[11px] bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200/60">
                                   ตามคลิป
                                 </span>
+                              ) : isLiveStream ? (
+                                <div className="flex items-center gap-1">
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    max="86400"
+                                    value={item.duration_seconds || 60}
+                                    onChange={(e) =>
+                                      handleUpdateItem(item.id, {
+                                        duration_seconds: parseInt(e.target.value) || 10,
+                                      })
+                                    }
+                                    className="w-14 bg-white px-1.5 py-0.5 rounded-lg border border-slate-200 text-center text-rose-600 font-bold focus:ring-2 focus:ring-rose-500 focus:outline-none"
+                                    title="ระยะเวลาแสดงผลของ Live Stream ก่อนสลับไปยังสื่อถัดไป"
+                                  />
+                                  <span className="text-slate-400 font-medium text-[10px]">วิ (สตรีม)</span>
+                                </div>
                               ) : (
                                 <div className="flex items-center gap-1">
                                   <input
@@ -932,6 +996,9 @@ export default function PlaylistManager() {
                 mediaList.map((m) => {
                   const isSelected = selectedMediaIds.includes(m.id);
                   const isVideo = m.file_type === 'video';
+                  const isYouTube = m.file_type === 'youtube';
+                  const isFacebook = m.file_type === 'facebook';
+                  const isStream = m.file_type === 'stream';
                   return (
                     <div
                       key={m.id}
@@ -946,7 +1013,23 @@ export default function PlaylistManager() {
                           : 'border-slate-200 hover:border-slate-300'
                       }`}
                     >
-                      {isVideo ? (
+                      {isYouTube ? (
+                        <img
+                          src={getYouTubeThumbnail(m.file_path) || ''}
+                          alt={m.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : isFacebook ? (
+                        <div className="w-full h-full bg-gradient-to-br from-blue-900 via-blue-950 to-slate-950 flex flex-col items-center justify-center p-3 text-center">
+                          <Radio size={24} className="text-blue-400 animate-pulse mb-1" />
+                          <span className="text-xs text-blue-200 font-bold">Facebook Live</span>
+                        </div>
+                      ) : isStream ? (
+                        <div className="w-full h-full bg-gradient-to-br from-indigo-900 via-indigo-950 to-slate-950 flex flex-col items-center justify-center p-3 text-center">
+                          <Tv size={24} className="text-indigo-400 animate-pulse mb-1" />
+                          <span className="text-xs text-indigo-200 font-bold">Web Stream</span>
+                        </div>
+                      ) : isVideo ? (
                         <video src={m.file_path} className="w-full h-full object-cover" muted />
                       ) : (
                         <img src={m.file_path} alt="" className="w-full h-full object-cover" />
@@ -954,8 +1037,26 @@ export default function PlaylistManager() {
 
                       <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/20 flex flex-col justify-between p-2.5">
                         <div className="flex justify-between items-start">
-                          <span className="px-1.5 py-0.5 bg-black/60 backdrop-blur-xs rounded text-[9px] font-mono text-white">
-                            {isVideo ? 'VIDEO' : 'IMAGE'}
+                          <span
+                            className={`px-1.5 py-0.5 rounded text-[9px] font-mono text-white font-bold backdrop-blur-xs ${
+                              isYouTube
+                                ? 'bg-rose-600/90'
+                                : isFacebook
+                                ? 'bg-blue-600/90'
+                                : isStream
+                                ? 'bg-indigo-600/90'
+                                : 'bg-black/60'
+                            }`}
+                          >
+                            {isYouTube
+                              ? 'YT LIVE'
+                              : isFacebook
+                              ? 'FB LIVE'
+                              : isStream
+                              ? 'STREAM'
+                              : isVideo
+                              ? 'VIDEO'
+                              : 'IMAGE'}
                           </span>
                           <div
                             className={`w-5 h-5 rounded-lg border flex items-center justify-center transition ${

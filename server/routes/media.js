@@ -162,12 +162,72 @@ router.get('/', authenticateToken, async (req, res) => {
     console.error('Error fetching media files:', error);
     res.status(500).json({ error: 'Failed to fetch media files' });
   }
+// Create Live / Online stream media item (YouTube, Facebook Live, Web Stream)
+router.post('/stream', authenticateToken, async (req, res) => {
+  const { name, url, folder_id, default_duration, file_type } = req.body;
+  if (!name || !name.trim()) {
+    return res.status(400).json({ error: 'ชื่อสื่อ (Name) จำเป็นต้องระบุ' });
+  }
+  if (!url || !url.trim()) {
+    return res.status(400).json({ error: 'ลิงก์สตรีม / วิดีโอ URL จำเป็นต้องระบุ' });
+  }
+
+  const cleanUrl = url.trim();
+  let detectedType = file_type;
+  if (!detectedType) {
+    if (cleanUrl.includes('youtube.com') || cleanUrl.includes('youtu.be')) {
+      detectedType = 'youtube';
+    } else if (cleanUrl.includes('facebook.com') || cleanUrl.includes('fb.watch')) {
+      detectedType = 'facebook';
+    } else {
+      detectedType = 'stream';
+    }
+  }
+
+  const mime_type = `video/${detectedType}`;
+  const targetFolderId = folder_id && folder_id !== 'root' && folder_id !== 'all' ? parseInt(folder_id) : null;
+  const duration = parseInt(default_duration) || 60;
+
+  try {
+    const pool = getPool();
+    const [result] = await pool.query(
+      `INSERT INTO media_files (folder_id, name, original_name, file_path, file_type, mime_type, size, default_duration)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        targetFolderId,
+        name.trim(),
+        cleanUrl,
+        cleanUrl,
+        detectedType,
+        mime_type,
+        0,
+        duration
+      ]
+    );
+
+    const inserted = {
+      id: result.insertId,
+      folder_id: targetFolderId,
+      name: name.trim(),
+      original_name: cleanUrl,
+      file_path: cleanUrl,
+      file_type: detectedType,
+      mime_type,
+      size: 0,
+      default_duration: duration
+    };
+
+    res.status(201).json({ success: true, file: inserted });
+  } catch (error) {
+    console.error('Error creating stream media:', error);
+    res.status(500).json({ error: error.message || 'Failed to create stream media' });
+  }
 });
 
 // Update media file (rename or physical folder move)
 router.put('/:id', authenticateToken, async (req, res) => {
   const { id } = req.params;
-  const { name, folder_id, default_duration } = req.body;
+  const { name, folder_id, default_duration, file_path } = req.body;
   const pool = getPool();
   const conn = await pool.getConnection();
 
@@ -194,31 +254,40 @@ router.put('/:id', authenticateToken, async (req, res) => {
       params.push(parseInt(default_duration));
     }
 
-    // Physical move if folder_id changed
+    if (file_path !== undefined && (currentMedia.file_type === 'youtube' || currentMedia.file_type === 'facebook' || currentMedia.file_type === 'stream')) {
+      updates.push('file_path = ?');
+      params.push(file_path.trim());
+    }
+
+    // Folder change
     if (folder_id !== undefined) {
       const newFolderId = folder_id === 'root' || folder_id === null || folder_id === '' ? null : parseInt(folder_id);
 
       if (newFolderId !== currentMedia.folder_id) {
-        const newRelPath = await getRelativeFolderPath(newFolderId, conn);
-        const targetDir = getFullUploadDirPath(newRelPath);
-        if (!(await fileExists(targetDir))) {
-          await fsp.mkdir(targetDir, { recursive: true });
+        // Only perform physical disk moves if the file is a local uploaded file
+        if (currentMedia.file_path && currentMedia.file_path.startsWith('/uploads/')) {
+          const newRelPath = await getRelativeFolderPath(newFolderId, conn);
+          const targetDir = getFullUploadDirPath(newRelPath);
+          if (!(await fileExists(targetDir))) {
+            await fsp.mkdir(targetDir, { recursive: true });
+          }
+
+          const relPartOfOldFile = currentMedia.file_path.replace(/^\/uploads\//, '');
+          const oldPhysicalPath = path.join(rootUploadDir, relPartOfOldFile);
+          const filename = path.basename(currentMedia.file_path);
+          const newPhysicalPath = path.join(targetDir, filename);
+
+          if (await fileExists(oldPhysicalPath) && oldPhysicalPath !== newPhysicalPath) {
+            await fsp.rename(oldPhysicalPath, newPhysicalPath);
+          }
+
+          const newFilePath = newRelPath ? `/uploads/${newRelPath}/${filename}` : `/uploads/${filename}`;
+          updates.push('file_path = ?');
+          params.push(newFilePath);
         }
 
-        const relPartOfOldFile = currentMedia.file_path.replace(/^\/uploads\//, '');
-        const oldPhysicalPath = path.join(rootUploadDir, relPartOfOldFile);
-        const filename = path.basename(currentMedia.file_path);
-        const newPhysicalPath = path.join(targetDir, filename);
-
-        if (await fileExists(oldPhysicalPath) && oldPhysicalPath !== newPhysicalPath) {
-          await fsp.rename(oldPhysicalPath, newPhysicalPath);
-        }
-
-        const newFilePath = newRelPath ? `/uploads/${newRelPath}/${filename}` : `/uploads/${filename}`;
         updates.push('folder_id = ?');
         params.push(newFolderId);
-        updates.push('file_path = ?');
-        params.push(newFilePath);
       }
     }
 
@@ -249,7 +318,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 
     const [rows] = await conn.query('SELECT file_path FROM media_files WHERE id = ?', [id]);
     
-    if (rows.length > 0) {
+    if (rows.length > 0 && rows[0].file_path && rows[0].file_path.startsWith('/uploads/')) {
       const relPartOfFile = rows[0].file_path.replace(/^\/uploads\//, '');
       const fullPath = path.join(rootUploadDir, relPartOfFile);
       if (await fileExists(fullPath)) {

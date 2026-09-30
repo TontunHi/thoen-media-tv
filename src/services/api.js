@@ -83,6 +83,11 @@ export const api = {
       method: 'POST',
       body: formData,
     }),
+  createStreamMedia: (data) =>
+    request('/media/stream', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
   updateMedia: (id, data) =>
     request(`/media/${id}`, {
       method: 'PUT',

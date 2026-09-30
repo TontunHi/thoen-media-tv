@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { api } from '../services/api';
 import { getSocket } from '../services/socket';
 import { Maximize2, Minimize2, Tv, AlertCircle, Volume2, VolumeX, RefreshCw } from 'lucide-react';
+import { getYouTubeEmbedUrl, getFacebookEmbedUrl } from '../utils/mediaHelper';
 
 export default function TvPlayer() {
   const { slug } = useParams();
@@ -123,19 +124,28 @@ export default function TvPlayer() {
 
     if (timerRef.current) clearTimeout(timerRef.current);
 
-    // Image slides: advance after duration_seconds
-    if (currentItem.file_type === 'image') {
-      const durationMs = Math.max((currentItem.duration_seconds || 10) * 1000, 1000);
-      timerRef.current = setTimeout(() => {
-        nextItem();
-      }, durationMs);
+    const isStreamType = ['youtube', 'facebook', 'stream'].includes(currentItem.file_type);
+
+    // Image slides and Live stream slides (YouTube, Facebook, Stream)
+    if (currentItem.file_type === 'image' || isStreamType) {
+      // If there are multiple items in the playlist, cycle to nextItem after duration_seconds
+      // If there is only 1 item and it is a stream, let it play continuously without interruption
+      if (validItems.length > 1 || currentItem.file_type === 'image') {
+        const durationMs = Math.max(
+          (currentItem.duration_seconds || (isStreamType ? 60 : 10)) * 1000,
+          1000
+        );
+        timerRef.current = setTimeout(() => {
+          nextItem();
+        }, durationMs);
+      }
     }
-    // Video slides: advance naturally on `onEnded` event
+    // Local video slides: advance naturally on `onEnded` event
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [currentItemId, currentItem?.file_type, currentItem?.duration_seconds, cycleTick, nextItem]);
+  }, [currentItemId, currentItem?.file_type, currentItem?.duration_seconds, cycleTick, nextItem, validItems.length]);
 
   // Adjust index if out of bounds when validItems list changes
   useEffect(() => {
@@ -215,7 +225,40 @@ export default function TvPlayer() {
       {/* Media Display Area */}
       {currentItem && (
         <div className="w-full h-full flex items-center justify-center bg-black">
-          {currentItem.file_type === 'video' ? (
+          {currentItem.file_type === 'youtube' ? (
+            <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center pointer-events-none">
+              <iframe
+                key={currentItem.id}
+                src={getYouTubeEmbedUrl(currentItem.file_path, true, isMuted)}
+                title={currentItem.media_name}
+                className="w-full h-full border-0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              />
+            </div>
+          ) : currentItem.file_type === 'facebook' ? (
+            <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center">
+              <iframe
+                key={currentItem.id}
+                src={getFacebookEmbedUrl(currentItem.file_path, true, isMuted)}
+                title={currentItem.media_name}
+                className="w-full h-full border-0"
+                allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+                allowFullScreen
+              />
+            </div>
+          ) : currentItem.file_type === 'stream' ? (
+            <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center">
+              <iframe
+                key={currentItem.id}
+                src={currentItem.file_path}
+                title={currentItem.media_name}
+                className="w-full h-full border-0"
+                allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+                allowFullScreen
+              />
+            </div>
+          ) : currentItem.file_type === 'video' ? (
             <video
               ref={videoRef}
               key={`${currentItem.id}-${cycleTick}`}
@@ -270,7 +313,7 @@ export default function TvPlayer() {
           {validItems.length > 0 ? currentIndex + 1 : 0} / {validItems.length}
         </span>
 
-        {currentItem?.file_type === 'video' && (
+        {(currentItem?.file_type === 'video' || ['youtube', 'facebook', 'stream'].includes(currentItem?.file_type)) && (
           <button
             onClick={() => {
               setIsMuted(!isMuted);

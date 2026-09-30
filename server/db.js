@@ -93,7 +93,7 @@ async function initDB() {
         name VARCHAR(255) NOT NULL,
         original_name VARCHAR(255) NOT NULL,
         file_path VARCHAR(500) NOT NULL,
-        file_type ENUM('image', 'video') NOT NULL,
+        file_type VARCHAR(50) NOT NULL,
         mime_type VARCHAR(100) NOT NULL,
         size BIGINT NOT NULL,
         default_duration INT DEFAULT 10,
@@ -101,6 +101,13 @@ async function initDB() {
         FOREIGN KEY (folder_id) REFERENCES folders(id) ON DELETE SET NULL
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
+
+    // Ensure file_type column supports stream / live / youtube / facebook types
+    try {
+      await connection.query('ALTER TABLE media_files MODIFY COLUMN file_type VARCHAR(50) NOT NULL;');
+    } catch (e) {
+      // ignore
+    }
 
     // Playlists table
     await connection.query(`

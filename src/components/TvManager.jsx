@@ -18,6 +18,7 @@ import {
   Film,
   Image as ImageIcon,
 } from 'lucide-react';
+import { getYouTubeThumbnail } from '../utils/mediaHelper';
 
 export default function TvManager() {
   const [tvs, setTvs] = useState([]);
@@ -206,7 +207,23 @@ export default function TvManager() {
                   <div className="relative aspect-video bg-slate-950 rounded-2xl border-4 border-slate-900 shadow-inner overflow-hidden mb-4 group/screen flex items-center justify-center">
                     {/* Simulated Content */}
                     {previewMedia ? (
-                      previewMedia.file_type === 'video' ? (
+                      previewMedia.file_type === 'youtube' ? (
+                        <img
+                          src={getYouTubeThumbnail(previewMedia.file_path) || ''}
+                          alt=""
+                          className="w-full h-full object-cover opacity-90 group-hover/screen:scale-105 transition duration-500"
+                        />
+                      ) : previewMedia.file_type === 'facebook' ? (
+                        <div className="w-full h-full bg-gradient-to-br from-blue-900 via-blue-950 to-slate-950 flex flex-col items-center justify-center p-3 text-center">
+                          <Radio size={28} className="text-blue-400 animate-pulse mb-1" />
+                          <span className="text-xs text-blue-200 font-bold">Facebook Live</span>
+                        </div>
+                      ) : previewMedia.file_type === 'stream' ? (
+                        <div className="w-full h-full bg-gradient-to-br from-indigo-900 via-indigo-950 to-slate-950 flex flex-col items-center justify-center p-3 text-center">
+                          <Tv size={28} className="text-indigo-400 animate-pulse mb-1" />
+                          <span className="text-xs text-indigo-200 font-bold">Web Stream</span>
+                        </div>
+                      ) : previewMedia.file_type === 'video' ? (
                         <video
                           src={previewMedia.file_path}
                           className="w-full h-full object-cover opacity-80"
