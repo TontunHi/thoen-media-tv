@@ -640,21 +640,26 @@ export default function PlaylistManager() {
                                   ตามคลิป
                                 </span>
                               ) : isLiveStream ? (
-                                <div className="flex items-center gap-1">
-                                  <input
-                                    type="number"
-                                    min="1"
-                                    max="86400"
-                                    value={item.duration_seconds || 60}
+                                <div className="flex items-center gap-1.5">
+                                  <select
+                                    value={item.duration_seconds === 0 ? '0' : String(item.duration_seconds || 0)}
                                     onChange={(e) =>
                                       handleUpdateItem(item.id, {
-                                        duration_seconds: parseInt(e.target.value) || 10,
+                                        duration_seconds: parseInt(e.target.value) || 0,
                                       })
                                     }
-                                    className="w-14 bg-white px-1.5 py-0.5 rounded-lg border border-slate-200 text-center text-rose-600 font-bold focus:ring-2 focus:ring-rose-500 focus:outline-none"
-                                    title="ระยะเวลาแสดงผลของ Live Stream ก่อนสลับไปยังสื่อถัดไป"
-                                  />
-                                  <span className="text-slate-400 font-medium text-[10px]">วิ (สตรีม)</span>
+                                    className="bg-white px-2 py-0.5 rounded-lg border border-slate-200 text-rose-600 font-bold text-xs focus:ring-2 focus:ring-rose-500 focus:outline-none cursor-pointer"
+                                    title="ระยะเวลาแสดงผล (0 = เล่นต่อเนื่องไม่จำกัดเวลา)"
+                                  >
+                                    <option value="0">♾️ เล่นต่อเนื่อง (ไม่จำกัดเวลา)</option>
+                                    <option value="30">30 วินาที</option>
+                                    <option value="60">1 นาที (60 วิ)</option>
+                                    <option value="180">3 นาที (180 วิ)</option>
+                                    <option value="300">5 นาที (300 วิ)</option>
+                                    <option value="600">10 นาที (600 วิ)</option>
+                                    <option value="1800">30 นาที (1800 วิ)</option>
+                                    <option value="3600">1 ชั่วโมง</option>
+                                  </select>
                                 </div>
                               ) : (
                                 <div className="flex items-center gap-1">

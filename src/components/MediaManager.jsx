@@ -50,7 +50,7 @@ export default function MediaManager() {
   const [showStreamModal, setShowStreamModal] = useState(false);
   const [streamName, setStreamName] = useState('');
   const [streamUrl, setStreamUrl] = useState('');
-  const [streamDuration, setStreamDuration] = useState(60);
+  const [streamDuration, setStreamDuration] = useState(0);
   const [streamSubmitting, setStreamSubmitting] = useState(false);
 
   // Load folders & media
@@ -674,21 +674,23 @@ export default function MediaManager() {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  ระยะเวลาแสดงผลใน Playlist (วินาที)
+                  ระยะเวลาแสดงผลใน Playlist
                 </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    min="10"
-                    max="86400"
-                    value={streamDuration}
-                    onChange={(e) => setStreamDuration(e.target.value)}
-                    className="w-32 px-4 py-2 bg-slate-50/60 border border-slate-200 rounded-xl text-slate-900 text-sm focus:ring-2 focus:ring-teal-500 focus:bg-white focus:outline-none transition font-bold"
-                  />
-                  <span className="text-xs text-slate-500">วินาที (เช่น 60 วิ, 300 วิ = 5 นาที, 1800 วิ = 30 นาที)</span>
-                </div>
+                <select
+                  value={streamDuration}
+                  onChange={(e) => setStreamDuration(parseInt(e.target.value) || 0)}
+                  className="w-full px-3.5 py-2.5 bg-slate-50/60 border border-slate-200 rounded-xl text-slate-900 text-sm focus:ring-2 focus:ring-teal-500 focus:bg-white focus:outline-none transition font-semibold cursor-pointer"
+                >
+                  <option value="0">♾️ เล่นต่อเนื่องตลอด (ไม่จำกัดเวลา)</option>
+                  <option value="60">1 นาที (60 วินาที)</option>
+                  <option value="180">3 นาที (180 วินาที)</option>
+                  <option value="300">5 นาที (300 วินาที)</option>
+                  <option value="600">10 นาที (600 วินาที)</option>
+                  <option value="1800">30 นาที</option>
+                  <option value="3600">1 ชั่วโมง</option>
+                </select>
                 <p className="text-[11px] text-slate-400 mt-1">
-                  * หากใน Playlist มีสื่อนี้เพียงรายการเดียว ระบบจะเล่นสตรีมต่อเนื่องไม่ตัด
+                  * หากเลือกเล่นต่อเนื่องตลอด สตรีมจะเล่นสดไปเรื่อยๆ โดยไม่ถูกตัดเวลา
                 </p>
               </div>
 

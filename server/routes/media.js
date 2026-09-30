@@ -188,7 +188,7 @@ router.post('/stream', authenticateToken, async (req, res) => {
 
   const mime_type = `video/${detectedType}`;
   const targetFolderId = folder_id && folder_id !== 'root' && folder_id !== 'all' ? parseInt(folder_id) : null;
-  const duration = parseInt(default_duration) || 60;
+  const duration = default_duration !== undefined && default_duration !== null && !isNaN(parseInt(default_duration)) ? Math.max(0, parseInt(default_duration)) : 0;
 
   try {
     const pool = getPool();

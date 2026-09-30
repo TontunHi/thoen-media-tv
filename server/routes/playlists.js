@@ -142,10 +142,15 @@ router.post('/:id/items', authenticateToken, async (req, res) => {
     let currentOrder = (maxOrderRow[0].max_order || 0) + 1;
 
     for (const media_file_id of media_file_ids) {
+      const [mediaRows] = await pool.query('SELECT file_type, default_duration FROM media_files WHERE id = ?', [media_file_id]);
+      const defaultDur = mediaRows.length > 0 && mediaRows[0].default_duration !== undefined && mediaRows[0].default_duration !== null
+        ? mediaRows[0].default_duration
+        : (['youtube', 'facebook', 'stream'].includes(mediaRows[0]?.file_type) ? 0 : 10);
+
       await pool.query(
         `INSERT INTO playlist_items (playlist_id, media_file_id, display_order, duration_seconds, is_active)
          VALUES (?, ?, ?, ?, 1)`,
-        [id, media_file_id, currentOrder++, duration_seconds || 10]
+        [id, media_file_id, currentOrder++, defaultDur]
       );
     }
 
@@ -186,7 +191,7 @@ router.put('/:playlistId/items/:itemId', authenticateToken, async (req, res) => 
 
     if (duration_seconds !== undefined) {
       const duration = parseInt(duration_seconds);
-      if (!isNaN(duration) && duration >= 1) {
+      if (!isNaN(duration) && duration >= 0) {
         updates.push('duration_seconds = ?');
         params.push(Math.min(duration, 86400)); // Cap at 24h
       }

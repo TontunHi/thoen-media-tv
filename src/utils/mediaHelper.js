@@ -27,7 +27,7 @@ export function getYouTubeThumbnail(url) {
 /**
  * Returns sanitized YouTube Embed URL with clean kiosk settings.
  */
-export function getYouTubeEmbedUrl(url, autoplay = true, mute = true) {
+export function getYouTubeEmbedUrl(url, autoplay = true, mute = false) {
   const id = extractYouTubeId(url);
   if (!id) return url;
   const auto = autoplay ? 1 : 0;
@@ -38,7 +38,7 @@ export function getYouTubeEmbedUrl(url, autoplay = true, mute = true) {
 /**
  * Returns Facebook Video / Live Embed URL.
  */
-export function getFacebookEmbedUrl(url, autoplay = true, mute = true) {
+export function getFacebookEmbedUrl(url, autoplay = true, mute = false) {
   if (!url || typeof url !== 'string') return '';
   if (url.includes('facebook.com/plugins/video.php')) {
     return url;

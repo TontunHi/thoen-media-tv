@@ -13,7 +13,7 @@ export default function TvPlayer() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [error, setError] = useState('');
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(false);
   const [cycleTick, setCycleTick] = useState(0);
@@ -21,6 +21,27 @@ export default function TvPlayer() {
   const videoRef = useRef(null);
   const timerRef = useRef(null);
   const controlsTimeoutRef = useRef(null);
+
+  // Global Audio Unlock Listener (Bypasses strict browser autoplay policy upon user tap/click/key)
+  useEffect(() => {
+    const unlockAudio = () => {
+      setIsMuted(false);
+      if (videoRef.current) {
+        videoRef.current.muted = false;
+        videoRef.current.play().catch(() => {});
+      }
+    };
+
+    window.addEventListener('click', unlockAudio, { once: true });
+    window.addEventListener('touchstart', unlockAudio, { once: true });
+    window.addEventListener('keydown', unlockAudio, { once: true });
+
+    return () => {
+      window.removeEventListener('click', unlockAudio);
+      window.removeEventListener('touchstart', unlockAudio);
+      window.removeEventListener('keydown', unlockAudio);
+    };
+  }, []);
 
   // Load TV Playback data
   const loadTvData = async (silent = false) => {
@@ -118,6 +139,20 @@ export default function TvPlayer() {
     setCurrentIndex((prev) => (prev + 1) % list.length);
   }, []);
 
+  // Video autoplay unmuted with fallback to muted on strict browser autoplay policy
+  useEffect(() => {
+    if (currentItem?.file_type === 'video' && videoRef.current) {
+      videoRef.current.muted = isMuted;
+      videoRef.current.play().catch((err) => {
+        console.warn('Autoplay unmuted blocked by browser policy, falling back to muted until interaction:', err);
+        if (videoRef.current) {
+          videoRef.current.muted = true;
+          videoRef.current.play().catch(() => {});
+        }
+      });
+    }
+  }, [currentItemId, cycleTick, isMuted, currentItem?.file_type]);
+
   // Handle slide transition when item or cycle tick changes
   useEffect(() => {
     if (!currentItem) return;
@@ -126,21 +161,25 @@ export default function TvPlayer() {
 
     const isStreamType = ['youtube', 'facebook', 'stream'].includes(currentItem.file_type);
 
-    // Image slides and Live stream slides (YouTube, Facebook, Stream)
-    if (currentItem.file_type === 'image' || isStreamType) {
-      // If there are multiple items in the playlist, cycle to nextItem after duration_seconds
-      // If there is only 1 item and it is a stream, let it play continuously without interruption
-      if (validItems.length > 1 || currentItem.file_type === 'image') {
-        const durationMs = Math.max(
-          (currentItem.duration_seconds || (isStreamType ? 60 : 10)) * 1000,
-          1000
-        );
+    // 1. Image slides: advance after duration_seconds (default 10s)
+    if (currentItem.file_type === 'image') {
+      const durationMs = Math.max((currentItem.duration_seconds || 10) * 1000, 1000);
+      timerRef.current = setTimeout(() => {
+        nextItem();
+      }, durationMs);
+    } else if (isStreamType) {
+      // 2. Live Stream slides (YouTube Live, Facebook Live, Web Stream):
+      // If duration_seconds > 0 and playlist has multiple items, rotate after duration.
+      // If duration_seconds is 0 / empty or only 1 item in playlist: PLAY CONTINUOUSLY WITHOUT LIMIT (ไม่มีการจำกัดเวลา)!
+      const streamDuration = parseInt(currentItem.duration_seconds);
+      if (validItems.length > 1 && streamDuration > 0) {
+        const durationMs = Math.max(streamDuration * 1000, 1000);
         timerRef.current = setTimeout(() => {
           nextItem();
         }, durationMs);
       }
     }
-    // Local video slides: advance naturally on `onEnded` event
+    // 3. Local video slides: advance naturally on `onEnded` event
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
@@ -226,7 +265,7 @@ export default function TvPlayer() {
       {currentItem && (
         <div className="w-full h-full flex items-center justify-center bg-black">
           {currentItem.file_type === 'youtube' ? (
-            <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center pointer-events-none">
+            <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center">
               <iframe
                 key={currentItem.id}
                 src={getYouTubeEmbedUrl(currentItem.file_path, true, isMuted)}
