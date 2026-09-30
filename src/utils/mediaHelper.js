@@ -43,9 +43,9 @@ export function getFacebookEmbedUrl(url, autoplay = true, mute = false) {
   if (url.includes('facebook.com/plugins/video.php')) {
     return url;
   }
-  const auto = autoplay ? 'true' : 'false';
-  const m = mute ? 'true' : 'false';
-  return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=0&autoplay=${auto}&muted=${m}&width=1280`;
+  const auto = autoplay ? '1' : '0';
+  const m = mute ? '1' : '0';
+  return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=0&autoplay=${auto}&mute=${m}&muted=${m}&allowfullscreen=true&width=1280`;
 }
 
 /**

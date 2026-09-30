@@ -21,6 +21,42 @@ export default function TvPlayer() {
   const videoRef = useRef(null);
   const timerRef = useRef(null);
   const controlsTimeoutRef = useRef(null);
+  const fbPlayerRef = useRef(null);
+
+  // Initialize Facebook SDK for automatic unmuting via Embedded Video Player API
+  useEffect(() => {
+    if (!window.FB && !document.getElementById('facebook-jssdk')) {
+      const fbRoot = document.getElementById('fb-root') || document.createElement('div');
+      fbRoot.id = 'fb-root';
+      if (!document.getElementById('fb-root')) document.body.appendChild(fbRoot);
+
+      window.fbAsyncInit = function () {
+        window.FB.init({
+          xfbml: true,
+          version: 'v20.0',
+        });
+
+        window.FB.Event.subscribe('xfbml.ready', function (msg) {
+          if (msg.type === 'video') {
+            fbPlayerRef.current = msg.instance;
+            try {
+              msg.instance.unmute();
+              msg.instance.play();
+            } catch (e) {
+              console.log('FB player auto-unmute attempt:', e);
+            }
+          }
+        });
+      };
+
+      const js = document.createElement('script');
+      js.id = 'facebook-jssdk';
+      js.src = 'https://connect.facebook.net/th_TH/sdk.js';
+      js.async = true;
+      js.defer = true;
+      document.body.appendChild(js);
+    }
+  }, []);
 
   // Global Audio Unlock Listener (Bypasses strict browser autoplay policy upon user tap/click/key)
   useEffect(() => {
@@ -29,6 +65,12 @@ export default function TvPlayer() {
       if (videoRef.current) {
         videoRef.current.muted = false;
         videoRef.current.play().catch(() => {});
+      }
+      if (fbPlayerRef.current) {
+        try {
+          fbPlayerRef.current.unmute();
+          fbPlayerRef.current.play();
+        } catch (e) {}
       }
     };
 
@@ -282,7 +324,7 @@ export default function TvPlayer() {
                 src={getFacebookEmbedUrl(currentItem.file_path, true, isMuted)}
                 title={currentItem.media_name}
                 className="w-full h-full border-0"
-                allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
                 allowFullScreen
               />
             </div>
@@ -355,8 +397,19 @@ export default function TvPlayer() {
         {(currentItem?.file_type === 'video' || ['youtube', 'facebook', 'stream'].includes(currentItem?.file_type)) && (
           <button
             onClick={() => {
-              setIsMuted(!isMuted);
-              if (videoRef.current) videoRef.current.muted = !isMuted;
+              const nextMuted = !isMuted;
+              setIsMuted(nextMuted);
+              if (videoRef.current) videoRef.current.muted = nextMuted;
+              if (fbPlayerRef.current) {
+                try {
+                  if (nextMuted) {
+                    fbPlayerRef.current.mute();
+                  } else {
+                    fbPlayerRef.current.unmute();
+                    fbPlayerRef.current.play();
+                  }
+                } catch (e) {}
+              }
             }}
             className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800 transition cursor-pointer"
             title={isMuted ? 'เปิดเสียง' : 'ปิดเสียง'}
