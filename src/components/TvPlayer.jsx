@@ -3,7 +3,8 @@ import { useParams } from 'react-router-dom';
 import { api } from '../services/api';
 import { getSocket } from '../services/socket';
 import { Maximize2, Minimize2, Tv, AlertCircle, Volume2, VolumeX, RefreshCw } from 'lucide-react';
-import { getYouTubeEmbedUrl, getFacebookEmbedUrl } from '../utils/mediaHelper';
+import { getYouTubeEmbedUrl, getFacebookEmbedUrl, extractYouTubeId } from '../utils/mediaHelper';
+import Hls from 'hls.js';
 
 export default function TvPlayer() {
   const { slug } = useParams();
@@ -18,14 +19,22 @@ export default function TvPlayer() {
   const [showControls, setShowControls] = useState(false);
   const [cycleTick, setCycleTick] = useState(0);
 
-  const [hasInteracted, setHasInteracted] = useState(() => {
-    return sessionStorage.getItem('tv_audio_unlocked') === '1';
-  });
-
   const videoRef = useRef(null);
   const timerRef = useRef(null);
   const controlsTimeoutRef = useRef(null);
   const fbPlayerRef = useRef(null);
+  const ytPlayerRef = useRef(null);
+  const hlsRef = useRef(null);
+
+  // Load YouTube Iframe Player API
+  useEffect(() => {
+    if (!window.YT) {
+      const tag = document.createElement('script');
+      tag.src = 'https://www.youtube.com/iframe_api';
+      const firstScriptTag = document.getElementsByTagName('script')[0];
+      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+    }
+  }, []);
 
   // Initialize Facebook SDK for automatic unmuting via Embedded Video Player API
   useEffect(() => {
@@ -62,24 +71,29 @@ export default function TvPlayer() {
     }
   }, []);
 
-  const unlockAudio = useCallback(() => {
-    setHasInteracted(true);
-    sessionStorage.setItem('tv_audio_unlocked', '1');
-    setIsMuted(false);
-    if (videoRef.current) {
-      videoRef.current.muted = false;
-      videoRef.current.play().catch(() => {});
-    }
-    if (fbPlayerRef.current) {
-      try {
-        fbPlayerRef.current.unmute();
-        fbPlayerRef.current.play();
-      } catch (e) {}
-    }
-  }, []);
-
   // Global Audio Unlock Listener (Bypasses strict browser autoplay policy upon user tap/click/key)
   useEffect(() => {
+    const unlockAudio = () => {
+      setIsMuted(false);
+      if (videoRef.current) {
+        videoRef.current.muted = false;
+        videoRef.current.play().catch(() => {});
+      }
+      if (ytPlayerRef.current && typeof ytPlayerRef.current.unMute === 'function') {
+        try {
+          ytPlayerRef.current.unMute();
+          ytPlayerRef.current.setVolume(100);
+          ytPlayerRef.current.playVideo();
+        } catch (e) {}
+      }
+      if (fbPlayerRef.current) {
+        try {
+          fbPlayerRef.current.unmute();
+          fbPlayerRef.current.play();
+        } catch (e) {}
+      }
+    };
+
     window.addEventListener('click', unlockAudio, { once: true });
     window.addEventListener('touchstart', unlockAudio, { once: true });
     window.addEventListener('keydown', unlockAudio, { once: true });
@@ -89,7 +103,7 @@ export default function TvPlayer() {
       window.removeEventListener('touchstart', unlockAudio);
       window.removeEventListener('keydown', unlockAudio);
     };
-  }, [unlockAudio]);
+  }, []);
 
   // Load TV Playback data
   const loadTvData = async (silent = false) => {
@@ -200,6 +214,51 @@ export default function TvPlayer() {
       });
     }
   }, [currentItemId, cycleTick, isMuted, currentItem?.file_type]);
+
+  // HLS (.m3u8) Direct Stream playback support (OBS / Live Streaming server / CCTV)
+  useEffect(() => {
+    const isM3u8 = currentItem?.file_path && currentItem.file_path.includes('.m3u8');
+    if (!isM3u8 || !videoRef.current) return;
+
+    const streamUrl = currentItem.file_path;
+    if (Hls.isSupported()) {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+
+      const hls = new Hls({
+        enableWorker: true,
+        lowLatencyMode: true,
+      });
+      hlsRef.current = hls;
+      hls.loadSource(streamUrl);
+      hls.attachMedia(videoRef.current);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        if (videoRef.current) {
+          videoRef.current.muted = isMuted;
+          videoRef.current.play().catch((e) => console.log('HLS play unmuted attempt:', e));
+        }
+      });
+      hls.on(Hls.Events.ERROR, (event, data) => {
+        if (data.fatal) {
+          console.error('Fatal HLS error:', data);
+          setTimeout(nextItem, 2000);
+        }
+      });
+
+      return () => {
+        if (hlsRef.current) {
+          hlsRef.current.destroy();
+          hlsRef.current = null;
+        }
+      };
+    } else if (videoRef.current.canPlayType('application/vnd.apple.mpegurl')) {
+      videoRef.current.src = streamUrl;
+      videoRef.current.muted = isMuted;
+      videoRef.current.play().catch(() => {});
+    }
+  }, [currentItemId, cycleTick, isMuted, currentItem?.file_type, currentItem?.file_path, nextItem]);
 
   // Handle slide transition when item or cycle tick changes
   useEffect(() => {
@@ -315,18 +374,18 @@ export default function TvPlayer() {
           {currentItem.file_type === 'youtube' ? (
             <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center">
               <iframe
-                key={currentItem.id}
+                key={`${currentItem.id}-${cycleTick}`}
                 src={getYouTubeEmbedUrl(currentItem.file_path, true, isMuted)}
                 title={currentItem.media_name}
                 className="w-full h-full border-0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
                 allowFullScreen
               />
             </div>
           ) : currentItem.file_type === 'facebook' ? (
             <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center">
               <iframe
-                key={currentItem.id}
+                key={`${currentItem.id}-${cycleTick}`}
                 src={getFacebookEmbedUrl(currentItem.file_path, true, isMuted)}
                 title={currentItem.media_name}
                 className="w-full h-full border-0"
@@ -334,14 +393,28 @@ export default function TvPlayer() {
                 allowFullScreen
               />
             </div>
+          ) : currentItem.file_type === 'stream' && currentItem.file_path?.includes('.m3u8') ? (
+            <video
+              ref={videoRef}
+              key={`${currentItem.id}-${cycleTick}`}
+              autoPlay
+              muted={isMuted}
+              playsInline
+              onEnded={nextItem}
+              onError={(e) => {
+                console.error('HLS Stream error:', e);
+                setTimeout(nextItem, 2000);
+              }}
+              className="w-full h-full object-contain"
+            />
           ) : currentItem.file_type === 'stream' ? (
             <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center">
               <iframe
-                key={currentItem.id}
+                key={`${currentItem.id}-${cycleTick}`}
                 src={currentItem.file_path}
                 title={currentItem.media_name}
                 className="w-full h-full border-0"
-                allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
                 allowFullScreen
               />
             </div>
@@ -389,17 +462,6 @@ export default function TvPlayer() {
           {currentTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
         </div>
       </div>
-
-      {/* One-Touch Audio Activation Floating Pill (shown on initial load before any user interaction) */}
-      {!hasInteracted && (
-        <div
-          onClick={unlockAudio}
-          className="absolute bottom-20 left-1/2 -translate-x-1/2 z-40 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-xs sm:text-sm rounded-full shadow-2xl flex items-center gap-2.5 cursor-pointer hover:scale-105 transition animate-bounce border border-white/25 backdrop-blur-md"
-        >
-          <Volume2 size={18} className="animate-pulse" />
-          <span>คลิก/แตะที่หน้าจอ 1 ครั้ง เพื่อเปิดระบบเสียงการออกอากาศสด</span>
-        </div>
-      )}
 
       {/* Interactive Controls Bar (Appears on Mouse Move) */}
       <div
