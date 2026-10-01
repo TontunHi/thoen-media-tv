@@ -152,6 +152,41 @@ async function initDB() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
 
+    // Auto-repair any mojibake filenames in media_files
+    try {
+      const [mediaRows] = await connection.query('SELECT id, name, original_name FROM media_files');
+      for (const row of mediaRows) {
+        let changed = false;
+        let fixedName = row.name;
+        let fixedOrig = row.original_name;
+
+        if (fixedName && !/[\u0100-\uFFFF]/.test(fixedName) && /[\u0080-\u00FF]/.test(fixedName)) {
+          const dec = Buffer.from(fixedName, 'latin1').toString('utf8');
+          if (!dec.includes('\uFFFD')) {
+            fixedName = dec;
+            changed = true;
+          }
+        }
+        if (fixedOrig && !/[\u0100-\uFFFF]/.test(fixedOrig) && /[\u0080-\u00FF]/.test(fixedOrig)) {
+          const dec = Buffer.from(fixedOrig, 'latin1').toString('utf8');
+          if (!dec.includes('\uFFFD')) {
+            fixedOrig = dec;
+            changed = true;
+          }
+        }
+
+        if (changed) {
+          await connection.query(
+            'UPDATE media_files SET name = ?, original_name = ? WHERE id = ?',
+            [fixedName, fixedOrig, row.id]
+          );
+          console.log(`Auto-repaired mojibake filename for media_file #${row.id}: '${row.name}' -> '${fixedName}'`);
+        }
+      }
+    } catch (e) {
+      console.warn('Notice: Media files auto-repair skipped:', e.message);
+    }
+
     connection.release();
     console.log('Database initialized successfully tables ready.');
   } catch (error) {

@@ -40,6 +40,8 @@ export default function MediaManager() {
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [editingFolder, setEditingFolder] = useState(null); // { id, name }
   const [editFolderName, setEditFolderName] = useState('');
+  const [editingMedia, setEditingMedia] = useState(null); // { id, name }
+  const [editMediaName, setEditMediaName] = useState('');
   const [previewMedia, setPreviewMedia] = useState(null);
   const [movingMedia, setMovingMedia] = useState(null);
   const [targetFolderId, setTargetFolderId] = useState('');
@@ -52,6 +54,21 @@ export default function MediaManager() {
   const [streamUrl, setStreamUrl] = useState('');
   const [streamDuration, setStreamDuration] = useState(0);
   const [streamSubmitting, setStreamSubmitting] = useState(false);
+
+  // Handle Media Rename
+  const handleRenameMedia = async (e) => {
+    e.preventDefault();
+    if (!editingMedia || !editMediaName.trim()) return;
+
+    try {
+      await api.updateMedia(editingMedia.id, { name: editMediaName.trim() });
+      setEditingMedia(null);
+      setEditMediaName('');
+      loadData();
+    } catch (err) {
+      alert(err.message || 'ไม่สามารถเปลี่ยนชื่อสื่อได้');
+    }
+  };
 
   // Load folders & media
   const loadData = async () => {
@@ -564,6 +581,18 @@ export default function MediaManager() {
                         </span>
 
                         <div className="flex items-center gap-1">
+                          {/* Rename media button */}
+                          <button
+                            onClick={() => {
+                              setEditingMedia(media);
+                              setEditMediaName(media.name);
+                            }}
+                            className="p-1.5 text-slate-400 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition cursor-pointer"
+                            title="เปลี่ยนชื่อสื่อ"
+                          >
+                            <Edit2 size={15} />
+                          </button>
+
                           {/* Move to folder button */}
                           <button
                             onClick={() => {
@@ -825,6 +854,61 @@ export default function MediaManager() {
                   className="px-5 py-2.5 bg-gradient-to-r from-teal-600 to-indigo-600 hover:from-teal-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-teal-600/20 cursor-pointer transition"
                 >
                   ย้ายไฟล์
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Rename Media Modal */}
+      {editingMedia && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-sm w-full p-6 shadow-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center">
+                  <Edit2 size={16} />
+                </div>
+                <h3 className="text-sm font-bold text-slate-900">เปลี่ยนชื่อสื่อ</h3>
+              </div>
+              <button
+                onClick={() => setEditingMedia(null)}
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleRenameMedia}>
+              <div className="mb-5">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  ชื่อสื่อใหม่
+                </label>
+                <input
+                  type="text"
+                  value={editMediaName}
+                  onChange={(e) => setEditMediaName(e.target.value)}
+                  placeholder="ระบุชื่อสื่อ"
+                  required
+                  autoFocus
+                  className="w-full px-4 py-2.5 bg-slate-50/60 border border-slate-200 rounded-xl text-slate-900 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none transition"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingMedia(null)}
+                  className="px-4 py-2 text-xs font-medium text-slate-600 hover:text-slate-800 cursor-pointer"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 bg-gradient-to-r from-teal-600 to-indigo-600 hover:from-teal-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-teal-600/20 cursor-pointer transition"
+                >
+                  บันทึกชื่อใหม่
                 </button>
               </div>
             </form>

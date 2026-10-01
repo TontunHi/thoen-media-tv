@@ -13,6 +13,31 @@ const {
 
 const router = express.Router();
 
+// Helper to fix Multer latin1 encoding bug on non-ASCII filenames (e.g. Thai characters)
+function fixMulterFilename(filename) {
+  if (!filename || typeof filename !== 'string') return filename;
+  try {
+    // If the string already contains high unicode characters (> 0xFF, such as Thai \u0E00-\u0E7F),
+    // it is already properly decoded UTF-8.
+    if (/[\u0100-\uFFFF]/.test(filename)) {
+      return filename;
+    }
+    // If it only contains ASCII characters (<= 0x7F), no conversion needed.
+    if (!/[\u0080-\u00FF]/.test(filename)) {
+      return filename;
+    }
+    // Attempt decoding latin1 bytes into UTF-8
+    const decoded = Buffer.from(filename, 'latin1').toString('utf8');
+    // If decoding succeeded without replacement character '\uFFFD', return decoded string
+    if (!decoded.includes('\uFFFD')) {
+      return decoded;
+    }
+    return filename;
+  } catch {
+    return filename;
+  }
+}
+
 // Helper to check if file/directory exists asynchronously
 async function fileExists(p) {
   try {
@@ -29,7 +54,8 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname);
+    const decodedOriginalName = fixMulterFilename(file.originalname);
+    const ext = path.extname(decodedOriginalName || file.originalname);
     cb(null, `${uniqueSuffix}${ext}`);
   }
 });
@@ -75,6 +101,7 @@ router.post('/upload', authenticateToken, upload.array('files', 10), async (req,
       const isVideo = file.mimetype.startsWith('video/');
       const file_type = isVideo ? 'video' : 'image';
       const default_duration = isVideo ? 0 : 10;
+      const cleanOriginalName = fixMulterFilename(file.originalname);
 
       // If target folder is not root, move the file physically into the subfolder
       let finalFilePath = `/uploads/${file.filename}`;
@@ -92,8 +119,8 @@ router.post('/upload', authenticateToken, upload.array('files', 10), async (req,
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           folder_id,
-          file.originalname,
-          file.originalname,
+          cleanOriginalName,
+          cleanOriginalName,
           finalFilePath,
           file_type,
           file.mimetype,
@@ -105,8 +132,8 @@ router.post('/upload', authenticateToken, upload.array('files', 10), async (req,
       insertedFiles.push({
         id: result.insertId,
         folder_id,
-        name: file.originalname,
-        original_name: file.originalname,
+        name: cleanOriginalName,
+        original_name: cleanOriginalName,
         file_path: finalFilePath,
         file_type,
         mime_type: file.mimetype,
@@ -157,7 +184,12 @@ router.get('/', authenticateToken, async (req, res) => {
     query += ' ORDER BY created_at DESC';
 
     const [files] = await pool.query(query, params);
-    res.json(files);
+    const sanitizedFiles = files.map((f) => ({
+      ...f,
+      name: fixMulterFilename(f.name),
+      original_name: fixMulterFilename(f.original_name)
+    }));
+    res.json(sanitizedFiles);
   } catch (error) {
     console.error('Error fetching media files:', error);
     res.status(500).json({ error: 'Failed to fetch media files' });
