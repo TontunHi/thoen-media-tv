@@ -73,7 +73,12 @@ app.use((err, req, res, next) => {
   });
 });
 
-// SPA Fallback for React routes
+// Standalone Ultra-Lightweight Smart TV Player (Compatible with Samsung Tizen, Aconatic, webOS, etc.)
+app.get('/tv/:slug', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views/player.html'));
+});
+
+// SPA Fallback for React Admin routes
 app.use((req, res) => {
   if (req.path.startsWith('/api')) {
     return res.status(404).json({ error: 'API route not found' });

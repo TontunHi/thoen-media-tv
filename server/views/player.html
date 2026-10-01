@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>TV Player - Thoen Media TV</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      background-color: #000000;
+      color: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      overflow: hidden;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .player-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      background-color: #000000;
+      overflow: hidden;
+    }
+    .player-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #000000;
+      opacity: 0;
+      transition: opacity 0.6s ease-in-out;
+      will-change: opacity;
+      z-index: 1;
+    }
+    .player-layer.active {
+      opacity: 1;
+      z-index: 2;
+    }
+    .media-fit {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background-color: #000000;
+    }
+    .media-frame {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background-color: #000000;
+    }
+
+    /* Top Overlay Header */
+    .top-header {
+      position: absolute;
+      top: 18px;
+      left: 24px;
+      right: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 10;
+      pointer-events: none;
+    }
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 18px;
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 9999px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      transform: translateZ(0);
+    }
+    .badge-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #10b981;
+      box-shadow: 0 0 8px #10b981;
+    }
+    .clock-pill {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    /* Floating Bottom Controls */
+    .bottom-controls {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateZ(0);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 18px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 9999px;
+      font-size: 13px;
+      color: #cbd5e1;
+      z-index: 20;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+    .bottom-controls.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .ctrl-btn {
+      background: none;
+      border: none;
+      color: #e2e8f0;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px;
+      border-radius: 8px;
+      transition: background 0.2s;
+    }
+    .ctrl-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      color: #ffffff;
+    }
+    .ctrl-btn svg {
+      width: 18px;
+      height: 18px;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+    }
+
+    /* Unmute banner hint */
+    .unmute-hint {
+      position: absolute;
+      bottom: 24px;
+      right: 24px;
+      padding: 8px 16px;
+      background: rgba(239, 68, 68, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: bold;
+      color: #ffffff;
+      z-index: 15;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+      animation: pulse 2s infinite;
+    }
+
+    /* Empty / Waiting state */
+    .waiting-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #020617;
+      text-align: center;
+      padding: 20px;
+      z-index: 5;
+    }
+    .waiting-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 20px;
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      color: #0d9488;
+    }
+    .waiting-title {
+      font-size: 24px;
+      font-weight: 800;
+      margin-bottom: 8px;
+      color: #f8fafc;
+    }
+    .waiting-desc {
+      font-size: 14px;
+      color: #94a3b8;
+      max-width: 480px;
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+    .waiting-clock {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 20px;
+      background: rgba(13, 148, 136, 0.1);
+      border: 1px solid rgba(13, 148, 136, 0.25);
+      border-radius: 9999px;
+      color: #2dd4bf;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    /* Loading Spinner */
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid rgba(13, 148, 136, 0.2);
+      border-top-color: #0d9488;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 16px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.85; transform: scale(0.98); }
+    }
+  </style>
+</head>
+<body>
+  <div id="player-app" class="player-container">
+    <!-- Double-Buffered Viewport Layers -->
+    <div id="layer-0" class="player-layer"></div>
+    <div id="layer-1" class="player-layer"></div>
+
+    <!-- Top Overlay Header -->
+    <div class="top-header">
+      <div class="badge-pill">
+        <span class="badge-dot"></span>
+        <span id="tv-name">โรงพยาบาลเถิน</span>
+      </div>
+      <div class="badge-pill clock-pill" id="digital-clock">--:--:--</div>
+    </div>
+
+    <!-- Unmute hint (if audio is muted) -->
+    <div id="unmute-banner" class="unmute-hint" style="display: none;">
+      <span>🔇 แตะ/คลิกหน้าจอเพื่อเปิดเสียง</span>
+    </div>
+
+    <!-- Bottom Controls Bar -->
+    <div id="bottom-controls" class="bottom-controls">
+      <span id="item-counter" style="font-family: monospace; font-weight: bold;">0 / 0</span>
+      <button id="btn-mute" class="ctrl-btn" title="เปิด/ปิดเสียง">
+        <svg id="icon-vol-on" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+        <svg id="icon-vol-off" viewBox="0 0 24 24" style="display:none;"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
+      </button>
+      <button id="btn-fullscreen" class="ctrl-btn" title="เต็มหน้าจอ">
+        <svg id="icon-fs-enter" viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+        <svg id="icon-fs-exit" viewBox="0 0 24 24" style="display:none;"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+      </button>
+    </div>
+
+    <!-- Waiting / Initial Loading Screen -->
+    <div id="waiting-screen" class="waiting-screen">
+      <div id="loading-spinner" class="spinner"></div>
+      <div id="waiting-icon-box" class="waiting-icon" style="display:none;">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect><polyline points="17 2 12 7 7 2"></polyline></svg>
+      </div>
+      <h2 id="waiting-title" class="waiting-title">กำลังเชื่อมต่อสัญญาณโทรทัศน์...</h2>
+      <p id="waiting-desc" class="waiting-desc">ระบบกำลังดึงข้อมูลผังรายการและเตรียมฉายสื่อบนหน้าจอ</p>
+      <div class="waiting-clock">
+        <span class="badge-dot"></span>
+        <span id="waiting-clock-text">--:--:--</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Socket.io client (asynchronously loaded with fallback) -->
+  <script src="/socket.io/socket.io.js" onerror="window.__socketIoFailed=true;"></script>
+
+  <script>
+    (function () {
+      'use strict';
+
+      // 1. Extract Slug from URL (/tv/:slug or /tv/:slug/)
+      var pathSegments = window.location.pathname.split('/').filter(Boolean);
+      var tvSlug = '';
+      for (var i = 0; i < pathSegments.length; i++) {
+        if (pathSegments[i] === 'tv' && i + 1 < pathSegments.length) {
+          tvSlug = pathSegments[i + 1];
+          break;
+        }
+      }
+      if (!tvSlug && pathSegments.length > 0) {
+        tvSlug = pathSegments[pathSegments.length - 1];
+      }
+
+      // State
+      var rawItems = [];
+      var activeItems = [];
+      var currentIndex = 0;
+      var activeLayerIndex = 0;
+      var isMuted = false;
+      var slideTimer = null;
+      var syncTimer = null;
+      var clockTimer = null;
+      var controlsHideTimer = null;
+      var tvData = null;
+      var isFirstLoad = true;
+
+      // DOM Elements
+      var layers = [document.getElementById('layer-0'), document.getElementById('layer-1')];
+      var tvNameEl = document.getElementById('tv-name');
+      var digitalClockEl = document.getElementById('digital-clock');
+      var waitingScreenEl = document.getElementById('waiting-screen');
+      var loadingSpinnerEl = document.getElementById('loading-spinner');
+      var waitingIconBoxEl = document.getElementById('waiting-icon-box');
+      var waitingTitleEl = document.getElementById('waiting-title');
+      var waitingDescEl = document.getElementById('waiting-desc');
+      var waitingClockTextEl = document.getElementById('waiting-clock-text');
+      var itemCounterEl = document.getElementById('item-counter');
+      var bottomControlsEl = document.getElementById('bottom-controls');
+      var unmuteBannerEl = document.getElementById('unmute-banner');
+      var btnMuteEl = document.getElementById('btn-mute');
+      var btnFullscreenEl = document.getElementById('btn-fullscreen');
+      var iconVolOn = document.getElementById('icon-vol-on');
+      var iconVolOff = document.getElementById('icon-vol-off');
+      var iconFsEnter = document.getElementById('icon-fs-enter');
+      var iconFsExit = document.getElementById('icon-fs-exit');
+
+      // 2. Clock updater (low CPU footprint)
+      function updateClock() {
+        var now = new Date();
+        var hours = String(now.getHours());
+        var minutes = String(now.getMinutes());
+        var seconds = String(now.getSeconds());
+        if (hours.length < 2) hours = '0' + hours;
+        if (minutes.length < 2) minutes = '0' + minutes;
+        if (seconds.length < 2) seconds = '0' + seconds;
+        var timeStr = hours + ':' + minutes + ':' + seconds;
+
+        if (digitalClockEl) digitalClockEl.textContent = timeStr;
+        if (waitingClockTextEl) waitingClockTextEl.textContent = 'เวลาปัจจุบัน ' + timeStr;
+      }
+      clockTimer = setInterval(updateClock, 1000);
+      updateClock();
+
+      // 3. Media URL helpers
+      function extractYouTubeId(url) {
+        if (!url) return '';
+        var match = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/);
+        return (match && match[2].length === 11) ? match[2] : '';
+      }
+
+      function getYouTubeEmbedUrl(url, autoplay, muted) {
+        var id = extractYouTubeId(url);
+        if (!id) return url;
+        var auto = autoplay ? 1 : 0;
+        var mute = muted ? 1 : 0;
+        return 'https://www.youtube-nocookie.com/embed/' + id + '?autoplay=' + auto + '&mute=' + mute + '&controls=0&rel=0&modestbranding=1&enablejsapi=1&playsinline=1';
+      }
+
+      function getFacebookEmbedUrl(url, autoplay, muted) {
+        var auto = autoplay ? 'true' : 'false';
+        var mute = muted ? 'true' : 'false';
+        return 'https://www.facebook.com/plugins/video.php?href=' + encodeURIComponent(url) + '&show_text=false&autoplay=' + auto + '&mute=' + mute;
+      }
+
+      // 4. Schedule evaluation
+      function isItemScheduledNow(item, now) {
+        if (!item || item.is_active === 0 || item.is_active === false) return false;
+        if (item.start_time) {
+          var start = new Date(String(item.start_time).replace(' ', 'T'));
+          if (!isNaN(start.getTime()) && start > now) return false;
+        }
+        if (item.end_time) {
+          var end = new Date(String(item.end_time).replace(' ', 'T'));
+          if (!isNaN(end.getTime()) && end < now) return false;
+        }
+        return true;
+      }
+
+      function filterActiveItems() {
+        var now = new Date();
+        return rawItems.filter(function (it) {
+          return isItemScheduledNow(it, now);
+        });
+      }
+
+      // 5. Render media item into a specific DOM layer
+      function populateLayer(layer, item, onVideoEnd, onMediaError) {
+        layer.innerHTML = '';
+        if (!item) return;
+
+        var fileType = item.file_type || '';
+        var filePath = item.file_path || '';
+
+        if (fileType === 'youtube') {
+          var iframeYt = document.createElement('iframe');
+          iframeYt.className = 'media-frame';
+          iframeYt.src = getYouTubeEmbedUrl(filePath, true, isMuted);
+          iframeYt.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen';
+          iframeYt.allowFullscreen = true;
+          layer.appendChild(iframeYt);
+        } else if (fileType === 'facebook') {
+          var iframeFb = document.createElement('iframe');
+          iframeFb.className = 'media-frame';
+          iframeFb.src = getFacebookEmbedUrl(filePath, true, isMuted);
+          iframeFb.allow = 'autoplay; fullscreen';
+          iframeFb.allowFullscreen = true;
+          layer.appendChild(iframeFb);
+        } else if (fileType === 'stream') {
+          if (filePath.indexOf('.m3u8') !== -1) {
+            var vStream = document.createElement('video');
+            vStream.className = 'media-fit';
+            vStream.src = filePath;
+            vStream.autoplay = true;
+            vStream.muted = isMuted;
+            vStream.setAttribute('playsinline', '');
+            vStream.onended = onVideoEnd;
+            vStream.onerror = onMediaError;
+            layer.appendChild(vStream);
+            vStream.play().catch(function () {
+              vStream.muted = true;
+              vStream.play().catch(function () {});
+            });
+          } else {
+            var iframeWeb = document.createElement('iframe');
+            iframeWeb.className = 'media-frame';
+            iframeWeb.src = filePath;
+            iframeWeb.allow = 'autoplay; fullscreen';
+            iframeWeb.allowFullscreen = true;
+            layer.appendChild(iframeWeb);
+          }
+        } else if (fileType === 'video') {
+          var videoEl = document.createElement('video');
+          videoEl.className = 'media-fit';
+          videoEl.src = filePath;
+          videoEl.autoplay = true;
+          videoEl.muted = isMuted;
+          videoEl.setAttribute('playsinline', '');
+          videoEl.onended = onVideoEnd;
+          videoEl.onerror = onMediaError;
+          layer.appendChild(videoEl);
+
+          // Try unmuted autoplay with fallback to muted on strict browser policy
+          videoEl.play().catch(function () {
+            videoEl.muted = true;
+            videoEl.play().catch(function () {});
+            showUnmuteBanner(true);
+          });
+        } else {
+          // Default Image
+          var imgEl = document.createElement('img');
+          imgEl.className = 'media-fit';
+          imgEl.src = filePath;
+          imgEl.alt = item.media_name || 'Hospital TV Media';
+          imgEl.onerror = onMediaError;
+          layer.appendChild(imgEl);
+        }
+      }
+
+      // 6. Garbage collection for inactive layer (prevents memory leak 24/7)
+      function cleanupLayer(layer) {
+        var videos = layer.getElementsByTagName('video');
+        for (var i = 0; i < videos.length; i++) {
+          try {
+            videos[i].pause();
+            videos[i].src = '';
+            videos[i].load();
+          } catch (e) {}
+        }
+        var iframes = layer.getElementsByTagName('iframe');
+        for (var j = 0; j < iframes.length; j++) {
+          try {
+            iframes[j].src = 'about:blank';
+          } catch (e) {}
+        }
+        layer.innerHTML = '';
+      }
+
+      // 7. Advance slide with Double-Buffering crossfade
+      function showSlide(index) {
+        if (slideTimer) {
+          clearTimeout(slideTimer);
+          slideTimer = null;
+        }
+
+        activeItems = filterActiveItems();
+        if (activeItems.length === 0) {
+          renderWaitingScreen(
+            tvData ? tvData.name : 'โรงพยาบาลเถิน',
+            rawItems.length > 0
+              ? 'มีสื่อในระบบแต่ยังไม่ถึงเวลาเริ่มแสดง หรือหมดเวลาแสดงผลแล้ว'
+              : 'ยังไม่มีสื่อใน Playlist ของจอนี้'
+          );
+          return;
+        }
+
+        hideWaitingScreen();
+
+        if (index >= activeItems.length) index = 0;
+        currentIndex = index;
+        var currentItem = activeItems[currentIndex];
+
+        // Update counter
+        if (itemCounterEl) {
+          itemCounterEl.textContent = (currentIndex + 1) + ' / ' + activeItems.length;
+        }
+
+        // Determine next layer
+        var nextLayerIndex = (activeLayerIndex + 1) % 2;
+        var currentLayer = layers[activeLayerIndex];
+        var nextLayer = layers[nextLayerIndex];
+
+        // Populate and crossfade
+        populateLayer(
+          nextLayer,
+          currentItem,
+          function () {
+            // On video end, advance
+            advanceNext();
+          },
+          function () {
+            // On media load error, quickly skip
+            console.warn('Media element failed to load, skipping to next in 1.5s:', currentItem);
+            slideTimer = setTimeout(advanceNext, 1500);
+          }
+        );
+
+        // Crossfade layers
+        nextLayer.classList.add('active');
+        currentLayer.classList.remove('active');
+
+        // Cleanup previous layer after transition (0.6s)
+        setTimeout(function () {
+          cleanupLayer(currentLayer);
+        }, 650);
+
+        activeLayerIndex = nextLayerIndex;
+
+        // Schedule next transition if not controlled by video onended
+        var fileType = currentItem.file_type || '';
+        var isStreamType = fileType === 'youtube' || fileType === 'facebook' || fileType === 'stream';
+
+        if (fileType === 'image') {
+          var durationSec = parseInt(currentItem.duration_seconds) || 10;
+          slideTimer = setTimeout(advanceNext, Math.max(durationSec, 1) * 1000);
+        } else if (isStreamType) {
+          var streamDuration = parseInt(currentItem.duration_seconds) || 0;
+          if (activeItems.length > 1 && streamDuration > 0) {
+            slideTimer = setTimeout(advanceNext, Math.max(streamDuration, 1) * 1000);
+          }
+          // If streamDuration is 0 or single item: play continuously!
+        }
+      }
+
+      function advanceNext() {
+        activeItems = filterActiveItems();
+        if (activeItems.length === 0) {
+          showSlide(0);
+          return;
+        }
+        var nextIdx = (currentIndex + 1) % activeItems.length;
+        showSlide(nextIdx);
+      }
+
+      // 8. Waiting Screen UI
+      function renderWaitingScreen(title, desc) {
+        if (slideTimer) {
+          clearTimeout(slideTimer);
+          slideTimer = null;
+        }
+        cleanupLayer(layers[0]);
+        cleanupLayer(layers[1]);
+        layers[0].classList.remove('active');
+        layers[1].classList.remove('active');
+
+        if (waitingScreenEl) waitingScreenEl.style.display = 'flex';
+        if (loadingSpinnerEl) loadingSpinnerEl.style.display = 'none';
+        if (waitingIconBoxEl) waitingIconBoxEl.style.display = 'flex';
+        if (waitingTitleEl) waitingTitleEl.textContent = title;
+        if (waitingDescEl) waitingDescEl.textContent = desc;
+      }
+
+      function hideWaitingScreen() {
+        if (waitingScreenEl) waitingScreenEl.style.display = 'none';
+      }
+
+      // 9. Load TV playback data from API
+      function loadTvPlayback() {
+        if (!tvSlug) return;
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', '/api/tvs/public/' + encodeURIComponent(tvSlug), true);
+        xhr.setRequestHeader('Accept', 'application/json');
+        xhr.timeout = 10000;
+
+        xhr.onload = function () {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              var data = JSON.parse(xhr.responseText);
+              tvData = data.tv;
+              if (tvNameEl && tvData && tvData.name) {
+                tvNameEl.textContent = tvData.name;
+              }
+
+              var newItems = data.items || [];
+              var isChanged = JSON.stringify(newItems) !== JSON.stringify(rawItems);
+              rawItems = newItems;
+
+              if (isFirstLoad || isChanged) {
+                isFirstLoad = false;
+                showSlide(0);
+              }
+            } catch (e) {
+              console.error('Error parsing TV playback data:', e);
+            }
+          } else if (xhr.status === 404) {
+            renderWaitingScreen('ไม่พบหน้าจอทีวี (' + tvSlug + ')', 'กรุณาตรวจสอบชื่อ Slug ของหน้าจอทีวีในระบบจัดการ');
+          }
+        };
+
+        xhr.onerror = function () {
+          // Offline / Network error resilience: continue playing current items in memory
+          console.warn('Network unreachable, continuing with cached playback...');
+        };
+
+        xhr.ontimeout = function () {
+          console.warn('Playback fetch timed out, will retry next interval...');
+        };
+
+        xhr.send();
+      }
+
+      // 10. Real-time Socket.io listener (with graceful degradation)
+      function initSocket() {
+        if (typeof window.io === 'function' && !window.__socketIoFailed) {
+          try {
+            var socket = window.io();
+            socket.emit('join_tv_room', { slug: tvSlug });
+
+            function handleRealtimeUpdate() {
+              console.log('Realtime socket update triggered. Refreshing TV playlist...');
+              loadTvPlayback();
+            }
+
+            socket.on('playlist_updated', handleRealtimeUpdate);
+            socket.on('tv_config_changed', handleRealtimeUpdate);
+            socket.on('media_deleted', handleRealtimeUpdate);
+          } catch (err) {
+            console.warn('Socket connection skipped, relying on HTTP polling:', err);
+          }
+        }
+      }
+
+      // 11. Global Audio and Fullscreen Interaction handlers
+      function showUnmuteBanner(show) {
+        if (unmuteBannerEl) {
+          unmuteBannerEl.style.display = show ? 'flex' : 'none';
+        }
+      }
+
+      function unlockAudio() {
+        isMuted = false;
+        showUnmuteBanner(false);
+        if (iconVolOn) iconVolOn.style.display = 'inline';
+        if (iconVolOff) iconVolOff.style.display = 'none';
+
+        var activeLayer = layers[activeLayerIndex];
+        var videos = activeLayer.getElementsByTagName('video');
+        for (var i = 0; i < videos.length; i++) {
+          videos[i].muted = false;
+          videos[i].play().catch(function () {});
+        }
+      }
+
+      function toggleMute() {
+        isMuted = !isMuted;
+        if (iconVolOn) iconVolOn.style.display = isMuted ? 'none' : 'inline';
+        if (iconVolOff) iconVolOff.style.display = isMuted ? 'inline' : 'none';
+
+        var activeLayer = layers[activeLayerIndex];
+        var videos = activeLayer.getElementsByTagName('video');
+        for (var i = 0; i < videos.length; i++) {
+          videos[i].muted = isMuted;
+        }
+        showUnmuteBanner(isMuted);
+      }
+
+      function toggleFullscreen() {
+        if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+          var el = document.documentElement;
+          if (el.requestFullscreen) {
+            el.requestFullscreen().catch(function () {});
+          } else if (el.webkitRequestFullscreen) {
+            el.webkitRequestFullscreen();
+          }
+          if (iconFsEnter) iconFsEnter.style.display = 'none';
+          if (iconFsExit) iconFsExit.style.display = 'inline';
+        } else {
+          if (document.exitFullscreen) {
+            document.exitFullscreen();
+          } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+          }
+          if (iconFsEnter) iconFsEnter.style.display = 'inline';
+          if (iconFsExit) iconFsExit.style.display = 'none';
+        }
+      }
+
+      // Mouse Activity Handler for Auto-hiding Controls
+      function onUserActivity() {
+        if (bottomControlsEl) bottomControlsEl.classList.add('visible');
+        if (controlsHideTimer) clearTimeout(controlsHideTimer);
+        controlsHideTimer = setTimeout(function () {
+          if (bottomControlsEl) bottomControlsEl.classList.remove('visible');
+        }, 3000);
+      }
+
+      // Event Listeners
+      window.addEventListener('click', unlockAudio, { once: true });
+      window.addEventListener('touchstart', unlockAudio, { once: true });
+      window.addEventListener('mousemove', onUserActivity);
+      window.addEventListener('touchstart', onUserActivity);
+
+      if (unmuteBannerEl) unmuteBannerEl.addEventListener('click', unlockAudio);
+      if (btnMuteEl) btnMuteEl.addEventListener('click', toggleMute);
+      if (btnFullscreenEl) btnFullscreenEl.addEventListener('click', toggleFullscreen);
+
+      // Start initial load and background sync (every 15s)
+      loadTvPlayback();
+      initSocket();
+      syncTimer = setInterval(loadTvPlayback, 15000);
+    })();
+  </script>
+</body>
+</html>
