@@ -33,9 +33,11 @@ export default function LoginModal({ onLoginSuccess }) {
       <div className="max-w-md w-full bg-white border border-slate-200/90 rounded-3xl p-8 sm:p-10 shadow-xl shadow-slate-200/60 relative z-10">
         {/* Brand Header */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-600 to-teal-500 flex items-center justify-center text-white shadow-lg shadow-teal-500/20 mb-4">
-            <Tv size={32} className="stroke-[2.2]" />
-          </div>
+          <img
+            src="/favicon.svg"
+            alt="Thoen Media TV"
+            className="w-16 h-16 rounded-2xl shadow-xl shadow-indigo-500/25 mb-4"
+          />
           <div className="flex items-center gap-1.5 mb-1">
             <h1 className="text-2xl font-black text-slate-900 tracking-tight">
               THOEN MEDIA TV

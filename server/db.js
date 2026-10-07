@@ -145,10 +145,67 @@ async function initDB() {
         location VARCHAR(255),
         playlist_id INT NULL,
         is_online TINYINT(1) DEFAULT 0,
+        is_incident_override TINYINT(1) DEFAULT 0,
+        active_incident_id INT NULL,
         last_ping TIMESTAMP NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (playlist_id) REFERENCES playlists(id) ON DELETE SET NULL
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
+    // Ensure columns exist on older tvs table
+    try {
+      await connection.query('ALTER TABLE tvs ADD COLUMN is_incident_override TINYINT(1) DEFAULT 0;');
+    } catch (e) {}
+    try {
+      await connection.query('ALTER TABLE tvs ADD COLUMN active_incident_id INT NULL;');
+    } catch (e) {}
+
+    // Incidents table (Mass Casualty Incidents / อุบัติเหตุหมู่)
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS incidents (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        location VARCHAR(255) DEFAULT '',
+        incident_date DATE NOT NULL,
+        start_time VARCHAR(20) DEFAULT '',
+        end_time VARCHAR(20) DEFAULT '',
+        refuse_treatment_count INT DEFAULT 0,
+        is_active TINYINT(1) DEFAULT 0,
+        is_auto_sync TINYINT(1) DEFAULT 1,
+        broadcast_tvs JSON NULL,
+        notes TEXT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
+    // Ensure is_auto_sync column exists
+    try {
+      await connection.query('ALTER TABLE incidents ADD COLUMN is_auto_sync TINYINT(1) DEFAULT 1;');
+    } catch (e) {}
+
+    // Incident Patients table (รายชื่อผู้ประสบเหตุ/ผู้บาดเจ็บ)
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS incident_patients (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        incident_id INT NOT NULL,
+        tag_number VARCHAR(50) NOT NULL,
+        display_order INT DEFAULT 0,
+        vn VARCHAR(50) NULL,
+        hn VARCHAR(50) NULL,
+        pt_name VARCHAR(255) NOT NULL,
+        sex VARCHAR(20) DEFAULT 'ไม่ระบุ',
+        age VARCHAR(20) DEFAULT '-',
+        triage_level VARCHAR(100) DEFAULT 'เขียว',
+        triage_color VARCHAR(20) DEFAULT 'green',
+        injury_info TEXT NULL,
+        current_status VARCHAR(255) DEFAULT 'ห้องฉุกเฉิน (ER)',
+        notes TEXT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (incident_id) REFERENCES incidents(id) ON DELETE CASCADE
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
 

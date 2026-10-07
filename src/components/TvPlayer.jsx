@@ -5,12 +5,15 @@ import { getSocket } from '../services/socket';
 import { Maximize2, Minimize2, Tv, AlertCircle, Volume2, VolumeX, RefreshCw } from 'lucide-react';
 import { getYouTubeEmbedUrl, getFacebookEmbedUrl, extractYouTubeId } from '../utils/mediaHelper';
 import Hls from 'hls.js';
+import IncidentTvScreen from './IncidentTvScreen';
 
 export default function TvPlayer() {
   const { slug } = useParams();
   const [loading, setLoading] = useState(true);
   const [tvData, setTvData] = useState(null);
   const [items, setItems] = useState([]);
+  const [isIncidentMode, setIsIncidentMode] = useState(false);
+  const [incidentData, setIncidentData] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [error, setError] = useState('');
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -111,6 +114,8 @@ export default function TvPlayer() {
     try {
       const data = await api.getTvPublic(slug);
       setTvData(data.tv);
+      setIsIncidentMode(!!data.is_incident_mode);
+      setIncidentData(data.incident || null);
       setItems(data.items || []);
       setError('');
     } catch (err) {
@@ -340,6 +345,11 @@ export default function TvPlayer() {
         <div className="mt-6 text-xs text-slate-600 font-mono">Slug: {slug}</div>
       </div>
     );
+  }
+
+  // If TV is set to Emergency Incident Override mode, display the Incident Screen immediately
+  if (isIncidentMode) {
+    return <IncidentTvScreen directIncidentId={incidentData?.id} />;
   }
 
   if (validItems.length === 0) {

@@ -34,8 +34,48 @@ router.get('/public/:slug', async (req, res) => {
     // Update last_ping
     await pool.query('UPDATE tvs SET is_online = 1, last_ping = CURRENT_TIMESTAMP WHERE id = ?', [tv.id]);
 
+    // Check if TV is in Emergency Incident Override Mode
+    if (tv.is_incident_override === 1 && tv.active_incident_id) {
+      const [incidents] = await pool.query('SELECT * FROM incidents WHERE id = ? AND is_active = 1', [tv.active_incident_id]);
+      if (incidents.length > 0) {
+        const incident = incidents[0];
+        const [patients] = await pool.query(
+          'SELECT * FROM incident_patients WHERE incident_id = ? ORDER BY display_order ASC, id ASC',
+          [incident.id]
+        );
+
+        let red = 0, yellow = 0, green = 0, black = 0;
+        patients.forEach((p) => {
+          const col = (p.triage_color || 'green').toLowerCase();
+          if (col === 'red') red++;
+          else if (col === 'yellow') yellow++;
+          else if (col === 'black' || col === 'white') black++;
+          else green++;
+        });
+        const refuseCount = parseInt(incident.refuse_treatment_count) || 0;
+
+        return res.json({
+          tv,
+          is_incident_mode: true,
+          incident,
+          summary: {
+            red,
+            yellow,
+            green,
+            black,
+            refuse_treatment: refuseCount,
+            registered_count: patients.length,
+            total: patients.length + refuseCount
+          },
+          patients,
+          playlist: null,
+          items: []
+        });
+      }
+    }
+
     if (!tv.playlist_id) {
-      return res.json({ tv, playlist: null, items: [] });
+      return res.json({ tv, is_incident_mode: false, playlist: null, items: [] });
     }
 
     // Fetch active playlist items with valid schedule range
@@ -49,6 +89,7 @@ router.get('/public/:slug', async (req, res) => {
 
     res.json({
       tv,
+      is_incident_mode: false,
       playlist: { id: tv.playlist_id, name: tv.playlist_name },
       items: rawItems
     });

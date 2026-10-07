@@ -5,6 +5,8 @@ import MediaManager from './components/MediaManager';
 import PlaylistManager from './components/PlaylistManager';
 import TvManager from './components/TvManager';
 import TvPlayer from './components/TvPlayer';
+import IncidentManager from './components/IncidentManager';
+import IncidentTvScreen from './components/IncidentTvScreen';
 import LoginModal from './components/LoginModal';
 import { api, getAuthToken, setAuthToken } from './services/api';
 
@@ -69,6 +71,10 @@ export default function App() {
         {/* Public TV Player Route */}
         <Route path="/tv/:slug" element={<TvPlayer />} />
 
+        {/* Public TV Incident Fullscreen Display Route */}
+        <Route path="/tv-incident" element={<IncidentTvScreen />} />
+        <Route path="/incident-display" element={<IncidentTvScreen />} />
+
         {/* Admin Routes with Authentication */}
         {!isAuthenticated ? (
           <Route
@@ -106,6 +112,16 @@ export default function App() {
               }
             />
             <Route path="/tvs" element={<Navigate to="/tv" replace />} />
+
+            <Route
+              path="/incident"
+              element={
+                <ProtectedLayout onLogout={handleLogout}>
+                  <IncidentManager />
+                </ProtectedLayout>
+              }
+            />
+            <Route path="/incidents" element={<Navigate to="/incident" replace />} />
 
             {/* Default redirect to /upload */}
             <Route path="/" element={<Navigate to="/upload" replace />} />

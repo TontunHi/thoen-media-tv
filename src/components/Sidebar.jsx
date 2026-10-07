@@ -10,6 +10,7 @@ import {
   Layers,
   HardDrive,
   ShieldCheck,
+  ShieldAlert,
   ChevronRight,
 } from 'lucide-react';
 import { api } from '../services/api';
@@ -72,6 +73,14 @@ export default function Sidebar({ onLogout }) {
       badge: stats.totalTvs ? `${stats.onlineTvs}/${stats.totalTvs} จอ` : null,
       badgeColor: stats.onlineTvs > 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600',
     },
+    {
+      path: '/incident',
+      label: 'อุบัติเหตุหมู่ (MCI)',
+      sublabel: 'Mass Casualty Incident',
+      icon: ShieldAlert,
+      badge: 'พิเศษ',
+      badgeColor: 'bg-rose-50 text-rose-700 border-rose-200',
+    },
   ];
 
   return (
@@ -79,9 +88,11 @@ export default function Sidebar({ onLogout }) {
       {/* Brand Header */}
       <div className="p-6 border-b border-slate-100">
         <Link to="/upload" className="flex items-center gap-3.5 group">
-          <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/20 group-hover:scale-105 transition duration-300">
-            <Tv size={22} className="stroke-[2.2]" />
-          </div>
+          <img
+            src="/favicon.svg"
+            alt="Thoen Media TV"
+            className="w-11 h-11 rounded-2xl shadow-md shadow-indigo-500/20 group-hover:scale-105 transition duration-300 shrink-0"
+          />
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
               <span className="font-extrabold text-base text-slate-900 tracking-tight block truncate">

@@ -11,6 +11,7 @@ const folderRoutes = require('./routes/folders');
 const mediaRoutes = require('./routes/media');
 const playlistRoutes = require('./routes/playlists');
 const tvRoutes = require('./routes/tvs');
+const incidentRoutes = require('./routes/incidents');
 
 const app = express();
 const server = http.createServer(app);
@@ -46,6 +47,7 @@ app.use('/api/folders', folderRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/playlists', playlistRoutes);
 app.use('/api/tvs', tvRoutes);
+app.use('/api/incidents', incidentRoutes);
 
 // Socket.io Connection logic
 io.on('connection', (socket) => {
@@ -88,10 +90,16 @@ app.use((req, res) => {
   res.sendFile(require('fs').existsSync(distIndex) ? distIndex : srcIndex);
 });
 
+const { startIncidentAutoSyncWorker } = require('./services/incidentSyncService');
+
 // Initialize DB and start server
 async function startServer() {
   try {
     await initDB();
+    
+    // Start background HOSxP auto-sync worker for active incidents
+    startIncidentAutoSyncWorker(io, 15000);
+
     server.listen(PORT, () => {
       console.log(`=================================================`);
       console.log(`  Thoen Media TV System Running on Port ${PORT}   `);

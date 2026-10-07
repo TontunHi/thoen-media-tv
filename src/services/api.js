@@ -154,4 +154,56 @@ export const api = {
 
   // Public TV player
   getTvPublic: (slug) => request(`/tvs/public/${slug}`),
+
+  // Incidents (Mass Casualty Incidents / อุบัติเหตุหมู่)
+  getIncidents: () => request('/incidents'),
+  getIncident: (id) => request(`/incidents/${id}`),
+  createIncident: (data) =>
+    request('/incidents', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateIncident: (id, data) =>
+    request(`/incidents/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  deleteIncident: (id) =>
+    request(`/incidents/${id}`, {
+      method: 'DELETE',
+    }),
+  queryHosxpAccidentPatients: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return request(`/incidents/hosxp?${query}`);
+  },
+  syncHosxpToIncident: (incidentId, selectedVns, autoTagPrefix) =>
+    request(`/incidents/${incidentId}/sync-hosxp`, {
+      method: 'POST',
+      body: JSON.stringify({ selectedVns, autoTagPrefix }),
+    }),
+  addIncidentPatient: (incidentId, data) =>
+    request(`/incidents/${incidentId}/patients`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateIncidentPatient: (incidentId, patientId, data) =>
+    request(`/incidents/${incidentId}/patients/${patientId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  deleteIncidentPatient: (incidentId, patientId) =>
+    request(`/incidents/${incidentId}/patients/${patientId}`, {
+      method: 'DELETE',
+    }),
+  broadcastIncident: (incidentId, active, tvIds) =>
+    request(`/incidents/${incidentId}/broadcast`, {
+      method: 'POST',
+      body: JSON.stringify({ active, tvIds }),
+    }),
+  triggerIncidentAutoSync: (incidentId) =>
+    request(`/incidents/${incidentId}/auto-sync`, {
+      method: 'POST',
+    }),
+  getActiveIncidentDisplay: () => request('/incidents/active/display'),
+  getIncidentDisplay: (id) => request(`/incidents/display/${id}`),
 };
