@@ -253,17 +253,17 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
     if (parts.length >= 2) {
       return (
         <div className="leading-tight break-words">
-          <div className={`font-black text-slate-950 ${isCompact ? 'text-xs sm:text-[13px]' : 'text-sm sm:text-base'}`}>
+          <div className={`font-black text-slate-950 ${isCompact ? 'text-sm sm:text-base' : 'text-base sm:text-lg'}`}>
             {parts[0]}
           </div>
-          <div className={`font-extrabold text-slate-800 ${isCompact ? 'text-[11px] sm:text-xs' : 'text-xs sm:text-sm'}`}>
+          <div className={`font-extrabold text-slate-800 ${isCompact ? 'text-xs sm:text-sm' : 'text-sm sm:text-base'}`}>
             {parts.slice(1).join(' ')}
           </div>
         </div>
       );
     }
     return (
-      <div className={`font-extrabold text-slate-950 leading-tight break-words ${isCompact ? 'text-xs sm:text-sm' : 'text-sm sm:text-base'}`}>
+      <div className={`font-extrabold text-slate-950 leading-tight break-words ${isCompact ? 'text-sm sm:text-base' : 'text-base sm:text-lg'}`}>
         {trimmed}
       </div>
     );
@@ -272,7 +272,7 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
   // Helper to render Triage Badges
   const renderTriageBadge = (color, isCompact = false) => {
     const c = (color || 'green').toLowerCase();
-    const padding = isCompact ? 'px-2.5 py-0.5 text-xs' : 'px-3.5 py-1 text-sm';
+    const padding = isCompact ? 'px-3 py-1 text-xs sm:text-sm' : 'px-4 py-1.5 text-sm sm:text-base';
     
     if (c === 'red') {
       return (
@@ -337,15 +337,15 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
       colorClass = 'bg-emerald-100 text-emerald-950 border-2 border-emerald-400';
     }
 
-    const padClass = isCompact ? 'px-2 py-0.5' : 'px-3 py-1';
-    const topTextSize = isCompact ? 'text-[11px]' : 'text-xs md:text-sm';
-    const bottomTextSize = isCompact ? 'text-[10px] sm:text-[11px]' : 'text-xs';
+    const padClass = isCompact ? 'px-2.5 py-1' : 'px-4 py-1.5';
+    const topTextSize = isCompact ? 'text-xs sm:text-[13px]' : 'text-sm sm:text-base';
+    const bottomTextSize = isCompact ? 'text-[11px] sm:text-xs' : 'text-xs sm:text-sm';
 
     return (
       <div className={`inline-flex flex-col items-center justify-center rounded-xl leading-tight font-black shadow-xs ${padClass} ${colorClass}`}>
         <span className={`${topTextSize} leading-tight whitespace-nowrap`}>{labelTop}</span>
         {labelBottom && (
-          <span className={`${bottomTextSize} leading-tight font-extrabold text-center break-words max-w-[150px]`}>
+          <span className={`${bottomTextSize} leading-tight font-extrabold text-center break-words max-w-[180px]`}>
             {labelBottom}
           </span>
         )}
@@ -353,36 +353,7 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
     );
   };
 
-  // Helper to render Multi-line Injury & Diagnosis
-  const renderInjuryInfo = (info, isCompact = false) => {
-    if (!info) return <span className="text-slate-400">-</span>;
-    const parts = info.split(' / ');
-    if (parts.length > 1) {
-      return (
-        <div className="space-y-0.5 leading-tight break-words">
-          {parts.map((p, idx) => (
-            <div
-              key={idx}
-              className={
-                idx > 0
-                  ? isCompact ? 'text-[10px] sm:text-[11px] text-slate-700 font-medium' : 'text-xs text-slate-700 font-medium'
-                  : isCompact ? 'text-xs text-slate-950 font-bold' : 'text-sm text-slate-950 font-black'
-              }
-            >
-              {p}
-            </div>
-          ))}
-        </div>
-      );
-    }
-    return (
-      <span className={`leading-tight break-words whitespace-normal font-bold text-slate-900 ${isCompact ? 'text-xs' : 'text-sm'}`}>
-        {info}
-      </span>
-    );
-  };
-
-  // Render Table Row
+  // Render Table Row (without injury / diag column)
   const renderPatientRow = (pt, index, offset = 0, isCompact = false) => {
     const rowIdx = offset + index + 1;
     const color = (pt.triage_color || 'green').toLowerCase();
@@ -401,51 +372,46 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
       rowBg = 'bg-slate-100';
     }
 
-    const pyClass = isCompact ? 'py-2' : 'py-3.5';
+    const pyClass = isCompact ? 'py-2.5' : 'py-4';
 
     return (
       <tr
         key={pt.id || index}
         className={`border-b border-slate-200/90 transition-colors border-l-4 ${borderLeftColor} ${rowBg}`}
       >
-        {/* ลำดับ */}
-        <td className={`${pyClass} px-2 text-center ${isCompact ? 'text-xs' : 'text-sm'} font-mono font-black text-slate-600 align-middle`}>
+        {/* 1. ลำดับ */}
+        <td className={`${pyClass} px-2 text-center ${isCompact ? 'text-xs sm:text-sm' : 'text-sm sm:text-base'} font-mono font-black text-slate-600 align-middle`}>
           {rowIdx}
         </td>
 
-        {/* หมายเลขสายรัดข้อมือ (Tag Number) */}
+        {/* 2. หมายเลขสายรัดข้อมือ (Tag Number) */}
         <td className={`${pyClass} px-1.5 text-center align-middle`}>
           <span className={`inline-flex items-center justify-center rounded-xl bg-slate-900 text-white font-black font-mono tracking-wider shadow-xs ${
-            isCompact ? 'min-w-[34px] px-2 py-0.5 text-sm' : 'min-w-[42px] px-3 py-1 text-base'
+            isCompact ? 'min-w-[38px] px-2.5 py-0.5 text-sm sm:text-base' : 'min-w-[46px] px-3.5 py-1 text-base sm:text-lg'
           }`}>
             {pt.tag_number || '-'}
           </span>
         </td>
 
-        {/* ชื่อ-สกุล (ซ้อนบรรทัดได้) */}
-        <td className={`${pyClass} ${isCompact ? 'px-2.5' : 'px-4'} align-middle`}>
+        {/* 3. ชื่อ-สกุล (ซ้อนบรรทัดได้) */}
+        <td className={`${pyClass} ${isCompact ? 'px-3' : 'px-5'} align-middle`}>
           {renderPatientName(pt.pt_name, isCompact)}
         </td>
 
-        {/* เพศ / อายุ */}
-        <td className={`${pyClass} px-1.5 text-center ${isCompact ? 'text-xs' : 'text-sm'} font-bold text-slate-800 align-middle whitespace-nowrap`}>
+        {/* 4. เพศ / อายุ */}
+        <td className={`${pyClass} px-2 text-center ${isCompact ? 'text-xs sm:text-sm' : 'text-sm sm:text-base'} font-bold text-slate-800 align-middle whitespace-nowrap`}>
           <span>{pt.sex || '-'}</span>
           <span className="text-slate-400 mx-1">/</span>
           <span>{pt.age ? `${pt.age} ปี` : '-'}</span>
         </td>
 
-        {/* ระดับความเร่งด่วน (Triage) */}
-        <td className={`${pyClass} px-1.5 text-center align-middle whitespace-nowrap`}>
+        {/* 5. ระดับความเร่งด่วน (Triage) */}
+        <td className={`${pyClass} px-2 text-center align-middle whitespace-nowrap`}>
           {renderTriageBadge(pt.triage_color, isCompact)}
         </td>
 
-        {/* ประเภทการบาดเจ็บ / วินิจฉัย (ซ้อนบรรทัดได้) */}
-        <td className={`${pyClass} ${isCompact ? 'px-2.5' : 'px-4'} align-middle`}>
-          {renderInjuryInfo(pt.injury_info, isCompact)}
-        </td>
-
-        {/* สถานะปัจจุบัน (ซ้อนบรรทัดได้) */}
-        <td className={`${pyClass} px-2 text-center align-middle`}>
+        {/* 6. สถานะปัจจุบัน (ซ้อนบรรทัดได้) */}
+        <td className={`${pyClass} px-3 text-center align-middle`}>
           {renderStatusBadge(pt.current_status, isCompact)}
         </td>
       </tr>
@@ -592,18 +558,17 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
             className="flex-1 min-h-0 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
           >
             {!isMultiColumn ? (
-              /* Single Full-Width Table Mode (<= 8 patients: fills the screen with larger rows & fonts) */
+              /* Single Full-Width Table Mode (<= 12 patients: fills the screen with larger rows & fonts) */
               <div className="w-full rounded-2xl border-2 border-slate-300 bg-white shadow-md overflow-hidden">
                 <table className="w-full text-left border-collapse table-fixed">
                   <thead className="sticky top-0 z-10 bg-slate-900 text-white text-xs md:text-sm font-black uppercase tracking-wider shadow-md">
                     <tr>
-                      <th className="py-3 px-2 text-center w-14">ลำดับ</th>
-                      <th className="py-3 px-2 text-center w-24">หมายเลข</th>
-                      <th className="py-3 px-4 w-64">ชื่อ-สกุล</th>
-                      <th className="py-3 px-2 text-center w-28">เพศ/อายุ</th>
-                      <th className="py-3 px-2 text-center w-36">ความเร่งด่วน</th>
-                      <th className="py-3 px-4">ประเภทการบาดเจ็บ / วินิจฉัย</th>
-                      <th className="py-3 px-3 text-center w-48">สถานะปัจจุบัน</th>
+                      <th className="py-3 px-2 text-center w-16">ลำดับ</th>
+                      <th className="py-3 px-2 text-center w-28">หมายเลข</th>
+                      <th className="py-3 px-5">ชื่อ-สกุล</th>
+                      <th className="py-3 px-3 text-center w-36">เพศ/อายุ</th>
+                      <th className="py-3 px-3 text-center w-48">ความเร่งด่วน</th>
+                      <th className="py-3 px-4 text-center w-64">สถานะปัจจุบัน</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
@@ -612,20 +577,19 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
                 </table>
               </div>
             ) : (
-              /* High-Density 2-Equal-Columns Table Mode (> 8 patients: splits 50%/50% evenly and fills the screen) */
+              /* High-Density 2-Equal-Columns Table Mode (> 12 patients: splits 50%/50% evenly and fills the screen) */
               <div className="grid grid-cols-2 gap-3 items-start w-full">
                 {/* Left Column Table (50% width) */}
                 <div className="w-full rounded-2xl border-2 border-slate-300 bg-white shadow-md overflow-hidden">
                   <table className="w-full text-left border-collapse table-fixed">
-                    <thead className="sticky top-0 z-10 bg-slate-900 text-white text-[11px] font-black uppercase tracking-wider shadow-md">
+                    <thead className="sticky top-0 z-10 bg-slate-900 text-white text-[11px] sm:text-xs font-black uppercase tracking-wider shadow-md">
                       <tr>
-                        <th className="py-2.5 px-1 text-center w-10">ลำดับ</th>
-                        <th className="py-2.5 px-1 text-center w-16">หมายเลข</th>
-                        <th className="py-2.5 px-2.5 w-36">ชื่อ-สกุล</th>
-                        <th className="py-2.5 px-1 text-center w-20">เพศ/อายุ</th>
-                        <th className="py-2.5 px-1 text-center w-24">ความเร่งด่วน</th>
-                        <th className="py-2.5 px-2.5">การบาดเจ็บ / วินิจฉัย</th>
-                        <th className="py-2.5 px-2 text-center w-36">สถานะปัจจุบัน</th>
+                        <th className="py-2.5 px-1 text-center w-12">ลำดับ</th>
+                        <th className="py-2.5 px-1 text-center w-20">หมายเลข</th>
+                        <th className="py-2.5 px-3">ชื่อ-สกุล</th>
+                        <th className="py-2.5 px-1.5 text-center w-24">เพศ/อายุ</th>
+                        <th className="py-2.5 px-1.5 text-center w-28">ความเร่งด่วน</th>
+                        <th className="py-2.5 px-2 text-center w-40">สถานะปัจจุบัน</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200">
@@ -637,15 +601,14 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
                 {/* Right Column Table (50% width) */}
                 <div className="w-full rounded-2xl border-2 border-slate-300 bg-white shadow-md overflow-hidden">
                   <table className="w-full text-left border-collapse table-fixed">
-                    <thead className="sticky top-0 z-10 bg-slate-900 text-white text-[11px] font-black uppercase tracking-wider shadow-md">
+                    <thead className="sticky top-0 z-10 bg-slate-900 text-white text-[11px] sm:text-xs font-black uppercase tracking-wider shadow-md">
                       <tr>
-                        <th className="py-2.5 px-1 text-center w-10">ลำดับ</th>
-                        <th className="py-2.5 px-1 text-center w-16">หมายเลข</th>
-                        <th className="py-2.5 px-2.5 w-36">ชื่อ-สกุล</th>
-                        <th className="py-2.5 px-1 text-center w-20">เพศ/อายุ</th>
-                        <th className="py-2.5 px-1 text-center w-24">ความเร่งด่วน</th>
-                        <th className="py-2.5 px-2.5">การบาดเจ็บ / วินิจฉัย</th>
-                        <th className="py-2.5 px-2 text-center w-36">สถานะปัจจุบัน</th>
+                        <th className="py-2.5 px-1 text-center w-12">ลำดับ</th>
+                        <th className="py-2.5 px-1 text-center w-20">หมายเลข</th>
+                        <th className="py-2.5 px-3">ชื่อ-สกุล</th>
+                        <th className="py-2.5 px-1.5 text-center w-24">เพศ/อายุ</th>
+                        <th className="py-2.5 px-1.5 text-center w-28">ความเร่งด่วน</th>
+                        <th className="py-2.5 px-2 text-center w-40">สถานะปัจจุบัน</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200">
