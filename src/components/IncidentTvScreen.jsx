@@ -238,9 +238,9 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
   const { incident, summary, patients } = data;
 
   // Dynamic Multi-Column Logic:
-  // If <= 8 patients: Show 1 Full-Width table that comfortably occupies the screen with larger font/padding.
-  // If > 8 patients: Split into 2 equal columns (50% / 50%) stretching full width and height.
-  const isMultiColumn = patients.length > 8;
+  // If <= 12 patients: Show 1 Full-Width table that fills the screen row-by-row downwards.
+  // If > 12 patients (when 1 column is full and would overflow): Split into 2 equal columns (50% / 50%).
+  const isMultiColumn = patients.length > 12;
   const half = Math.ceil(patients.length / 2);
   const leftColPatients = isMultiColumn ? patients.slice(0, half) : patients;
   const rightColPatients = isMultiColumn ? patients.slice(half) : [];
