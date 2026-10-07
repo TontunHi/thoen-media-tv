@@ -245,11 +245,24 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
   const leftColPatients = isMultiColumn ? patients.slice(0, half) : patients;
   const rightColPatients = isMultiColumn ? patients.slice(half) : [];
 
-  // Helper to render Patient Name on a single line (ชื่อ-นามสกุล อยู่ในบรรทัดเดียวกัน)
+  // Dynamic Row Padding calculation: scales up row height to fill the TV screen
+  const countPerCol = isMultiColumn ? Math.ceil(patients.length / 2) : patients.length;
+  const getRowPyClass = () => {
+    if (countPerCol <= 4) return 'py-7 lg:py-9';
+    if (countPerCol <= 6) return 'py-5.5 lg:py-7';
+    if (countPerCol <= 8) return 'py-4.5 lg:py-5.5';
+    if (countPerCol <= 12) return 'py-3.5 lg:py-4.5';
+    if (countPerCol <= 16) return 'py-2.5 lg:py-3.5';
+    return 'py-2 lg:py-2.5';
+  };
+
+  // Helper to render Patient Name on a single line
   const renderPatientName = (name, isCompact = false) => {
     if (!name) return <span className="text-slate-400 italic">ไม่ระบุชื่อ</span>;
     return (
-      <div className={`font-black text-slate-950 leading-normal truncate ${isCompact ? 'text-sm sm:text-base' : 'text-base sm:text-lg'}`}>
+      <div className={`font-black text-slate-950 leading-normal truncate ${
+        countPerCol <= 6 ? 'text-lg sm:text-xl lg:text-2xl' : countPerCol <= 10 ? 'text-base sm:text-lg lg:text-xl' : 'text-sm sm:text-base lg:text-lg'
+      }`}>
         {name.trim()}
       </div>
     );
@@ -258,35 +271,37 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
   // Helper to render Triage Badges
   const renderTriageBadge = (color, isCompact = false) => {
     const c = (color || 'green').toLowerCase();
-    const padding = isCompact ? 'px-3 py-1 text-xs sm:text-sm' : 'px-4 py-1.5 text-sm sm:text-base';
+    const padding = countPerCol <= 8
+      ? 'px-4 py-2 text-sm sm:text-base lg:text-lg font-black'
+      : 'px-3 py-1 text-xs sm:text-sm lg:text-base font-black';
     
     if (c === 'red') {
       return (
-        <span className={`inline-flex items-center justify-center gap-1.5 rounded-xl bg-rose-600 text-white font-black tracking-wide shadow-xs ${padding}`}>
-          <span className="w-2 h-2 rounded-full bg-white animate-pulse shrink-0" />
+        <span className={`inline-flex items-center justify-center gap-2 rounded-xl bg-rose-600 text-white tracking-wide shadow-xs ${padding}`}>
+          <span className="w-2.5 h-2.5 rounded-full bg-white animate-pulse shrink-0" />
           วิกฤต
         </span>
       );
     }
     if (c === 'yellow') {
       return (
-        <span className={`inline-flex items-center justify-center gap-1.5 rounded-xl bg-amber-400 text-slate-950 font-black tracking-wide shadow-xs border border-amber-500 ${padding}`}>
-          <span className="w-2 h-2 rounded-full bg-slate-950 shrink-0" />
+        <span className={`inline-flex items-center justify-center gap-2 rounded-xl bg-amber-400 text-slate-950 tracking-wide shadow-xs border border-amber-500 ${padding}`}>
+          <span className="w-2.5 h-2.5 rounded-full bg-slate-950 shrink-0" />
           เร่งด่วน
         </span>
       );
     }
     if (c === 'black' || c === 'white') {
       return (
-        <span className={`inline-flex items-center justify-center gap-1.5 rounded-xl bg-slate-900 text-white font-black tracking-wide shadow-xs ${padding}`}>
-          <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
+        <span className={`inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 text-white tracking-wide shadow-xs ${padding}`}>
+          <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0" />
           เสียชีวิต
         </span>
       );
     }
     return (
-      <span className={`inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 text-white font-black tracking-wide shadow-xs ${padding}`}>
-        <span className="w-2 h-2 rounded-full bg-white shrink-0" />
+      <span className={`inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 text-white tracking-wide shadow-xs ${padding}`}>
+        <span className="w-2.5 h-2.5 rounded-full bg-white shrink-0" />
         ไม่เร่งด่วน
       </span>
     );
@@ -323,15 +338,15 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
       colorClass = 'bg-emerald-100 text-emerald-950 border-2 border-emerald-400';
     }
 
-    const padClass = isCompact ? 'px-2.5 py-1' : 'px-4 py-1.5';
-    const topTextSize = isCompact ? 'text-xs sm:text-[13px]' : 'text-sm sm:text-base';
-    const bottomTextSize = isCompact ? 'text-[11px] sm:text-xs' : 'text-xs sm:text-sm';
+    const padClass = countPerCol <= 8 ? 'px-4 py-2' : 'px-3 py-1';
+    const topTextSize = countPerCol <= 8 ? 'text-sm sm:text-base lg:text-lg' : 'text-xs sm:text-sm lg:text-base';
+    const bottomTextSize = countPerCol <= 8 ? 'text-xs sm:text-sm lg:text-base' : 'text-[11px] sm:text-xs';
 
     return (
       <div className={`inline-flex flex-col items-center justify-center rounded-xl leading-tight font-black shadow-xs ${padClass} ${colorClass}`}>
         <span className={`${topTextSize} leading-tight whitespace-nowrap`}>{labelTop}</span>
         {labelBottom && (
-          <span className={`${bottomTextSize} leading-tight font-extrabold text-center break-words max-w-[180px]`}>
+          <span className={`${bottomTextSize} leading-tight font-extrabold text-center break-words max-w-[220px]`}>
             {labelBottom}
           </span>
         )}
@@ -339,7 +354,7 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
     );
   };
 
-  // Render Table Row (without injury / diag column)
+  // Render Table Row (without injury / diag column, with expanded row height)
   const renderPatientRow = (pt, index, offset = 0, isCompact = false) => {
     const rowIdx = offset + index + 1;
     const color = (pt.triage_color || 'green').toLowerCase();
@@ -358,7 +373,7 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
       rowBg = 'bg-slate-100';
     }
 
-    const pyClass = isCompact ? 'py-2.5' : 'py-4';
+    const pyClass = getRowPyClass();
 
     return (
       <tr
@@ -366,26 +381,26 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
         className={`border-b border-slate-200/90 transition-colors border-l-4 ${borderLeftColor} ${rowBg}`}
       >
         {/* 1. ลำดับ */}
-        <td className={`${pyClass} px-2 text-center ${isCompact ? 'text-xs sm:text-sm' : 'text-sm sm:text-base'} font-mono font-black text-slate-600 align-middle`}>
+        <td className={`${pyClass} px-2 text-center ${countPerCol <= 9 ? 'text-sm md:text-base' : 'text-xs sm:text-sm'} font-mono font-black text-slate-700 align-middle`}>
           {rowIdx}
         </td>
 
         {/* 2. หมายเลขสายรัดข้อมือ (Tag Number) */}
-        <td className={`${pyClass} px-1.5 text-center align-middle`}>
+        <td className={`${pyClass} px-2 text-center align-middle`}>
           <span className={`inline-flex items-center justify-center rounded-xl bg-slate-900 text-white font-black font-mono tracking-wider shadow-xs ${
-            isCompact ? 'min-w-[38px] px-2.5 py-0.5 text-sm sm:text-base' : 'min-w-[46px] px-3.5 py-1 text-base sm:text-lg'
+            countPerCol <= 9 ? 'min-w-[46px] px-3.5 py-1 text-base sm:text-lg' : 'min-w-[40px] px-2.5 py-0.5 text-sm sm:text-base'
           }`}>
             {pt.tag_number || '-'}
           </span>
         </td>
 
-        {/* 3. ชื่อ-สกุล (ซ้อนบรรทัดได้) */}
-        <td className={`${pyClass} ${isCompact ? 'px-3' : 'px-5'} align-middle`}>
+        {/* 3. ชื่อ-สกุล */}
+        <td className={`${pyClass} px-4 md:px-5 align-middle`}>
           {renderPatientName(pt.pt_name, isCompact)}
         </td>
 
         {/* 4. เพศ / อายุ */}
-        <td className={`${pyClass} px-2 text-center ${isCompact ? 'text-xs sm:text-sm' : 'text-sm sm:text-base'} font-bold text-slate-800 align-middle whitespace-nowrap`}>
+        <td className={`${pyClass} px-2 text-center ${countPerCol <= 9 ? 'text-sm sm:text-base' : 'text-xs sm:text-sm'} font-extrabold text-slate-800 align-middle whitespace-nowrap`}>
           <span>{pt.sex || '-'}</span>
           <span className="text-slate-400 mx-1">/</span>
           <span>{pt.age ? `${pt.age} ปี` : '-'}</span>
@@ -396,7 +411,7 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
           {renderTriageBadge(pt.triage_color, isCompact)}
         </td>
 
-        {/* 6. สถานะปัจจุบัน (ซ้อนบรรทัดได้) */}
+        {/* 6. สถานะปัจจุบัน */}
         <td className={`${pyClass} px-3 text-center align-middle`}>
           {renderStatusBadge(pt.current_status, isCompact)}
         </td>
@@ -409,33 +424,33 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
       onWheel={(e) => e.preventDefault()}
       className="w-screen h-screen bg-slate-100 text-slate-900 flex flex-col overflow-hidden select-none font-sans cursor-default"
     >
-      {/* 1. TOP HEADER BANNER (WHITE THEME) */}
-      <header className="px-6 py-2.5 bg-white border-b-2 border-slate-200/90 flex items-center justify-between shadow-sm shrink-0">
+      {/* 1. TOP HEADER BANNER (WHITE THEME - EXPANDED) */}
+      <header className="px-6 py-3.5 bg-white border-b-2 border-slate-200/90 flex items-center justify-between shadow-sm shrink-0">
         {/* Hospital Logo & Title */}
-        <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-rose-600 via-rose-500 to-amber-500 flex items-center justify-center text-white shadow-md shadow-rose-500/30 shrink-0">
-            <ShieldAlert size={28} className="stroke-[2.4]" />
+        <div className="flex items-center gap-4">
+          <div className="w-13 h-13 rounded-2xl bg-gradient-to-tr from-rose-600 via-rose-500 to-amber-500 flex items-center justify-center text-white shadow-md shadow-rose-500/30 shrink-0">
+            <ShieldAlert size={30} className="stroke-[2.4]" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-base md:text-lg font-black tracking-tight text-slate-950 uppercase">
+            <div className="flex items-center gap-2.5">
+              <span className="text-lg md:text-xl font-black tracking-tight text-slate-950 uppercase">
                 รายงานสถานการณ์อุบัติเหตุหมู่ / สาธารณภัย
               </span>
-              <span className="px-2.5 py-0.5 bg-rose-600 text-white text-[11px] font-black rounded-md uppercase tracking-wider shadow-xs animate-pulse">
+              <span className="px-3 py-0.5 bg-rose-600 text-white text-xs font-black rounded-md uppercase tracking-wider shadow-xs animate-pulse">
                 EMERGENCY MCI
               </span>
             </div>
-            <div className="text-[11px] text-slate-600 flex items-center gap-2 font-bold">
-              <span className="text-slate-900">โรงพยาบาลเถิน จังหวัดลำปาง</span>
+            <div className="text-xs text-slate-600 flex items-center gap-2.5 font-bold mt-0.5">
+              <span className="text-slate-950 font-black">โรงพยาบาลเถิน จังหวัดลำปาง</span>
               <span>•</span>
-              <span className="text-teal-700">ศูนย์ประสานงานและสั่งการห้องฉุกเฉิน (ER Command)</span>
+              <span className="text-teal-700 font-extrabold">ศูนย์ประสานงานและสั่งการห้องฉุกเฉิน (ER Command)</span>
             </div>
           </div>
         </div>
 
         {/* Incident Name & Date Info */}
-        <div className="hidden lg:flex flex-col items-center bg-amber-50 border-2 border-amber-300 px-5 py-1.5 rounded-2xl shadow-xs">
-          <div className="text-xs md:text-sm font-black text-amber-950 flex items-center gap-1.5">
+        <div className="hidden lg:flex flex-col items-center bg-amber-50 border-2 border-amber-300 px-6 py-1.5 rounded-2xl shadow-xs">
+          <div className="text-sm md:text-base font-black text-amber-950 flex items-center gap-1.5">
             <span className="text-amber-800 font-bold">เหตุเกิด:</span>
             <span className="text-slate-950 underline decoration-amber-500 decoration-2 underline-offset-4">
               {incident.title}
@@ -444,7 +459,7 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
               <span className="text-slate-700 font-semibold">({incident.location})</span>
             )}
           </div>
-          <div className="text-[11px] text-slate-700 mt-0.5 flex items-center gap-2.5 font-bold">
+          <div className="text-xs text-slate-700 mt-0.5 flex items-center gap-3 font-bold">
             <span>วันที่: <strong className="text-slate-950">{formatThaiDate(incident.incident_date)}</strong></span>
             {incident.start_time && (
               <span>เวลาเริ่ม: <strong className="text-slate-950">{incident.start_time} น.</strong></span>
@@ -454,14 +469,14 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
 
         {/* Live Digital Clock */}
         <div className="flex items-center gap-3">
-          <div className="bg-slate-950 text-white px-4 py-1.5 rounded-2xl flex items-center gap-2.5 shadow-md border border-slate-800">
-            <span className="relative flex h-2.5 w-2.5">
+          <div className="bg-slate-950 text-white px-4 py-2 rounded-2xl flex items-center gap-2.5 shadow-md border border-slate-800">
+            <span className="relative flex h-3 w-3">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
             </span>
             <div className="text-right">
-              <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">เวลาปัจจุบัน (Live)</div>
-              <div className="font-mono text-sm sm:text-base font-black text-yellow-300 tracking-widest leading-none">
+              <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">เวลาปัจจุบัน (Live)</div>
+              <div className="font-mono text-base sm:text-lg font-black text-yellow-300 tracking-widest leading-none mt-0.5">
                 {currentTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
               </div>
             </div>
@@ -469,92 +484,92 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
         </div>
       </header>
 
-      {/* 2. STATS & SUMMARY KPI BAR */}
-      <section className="px-6 py-2 bg-white border-b-2 border-slate-200 flex flex-wrap items-center justify-between gap-2 shrink-0 shadow-xs">
+      {/* 2. STATS & SUMMARY KPI BAR (EXPANDED) */}
+      <section className="px-6 py-2.5 bg-white border-b-2 border-slate-200 flex flex-wrap items-center justify-between gap-2.5 shrink-0 shadow-xs">
         {/* Triage Badges Group */}
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          <span className="text-slate-700 font-black uppercase tracking-wider text-[11px] mr-1 flex items-center gap-1">
-            <Activity size={14} className="text-rose-600" /> สรุปความเร่งด่วน:
+        <div className="flex flex-wrap items-center gap-2.5 text-xs sm:text-sm">
+          <span className="text-slate-700 font-black uppercase tracking-wider text-xs mr-1 flex items-center gap-1.5">
+            <Activity size={16} className="text-rose-600" /> สรุปความเร่งด่วน:
           </span>
 
           {/* วิกฤต */}
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-rose-50 border-2 border-rose-500 text-rose-950 shadow-xs">
-            <span className="w-2 h-2 rounded-full bg-rose-600 shadow-sm animate-pulse" />
-            <span className="font-extrabold text-[11px]">วิกฤต:</span>
-            <span className="font-mono font-black text-base text-rose-700 leading-none">{summary.red}</span>
-            <span className="text-[10px] font-bold text-rose-800">คน</span>
+          <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-rose-50 border-2 border-rose-500 text-rose-950 shadow-xs">
+            <span className="w-2.5 h-2.5 rounded-full bg-rose-600 shadow-sm animate-pulse" />
+            <span className="font-black text-xs sm:text-sm">วิกฤต:</span>
+            <span className="font-mono font-black text-lg sm:text-xl text-rose-700 leading-none">{summary.red}</span>
+            <span className="text-xs font-bold text-rose-800">คน</span>
           </div>
 
           {/* เร่งด่วน */}
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-50 border-2 border-amber-500 text-amber-950 shadow-xs">
-            <span className="w-2 h-2 rounded-full bg-amber-500 shadow-sm" />
-            <span className="font-extrabold text-[11px]">เร่งด่วน:</span>
-            <span className="font-mono font-black text-base text-amber-700 leading-none">{summary.yellow}</span>
-            <span className="text-[10px] font-bold text-amber-800">คน</span>
+          <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-50 border-2 border-amber-500 text-amber-950 shadow-xs">
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-sm" />
+            <span className="font-black text-xs sm:text-sm">เร่งด่วน:</span>
+            <span className="font-mono font-black text-lg sm:text-xl text-amber-700 leading-none">{summary.yellow}</span>
+            <span className="text-xs font-bold text-amber-800">คน</span>
           </div>
 
           {/* ไม่เร่งด่วน */}
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-50 border-2 border-emerald-500 text-emerald-950 shadow-xs">
-            <span className="w-2 h-2 rounded-full bg-emerald-600 shadow-sm" />
-            <span className="font-extrabold text-[11px]">ไม่เร่งด่วน:</span>
-            <span className="font-mono font-black text-base text-emerald-700 leading-none">{summary.green}</span>
-            <span className="text-[10px] font-bold text-emerald-800">คน</span>
+          <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-50 border-2 border-emerald-500 text-emerald-950 shadow-xs">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 shadow-sm" />
+            <span className="font-black text-xs sm:text-sm">ไม่เร่งด่วน:</span>
+            <span className="font-mono font-black text-lg sm:text-xl text-emerald-700 leading-none">{summary.green}</span>
+            <span className="text-xs font-bold text-emerald-800">คน</span>
           </div>
 
           {/* เสียชีวิต */}
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-100 border-2 border-slate-700 text-slate-900 shadow-xs">
-            <span className="w-2 h-2 rounded-full bg-slate-800" />
-            <span className="font-extrabold text-[11px]">เสียชีวิต:</span>
-            <span className="font-mono font-black text-base text-slate-900 leading-none">{summary.black}</span>
-            <span className="text-[10px] font-bold text-slate-700">คน</span>
+          <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-100 border-2 border-slate-700 text-slate-900 shadow-xs">
+            <span className="w-2.5 h-2.5 rounded-full bg-slate-800" />
+            <span className="font-black text-xs sm:text-sm">เสียชีวิต:</span>
+            <span className="font-mono font-black text-lg sm:text-xl text-slate-900 leading-none">{summary.black}</span>
+            <span className="text-xs font-bold text-slate-700">คน</span>
           </div>
         </div>
 
         {/* Refuse Treatment & Total Counts */}
-        <div className="flex items-center gap-2 text-xs">
+        <div className="flex items-center gap-2.5 text-xs sm:text-sm">
           {/* ไม่ประสงค์ตรวจ */}
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-50 border-2 border-slate-300 text-slate-800 shadow-xs">
-            <XCircle size={14} className="text-slate-500" />
-            <span className="font-extrabold text-[11px]">ไม่ประสงค์ตรวจ:</span>
-            <span className="font-mono font-black text-base text-amber-600 leading-none">{summary.refuse_treatment}</span>
-            <span className="text-[10px] font-bold text-slate-600">คน</span>
+          <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-50 border-2 border-slate-300 text-slate-800 shadow-xs">
+            <XCircle size={16} className="text-slate-500" />
+            <span className="font-black text-xs sm:text-sm">ไม่ประสงค์ตรวจ:</span>
+            <span className="font-mono font-black text-lg sm:text-xl text-amber-600 leading-none">{summary.refuse_treatment}</span>
+            <span className="text-xs font-bold text-slate-600">คน</span>
           </div>
 
           {/* ยอดรวมทั้งหมด */}
-          <div className="flex items-center gap-2 px-3.5 py-1 rounded-xl bg-gradient-to-r from-slate-900 via-indigo-900 to-blue-900 border border-slate-800 text-white shadow-md shadow-indigo-900/20">
-            <Users size={15} className="text-indigo-300" />
-            <span className="font-black text-[11px] uppercase tracking-wide text-indigo-100">รวมทั้งหมด:</span>
-            <span className="font-mono font-black text-lg text-yellow-300 leading-none">{summary.total}</span>
-            <span className="text-[10px] font-bold text-indigo-200">คน</span>
+          <div className="flex items-center gap-2.5 px-4 py-1.5 rounded-xl bg-gradient-to-r from-slate-900 via-indigo-900 to-blue-900 border border-slate-800 text-white shadow-md shadow-indigo-900/20">
+            <Users size={18} className="text-indigo-300" />
+            <span className="font-black text-xs sm:text-sm uppercase tracking-wide text-indigo-100">รวมทั้งหมด:</span>
+            <span className="font-mono font-black text-xl sm:text-2xl text-yellow-300 leading-none">{summary.total}</span>
+            <span className="text-xs font-bold text-indigo-200">คน</span>
           </div>
         </div>
       </section>
 
-      {/* 3. MAIN PATIENTS TABLE (DYNAMIC 1-COLUMN OR 2-EQUAL-COLUMNS FULL SCREEN) */}
-      <main className="flex-1 min-h-0 p-3 overflow-hidden flex flex-col">
+      {/* 3. MAIN PATIENTS TABLE (DYNAMIC FULL SCREEN EXPANSION) */}
+      <main className="flex-1 min-h-0 p-3.5 overflow-hidden flex flex-col">
         {patients.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-white rounded-3xl border-2 border-dashed border-slate-300 shadow-sm">
-            <Users size={48} className="text-slate-400 mb-3" />
-            <h3 className="text-lg font-black text-slate-800">ยังไม่มีรายชื่อผู้ป่วยในอุบัติเหตุหมู่นี้</h3>
-            <p className="text-slate-500 text-xs mt-1">ระบบดึงข้อมูลผู้ป่วยจาก HOSxP อัตโนมัติตามช่วงเวลาเกิดเหตุ</p>
+            <Users size={56} className="text-slate-400 mb-3" />
+            <h3 className="text-xl font-black text-slate-800">ยังไม่มีรายชื่อผู้ป่วยในอุบัติเหตุหมู่นี้</h3>
+            <p className="text-slate-500 text-sm mt-1">ระบบดึงข้อมูลผู้ป่วยจาก HOSxP อัตโนมัติตามช่วงเวลาเกิดเหตุ</p>
           </div>
         ) : (
           <div
             ref={scrollContainerRef}
-            className="flex-1 min-h-0 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+            className="flex-1 min-h-0 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] flex flex-col justify-start"
           >
             {!isMultiColumn ? (
-              /* Single Full-Width Table Mode (<= 12 patients: fills the screen with larger rows & fonts) */
+              /* Single Full-Width Table Mode (<= 12 patients: fills the screen with large rows & fonts) */
               <div className="w-full rounded-2xl border-2 border-slate-300 bg-white shadow-md overflow-hidden">
                 <table className="w-full text-left border-collapse table-fixed">
-                  <thead className="sticky top-0 z-10 bg-slate-900 text-white text-xs md:text-sm font-black uppercase tracking-wider shadow-md">
+                  <thead className="sticky top-0 z-10 bg-slate-900 text-white text-sm md:text-base font-black uppercase tracking-wider shadow-md">
                     <tr>
-                      <th className="py-3 px-2 text-center w-16">ลำดับ</th>
-                      <th className="py-3 px-2 text-center w-28">หมายเลข</th>
-                      <th className="py-3 px-5">ชื่อ-สกุล</th>
-                      <th className="py-3 px-3 text-center w-36">เพศ/อายุ</th>
-                      <th className="py-3 px-3 text-center w-48">ความเร่งด่วน</th>
-                      <th className="py-3 px-4 text-center w-64">สถานะปัจจุบัน</th>
+                      <th className="py-3.5 px-2 text-center w-16">ลำดับ</th>
+                      <th className="py-3.5 px-2 text-center w-28">หมายเลข</th>
+                      <th className="py-3.5 px-5">ชื่อ-สกุล</th>
+                      <th className="py-3.5 px-3 text-center w-36">เพศ/อายุ</th>
+                      <th className="py-3.5 px-3 text-center w-48">ความเร่งด่วน</th>
+                      <th className="py-3.5 px-4 text-center w-64">สถานะปัจจุบัน</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
@@ -564,18 +579,18 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
               </div>
             ) : (
               /* High-Density 2-Equal-Columns Table Mode (> 12 patients: splits 50%/50% evenly and fills the screen) */
-              <div className="grid grid-cols-2 gap-3 items-start w-full">
+              <div className="grid grid-cols-2 gap-3.5 items-start w-full">
                 {/* Left Column Table (50% width) */}
                 <div className="w-full rounded-2xl border-2 border-slate-300 bg-white shadow-md overflow-hidden">
                   <table className="w-full text-left border-collapse table-fixed">
-                    <thead className="sticky top-0 z-10 bg-slate-900 text-white text-[11px] sm:text-xs font-black uppercase tracking-wider shadow-md">
+                    <thead className="sticky top-0 z-10 bg-slate-900 text-white text-xs sm:text-sm font-black uppercase tracking-wider shadow-md">
                       <tr>
-                        <th className="py-2.5 px-1 text-center w-12">ลำดับ</th>
-                        <th className="py-2.5 px-1 text-center w-20">หมายเลข</th>
-                        <th className="py-2.5 px-3">ชื่อ-สกุล</th>
-                        <th className="py-2.5 px-1.5 text-center w-24">เพศ/อายุ</th>
-                        <th className="py-2.5 px-1.5 text-center w-28">ความเร่งด่วน</th>
-                        <th className="py-2.5 px-2 text-center w-40">สถานะปัจจุบัน</th>
+                        <th className="py-3 px-1 text-center w-14">ลำดับ</th>
+                        <th className="py-3 px-1.5 text-center w-22">หมายเลข</th>
+                        <th className="py-3 px-4">ชื่อ-สกุล</th>
+                        <th className="py-3 px-1.5 text-center w-28">เพศ/อายุ</th>
+                        <th className="py-3 px-2 text-center w-32">ความเร่งด่วน</th>
+                        <th className="py-3 px-3 text-center w-44">สถานะปัจจุบัน</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200">
@@ -587,14 +602,14 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
                 {/* Right Column Table (50% width) */}
                 <div className="w-full rounded-2xl border-2 border-slate-300 bg-white shadow-md overflow-hidden">
                   <table className="w-full text-left border-collapse table-fixed">
-                    <thead className="sticky top-0 z-10 bg-slate-900 text-white text-[11px] sm:text-xs font-black uppercase tracking-wider shadow-md">
+                    <thead className="sticky top-0 z-10 bg-slate-900 text-white text-xs sm:text-sm font-black uppercase tracking-wider shadow-md">
                       <tr>
-                        <th className="py-2.5 px-1 text-center w-12">ลำดับ</th>
-                        <th className="py-2.5 px-1 text-center w-20">หมายเลข</th>
-                        <th className="py-2.5 px-3">ชื่อ-สกุล</th>
-                        <th className="py-2.5 px-1.5 text-center w-24">เพศ/อายุ</th>
-                        <th className="py-2.5 px-1.5 text-center w-28">ความเร่งด่วน</th>
-                        <th className="py-2.5 px-2 text-center w-40">สถานะปัจจุบัน</th>
+                        <th className="py-3 px-1 text-center w-14">ลำดับ</th>
+                        <th className="py-3 px-1.5 text-center w-22">หมายเลข</th>
+                        <th className="py-3 px-4">ชื่อ-สกุล</th>
+                        <th className="py-3 px-1.5 text-center w-28">เพศ/อายุ</th>
+                        <th className="py-3 px-2 text-center w-32">ความเร่งด่วน</th>
+                        <th className="py-3 px-3 text-center w-44">สถานะปัจจุบัน</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200">
@@ -609,27 +624,27 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
       </main>
 
       {/* 4. BOTTOM STATUS FOOTER WITH AUTO-SCROLL INDICATOR */}
-      <footer className="px-6 py-2 bg-white border-t-2 border-slate-200 flex items-center justify-between text-xs text-slate-600 font-bold shrink-0">
+      <footer className="px-6 py-2.5 bg-white border-t-2 border-slate-200 flex items-center justify-between text-xs sm:text-sm text-slate-600 font-bold shrink-0">
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
-          <span className="text-slate-800">เชื่อมต่อฐานข้อมูล HOSxP สดอัตโนมัติ</span>
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse" />
+          <span className="text-slate-900 font-black">เชื่อมต่อฐานข้อมูล HOSxP สดอัตโนมัติ</span>
           <span className="text-slate-400">•</span>
-          <span className="text-[11px] text-slate-500 font-normal">สำรวจเคสใหม่อัตโนมัติทุก 15 วินาที</span>
+          <span className="text-xs text-slate-500 font-medium">สำรวจเคสใหม่อัตโนมัติทุก 15 วินาที</span>
         </div>
 
         {/* Auto Scroll Indicator */}
         {isAutoScrolling ? (
-          <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 px-3.5 py-1 rounded-full text-indigo-950 text-xs font-black shadow-xs">
-            <ArrowUpDown size={14} className="text-indigo-600 animate-bounce shrink-0" />
+          <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 px-4 py-1 rounded-full text-indigo-950 text-xs sm:text-sm font-black shadow-xs">
+            <ArrowUpDown size={15} className="text-indigo-600 animate-bounce shrink-0" />
             <span>เลื่อนอัตโนมัติ (ขึ้น-ลง)</span>
             <span className="text-indigo-400">•</span>
-            <span className="text-[11px] font-extrabold text-indigo-700">
+            <span className="text-xs font-black text-indigo-700">
               {scrollDirection === 'down' ? 'กำลังเลื่อนลง...' : scrollDirection === 'up' ? 'กำลังเลื่อนขึ้น...' : 'หยุด 5 วิ'}
             </span>
           </div>
         ) : (
-          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1 rounded-full text-slate-600 text-xs font-medium">
-            <CheckCircle2 size={13} className="text-emerald-600" />
+          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3.5 py-1 rounded-full text-slate-700 text-xs font-bold">
+            <CheckCircle2 size={14} className="text-emerald-600" />
             <span>แสดงผลครบถ้วน {patients.length} รายชื่อ ({isMultiColumn ? 'แบ่ง 2 ฝั่งสมดุล' : 'ตารางเดี่ยวเต็มจอ'})</span>
           </div>
         )}

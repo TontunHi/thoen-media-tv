@@ -34,87 +34,23 @@ import {
 } from 'lucide-react';
 import { api } from '../services/api';
 import { getSocket } from '../services/socket';
+import ThaiDateSelector from './ThaiDateSelector';
 
-const THAI_MONTHS = [
-  { value: '01', name: 'ม.ค. (01)' },
-  { value: '02', name: 'ก.พ. (02)' },
-  { value: '03', name: 'มี.ค. (03)' },
-  { value: '04', name: 'เม.ย. (04)' },
-  { value: '05', name: 'พ.ค. (05)' },
-  { value: '06', name: 'มิ.ย. (06)' },
-  { value: '07', name: 'ก.ค. (07)' },
-  { value: '08', name: 'ส.ค. (08)' },
-  { value: '09', name: 'ก.ย. (09)' },
-  { value: '10', name: 'ต.ค. (10)' },
-  { value: '11', name: 'พ.ย. (11)' },
-  { value: '12', name: 'ธ.ค. (12)' },
-];
-
-function ThaiDateInput({ value, onChange }) {
-  const parts = typeof value === 'string' && value.includes('-') ? value.split('-') : [];
-  const initialYear = parts[0] ? parseInt(parts[0]) : new Date().getFullYear();
-  const initialMonth = parts[1] || String(new Date().getMonth() + 1).padStart(2, '0');
-  const initialDay = parts[2] ? parts[2].slice(0, 2) : String(new Date().getDate()).padStart(2, '0');
-
-  const days = Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0'));
-  const thisYear = new Date().getFullYear();
-  const years = [thisYear - 2, thisYear - 1, thisYear, thisYear + 1, thisYear + 2];
-
-  const handleUpdate = (newD, newM, newY) => {
-    const maxDays = new Date(newY, parseInt(newM), 0).getDate();
-    const finalDay = parseInt(newD) > maxDays ? String(maxDays).padStart(2, '0') : newD;
-    onChange(`${newY}-${newM}-${finalDay}`);
-  };
-
-  return (
-    <div className="grid grid-cols-3 gap-1.5 w-full">
-      {/* 1. วัน */}
-      <div className="relative">
-        <select
-          value={initialDay}
-          onChange={(e) => handleUpdate(e.target.value, initialMonth, initialYear)}
-          className="w-full pl-2 pr-5 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs sm:text-sm font-bold text-slate-800 appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer shadow-xs"
-          title="เลือกวัน"
-        >
-          {days.map((d) => (
-            <option key={d} value={d}>วัน {parseInt(d)}</option>
-          ))}
-        </select>
-        <ChevronDown size={13} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-      </div>
-
-      {/* 2. เดือน */}
-      <div className="relative">
-        <select
-          value={initialMonth}
-          onChange={(e) => handleUpdate(initialDay, e.target.value, initialYear)}
-          className="w-full pl-2 pr-5 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs sm:text-sm font-bold text-slate-800 appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer shadow-xs"
-          title="เลือกเดือน"
-        >
-          {THAI_MONTHS.map((m) => (
-            <option key={m.value} value={m.value}>{m.name}</option>
-          ))}
-        </select>
-        <ChevronDown size={13} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-      </div>
-
-      {/* 3. ปี พ.ศ. */}
-      <div className="relative">
-        <select
-          value={initialYear}
-          onChange={(e) => handleUpdate(initialDay, initialMonth, parseInt(e.target.value))}
-          className="w-full pl-1.5 pr-5 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs sm:text-sm font-bold text-slate-800 appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer shadow-xs"
-          title="เลือกปี พ.ศ."
-        >
-          {years.map((y) => (
-            <option key={y} value={y}>พ.ศ. {y + 543}</option>
-          ))}
-        </select>
-        <ChevronDown size={13} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-      </div>
-    </div>
-  );
-}
+// Helper to format date string to Thai DD/MM/BBBB
+const formatThaiDateShort = (dateStr) => {
+  if (!dateStr) return '-';
+  try {
+    const parts = dateStr.slice(0, 10).split('-');
+    if (parts.length === 3) {
+      const yBE = parseInt(parts[0], 10) + 543;
+      return `${parts[2]}/${parts[1]}/${yBE}`;
+    }
+    const d = new Date(dateStr);
+    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear() + 543}`;
+  } catch (e) {
+    return dateStr;
+  }
+};
 
 export default function IncidentManager() {
   const [incidents, setIncidents] = useState([]);
@@ -519,7 +455,7 @@ export default function IncidentManager() {
                 incidents.map((inc) => (
                   <option key={inc.id} value={inc.id}>
                     {inc.is_active ? '🔴 [ถ่ายทอดสด] ' : '📋 '}
-                    {inc.title} ({inc.incident_date})
+                    {inc.title} ({formatThaiDateShort(inc.incident_date)})
                   </option>
                 ))
               )}
@@ -829,43 +765,43 @@ export default function IncidentManager() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-                  <div>
-                    <label className="block text-xs font-extrabold text-slate-700 mb-1">
-                      วันที่เกิดเหตุ * (วัน / เดือน / ปี)
-                    </label>
-                    <ThaiDateInput
-                      value={formState.incident_date}
-                      onChange={(val) => setFormState({ ...formState, incident_date: val })}
-                    />
-                  </div>
+                {/* Incident Date with Thai Selector & Time / Refuse Counts */}
+                <div className="space-y-3.5">
+                  <ThaiDateSelector
+                    value={formState.incident_date}
+                    onChange={(val) => setFormState({ ...formState, incident_date: val })}
+                    label="วันที่เกิดเหตุ *"
+                    required
+                  />
 
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="block text-xs font-extrabold text-slate-700">
-                        เวลาเริ่มเหตุ (HH:mm)
-                      </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-xs font-extrabold text-slate-700">
+                          เวลาเริ่มเหตุ (HH:mm)
+                        </label>
+                      </div>
+                      <input
+                        type="text"
+                        value={formState.start_time}
+                        onChange={(e) => setFormState({ ...formState, start_time: e.target.value })}
+                        placeholder="เช่น 14:00"
+                        className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                      />
                     </div>
-                    <input
-                      type="text"
-                      value={formState.start_time}
-                      onChange={(e) => setFormState({ ...formState, start_time: e.target.value })}
-                      placeholder="เช่น 14:00"
-                      className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                    />
-                  </div>
 
-                  <div>
-                    <label className="block text-xs font-extrabold text-slate-700 mb-1">
-                      ไม่ประสงค์ตรวจ (คน)
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={formState.refuse_treatment_count}
-                      onChange={(e) => setFormState({ ...formState, refuse_treatment_count: Number(e.target.value) })}
-                      className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-amber-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                    />
+                    <div>
+                      <label className="block text-xs font-extrabold text-slate-700 mb-1">
+                        ไม่ประสงค์ตรวจ (คน)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={formState.refuse_treatment_count}
+                        onChange={(e) => setFormState({ ...formState, refuse_treatment_count: Number(e.target.value) })}
+                        className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-amber-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -875,35 +811,35 @@ export default function IncidentManager() {
                   <button
                     type="button"
                     onClick={() => setQuickTime('now')}
-                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition"
+                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition cursor-pointer"
                   >
                     ตอนนี้ (Now)
                   </button>
                   <button
                     type="button"
                     onClick={() => setQuickTime('minus1h')}
-                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition"
+                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition cursor-pointer"
                   >
                     1 ชม. ที่แล้ว
                   </button>
                   <button
                     type="button"
                     onClick={() => setQuickTime('minus2h')}
-                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition"
+                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition cursor-pointer"
                   >
                     2 ชม. ที่แล้ว
                   </button>
                   <button
                     type="button"
                     onClick={() => setQuickTime('midnight')}
-                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition"
+                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition cursor-pointer"
                   >
                     00:00 (ตั้งแต่เริ่มวัน)
                   </button>
                 </div>
 
-                {/* Auto-Sync Toggle & Manual Sync Action Strip */}
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-3">
+                {/* Auto-Sync Toggle & Connection Status Strip (Manual Sync Button Removed) */}
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-2.5">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                     <label className="flex items-center gap-2.5 cursor-pointer select-none font-bold text-xs text-slate-900">
                       <input
@@ -915,23 +851,20 @@ export default function IncidentManager() {
                       <span>⚡ ดึงข้อมูลจาก HOSxP อัตโนมัติ (ต่อเนื่องจนถึงปัจจุบัน)</span>
                     </label>
 
-                    <button
-                      type="button"
-                      onClick={handleManualAutoSync}
-                      disabled={syncing}
-                      className="flex items-center justify-center gap-1.5 px-3.5 py-2 bg-teal-600 hover:bg-teal-700 active:scale-98 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer"
-                    >
-                      <RefreshCw size={13} className={syncing ? 'animate-spin' : ''} />
-                      <span>{syncing ? 'กำลังซิงค์ HOSxP...' : 'ซิงค์สด HOSxP เดี๋ยวนี้'}</span>
-                    </button>
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100/80 border border-emerald-300 text-emerald-950 text-xs font-black shadow-2xs">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span>ซิงค์อัตโนมัติทุก 15 วินาที</span>
+                    </div>
                   </div>
 
                   <div className="text-[11px] text-slate-500 flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-200/70">
-                    <span className="flex items-center gap-1">
+                    <span className="flex items-center gap-1 font-medium">
                       <Server size={12} className="text-slate-400" />
-                      <span>เชื่อมต่อ: <strong>192.168.1.4:3306</strong> (er_pt_type = 2)</span>
+                      <span>เชื่อมต่อฐานข้อมูล HOSxP: <strong>192.168.1.4:3306</strong> (er_pt_type = 2)</span>
                     </span>
-                    <span>ซิงค์ล่าสุด: {lastSyncTime ? lastSyncTime.toLocaleTimeString('th-TH') : '-'}</span>
+                    <span className="font-semibold text-slate-600">
+                      ซิงค์ล่าสุด: {lastSyncTime ? lastSyncTime.toLocaleTimeString('th-TH') : '-'}
+                    </span>
                   </div>
                 </div>
 
@@ -1101,20 +1034,17 @@ export default function IncidentManager() {
                 />
               </div>
 
+              <ThaiDateSelector
+                value={newIncidentForm.incident_date}
+                onChange={(val) => setNewIncidentForm({ ...newIncidentForm, incident_date: val })}
+                label="วันที่เกิดเหตุ *"
+                required
+              />
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-extrabold text-slate-700 mb-1">
-                    วันที่เกิดเหตุ * (วัน / เดือน / ปี)
-                  </label>
-                  <ThaiDateInput
-                    value={newIncidentForm.incident_date}
-                    onChange={(val) => setNewIncidentForm({ ...newIncidentForm, incident_date: val })}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-extrabold text-slate-700 mb-1">
-                    เวลาเริ่มเหตุ
+                    เวลาเริ่มเหตุ (HH:mm)
                   </label>
                   <input
                     type="text"
@@ -1124,19 +1054,19 @@ export default function IncidentManager() {
                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono font-bold"
                   />
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-xs font-extrabold text-slate-700 mb-1">
-                  ไม่ประสงค์ตรวจ (คน)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={newIncidentForm.refuse_treatment_count}
-                  onChange={(e) => setNewIncidentForm({ ...newIncidentForm, refuse_treatment_count: Number(e.target.value) })}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-amber-600"
-                />
+                <div>
+                  <label className="block text-xs font-extrabold text-slate-700 mb-1">
+                    ไม่ประสงค์ตรวจ (คน)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={newIncidentForm.refuse_treatment_count}
+                    onChange={(e) => setNewIncidentForm({ ...newIncidentForm, refuse_treatment_count: Number(e.target.value) })}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-amber-600"
+                  />
+                </div>
               </div>
 
               <label className="flex items-center gap-2.5 p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-950 font-bold text-xs cursor-pointer select-none">
