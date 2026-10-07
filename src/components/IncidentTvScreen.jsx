@@ -245,26 +245,12 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
   const leftColPatients = isMultiColumn ? patients.slice(0, half) : patients;
   const rightColPatients = isMultiColumn ? patients.slice(half) : [];
 
-  // Helper to render Patient Name with stacked Surname
+  // Helper to render Patient Name on a single line (ชื่อ-นามสกุล อยู่ในบรรทัดเดียวกัน)
   const renderPatientName = (name, isCompact = false) => {
     if (!name) return <span className="text-slate-400 italic">ไม่ระบุชื่อ</span>;
-    const trimmed = name.trim();
-    const parts = trimmed.split(/\s+/);
-    if (parts.length >= 2) {
-      return (
-        <div className="leading-tight break-words">
-          <div className={`font-black text-slate-950 ${isCompact ? 'text-sm sm:text-base' : 'text-base sm:text-lg'}`}>
-            {parts[0]}
-          </div>
-          <div className={`font-extrabold text-slate-800 ${isCompact ? 'text-xs sm:text-sm' : 'text-sm sm:text-base'}`}>
-            {parts.slice(1).join(' ')}
-          </div>
-        </div>
-      );
-    }
     return (
-      <div className={`font-extrabold text-slate-950 leading-tight break-words ${isCompact ? 'text-sm sm:text-base' : 'text-base sm:text-lg'}`}>
-        {trimmed}
+      <div className={`font-black text-slate-950 leading-normal truncate ${isCompact ? 'text-sm sm:text-base' : 'text-base sm:text-lg'}`}>
+        {name.trim()}
       </div>
     );
   };
