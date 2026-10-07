@@ -141,6 +141,8 @@ export default function TvPlayer() {
     socket.on('playlist_updated', handleUpdate);
     socket.on('tv_config_changed', handleUpdate);
     socket.on('media_deleted', handleUpdate);
+    socket.on('incident_updated', handleUpdate);
+    socket.on('incident_broadcast_toggled', handleUpdate);
 
     // Periodic Background Sync: every 15s to update last_ping and verify sync
     const syncInterval = setInterval(() => {
@@ -156,6 +158,8 @@ export default function TvPlayer() {
       socket.off('playlist_updated', handleUpdate);
       socket.off('tv_config_changed', handleUpdate);
       socket.off('media_deleted', handleUpdate);
+      socket.off('incident_updated', handleUpdate);
+      socket.off('incident_broadcast_toggled', handleUpdate);
       clearInterval(syncInterval);
       clearInterval(clockInterval);
       if (timerRef.current) clearTimeout(timerRef.current);

@@ -252,6 +252,9 @@
     <div id="layer-0" class="player-layer"></div>
     <div id="layer-1" class="player-layer"></div>
 
+    <!-- Emergency Incident Overlay Layer -->
+    <div id="incident-layer" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; z-index:100; background:#000; overflow:hidden;"></div>
+
     <!-- Top Overlay Header -->
     <div class="top-header">
       <div class="badge-pill">
@@ -606,6 +609,49 @@
         if (waitingScreenEl) waitingScreenEl.style.display = 'none';
       }
 
+      var incidentLayerEl = document.getElementById('incident-layer');
+      var topHeaderEl = document.querySelector('.top-header');
+      var isCurrentIncidentMode = false;
+      var currentIncidentId = null;
+
+      function renderIncidentScreen(incId) {
+        if (!isCurrentIncidentMode || currentIncidentId !== incId) {
+          isCurrentIncidentMode = true;
+          currentIncidentId = incId;
+          if (slideTimer) {
+            clearTimeout(slideTimer);
+            slideTimer = null;
+          }
+          cleanupLayer(layers[0]);
+          cleanupLayer(layers[1]);
+          layers[0].classList.remove('active');
+          layers[1].classList.remove('active');
+          hideWaitingScreen();
+
+          if (topHeaderEl) topHeaderEl.style.display = 'none';
+          if (bottomControlsEl) bottomControlsEl.style.display = 'none';
+          if (unmuteBannerEl) unmuteBannerEl.style.display = 'none';
+
+          if (incidentLayerEl) {
+            incidentLayerEl.style.display = 'block';
+            incidentLayerEl.innerHTML = '<iframe src="/tv-incident' + (incId ? '?id=' + encodeURIComponent(incId) : '') + '" style="width:100%; height:100%; border:0; background:#fff;" allow="autoplay; fullscreen"></iframe>';
+          }
+        }
+      }
+
+      function hideIncidentScreen() {
+        if (isCurrentIncidentMode) {
+          isCurrentIncidentMode = false;
+          currentIncidentId = null;
+          if (incidentLayerEl) {
+            incidentLayerEl.style.display = 'none';
+            incidentLayerEl.innerHTML = '';
+          }
+          if (topHeaderEl) topHeaderEl.style.display = 'flex';
+          if (bottomControlsEl) bottomControlsEl.style.display = '';
+        }
+      }
+
       // 9. Load TV playback data from API
       function loadTvPlayback() {
         if (!tvSlug) return;
@@ -621,6 +667,15 @@
               tvData = data.tv;
               if (tvNameEl && tvData && tvData.name) {
                 tvNameEl.textContent = tvData.name;
+              }
+
+              // Check if TV is in Emergency Incident Override mode
+              if (data.is_incident_mode) {
+                var incId = data.incident ? data.incident.id : '';
+                renderIncidentScreen(incId);
+                return;
+              } else {
+                hideIncidentScreen();
               }
 
               var newItems = data.items || [];
@@ -666,6 +721,8 @@
             socket.on('playlist_updated', handleRealtimeUpdate);
             socket.on('tv_config_changed', handleRealtimeUpdate);
             socket.on('media_deleted', handleRealtimeUpdate);
+            socket.on('incident_broadcast_toggled', handleRealtimeUpdate);
+            socket.on('incident_updated', handleRealtimeUpdate);
           } catch (err) {
             console.warn('Socket connection skipped, relying on HTTP polling:', err);
           }
