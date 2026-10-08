@@ -22,10 +22,14 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
   const [scrollDirection, setScrollDirection] = useState('down'); // 'down' | 'up' | 'paused'
   
   const scrollContainerRef = useRef(null);
+  const dataRef = useRef(data);
+  dataRef.current = data;
 
-  // Fetch incident data
+  // Fetch incident data without flickering
   const fetchData = async (silent = false) => {
-    if (!silent) setLoading(true);
+    if (!silent && !dataRef.current.incident) {
+      setLoading(true);
+    }
     try {
       let res;
       if (incidentId) {
@@ -33,11 +37,31 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
       } else {
         res = await api.getActiveIncidentDisplay();
       }
-      setData({
-        incident: res.incident || null,
-        summary: res.summary || { red: 0, yellow: 0, green: 0, black: 0, refuse_treatment: 0, total: 0 },
-        patients: res.patients || []
+
+      const nextIncident = res?.incident || null;
+      const nextSummary = res?.summary || { red: 0, yellow: 0, green: 0, black: 0, refuse_treatment: 0, total: 0 };
+      const nextPatients = res?.patients || [];
+
+      // Check if data actually changed to avoid triggering unnecessary re-renders & auto-scroll resets
+      const current = dataRef.current;
+      const prevString = JSON.stringify({
+        incident: current.incident,
+        summary: current.summary,
+        patients: current.patients
       });
+      const nextString = JSON.stringify({
+        incident: nextIncident,
+        summary: nextSummary,
+        patients: nextPatients
+      });
+
+      if (prevString !== nextString) {
+        setData({
+          incident: nextIncident,
+          summary: nextSummary,
+          patients: nextPatients
+        });
+      }
       setError('');
     } catch (err) {
       console.error('Error fetching incident display:', err);
@@ -60,7 +84,7 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
     socket.on('incident_broadcast_toggled', handleUpdate);
     socket.on('tv_config_changed', handleUpdate);
 
-    // Auto-polling every 15 seconds
+    // Auto-polling every 15 seconds (silent)
     const interval = setInterval(() => {
       fetchData(true);
     }, 15000);
@@ -79,7 +103,8 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
     };
   }, [incidentId]);
 
-  // Auto-scroll loop (Scroll Down -> Pause 5s -> Scroll Up -> Pause 5s -> Loop)
+  // Robust Auto-scroll loop: Continuous, smooth, non-resetting on background polling
+  const patientCount = data.patients.length;
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
@@ -88,15 +113,17 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
     let timerId = null;
     let isCancelled = false;
 
-    const PIXELS_PER_SECOND = 20; // Exact 20 px / second
-    const PAUSE_DURATION = 5000; // 5 seconds pause at top and bottom
+    const PIXELS_PER_SECOND = 28; // Smooth 28 px / second (comfortable TV reading speed)
+    const PAUSE_TOP = 3000; // 3 seconds pause at top
+    const PAUSE_BOTTOM = 3500; // 3.5 seconds pause at bottom
 
     const startAutoScroll = () => {
-      if (!container) return;
+      if (!container || isCancelled) return;
       
       const maxScroll = container.scrollHeight - container.clientHeight;
-      if (maxScroll <= 8) {
+      if (maxScroll <= 6) {
         setIsAutoScrolling(false);
+        container.scrollTop = 0;
         return;
       }
 
@@ -109,11 +136,11 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
         if (isCancelled || !container) return;
 
         if (!lastTimestamp) lastTimestamp = timestamp;
-        const deltaSec = Math.min((timestamp - lastTimestamp) / 1000, 0.1);
+        const deltaSec = Math.min((timestamp - lastTimestamp) / 1000, 0.08);
         lastTimestamp = timestamp;
 
         const currentMaxScroll = container.scrollHeight - container.clientHeight;
-        if (currentMaxScroll <= 8) {
+        if (currentMaxScroll <= 6) {
           setIsAutoScrolling(false);
           return;
         }
@@ -136,12 +163,13 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
               dir = 'up';
               lastTimestamp = null;
               animId = requestAnimationFrame(doScroll);
-            }, PAUSE_DURATION);
+            }, PAUSE_BOTTOM);
             return;
           }
         } else {
           setScrollDirection('up');
-          currentScroll -= step;
+          // Faster return to top (50 px / sec)
+          currentScroll -= (PIXELS_PER_SECOND * 1.6) * deltaSec;
           container.scrollTop = currentScroll;
 
           if (currentScroll <= 0) {
@@ -155,7 +183,7 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
               dir = 'down';
               lastTimestamp = null;
               animId = requestAnimationFrame(doScroll);
-            }, PAUSE_DURATION);
+            }, PAUSE_TOP);
             return;
           }
         }
@@ -163,6 +191,7 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
         animId = requestAnimationFrame(doScroll);
       };
 
+      // Initial pause at top before scrolling down
       setScrollDirection('paused');
       timerId = setTimeout(() => {
         if (!isCancelled) {
@@ -170,10 +199,10 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
           lastTimestamp = null;
           animId = requestAnimationFrame(doScroll);
         }
-      }, PAUSE_DURATION);
+      }, PAUSE_TOP);
     };
 
-    const initTimer = setTimeout(startAutoScroll, 500);
+    const initTimer = setTimeout(startAutoScroll, 400);
 
     const handleResize = () => {
       if (animId) cancelAnimationFrame(animId);
@@ -190,7 +219,7 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
       if (animId) cancelAnimationFrame(animId);
       window.removeEventListener('resize', handleResize);
     };
-  }, [data.patients, loading]);
+  }, [patientCount, loading]);
 
   // Format Date in Thai (immune to UTC timezone shift)
   const formatThaiDate = (dateStr) => {
@@ -218,12 +247,12 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
     }
   };
 
-  if (loading) {
+  if (loading && !data.incident) {
     return (
-      <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-6 text-center">
-        <div className="w-16 h-16 border-4 border-rose-500/20 border-t-rose-500 rounded-full animate-spin mb-4" />
-        <h2 className="text-2xl font-black tracking-tight text-slate-100">กำลังเชื่อมต่อรายงานสถานการณ์อุบัติเหตุหมู่...</h2>
-        <p className="text-slate-400 text-sm mt-1">โรงพยาบาลเถิน จ.ลำปาง</p>
+      <div className="min-h-screen bg-slate-100 text-slate-800 flex flex-col items-center justify-center p-6 text-center select-none">
+        <div className="w-14 h-14 border-4 border-rose-500/20 border-t-rose-600 rounded-full animate-spin mb-4" />
+        <h2 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900">กำลังเชื่อมต่อรายงานสถานการณ์อุบัติเหตุหมู่...</h2>
+        <p className="text-slate-500 text-sm mt-1">โรงพยาบาลเถิน จ.ลำปาง</p>
       </div>
     );
   }

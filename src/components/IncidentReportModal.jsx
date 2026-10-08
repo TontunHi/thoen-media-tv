@@ -376,6 +376,7 @@ export default function IncidentReportModal({ incident, summary, patients = [], 
           {/* TAB 2 / PRINTABLE VIEW: PIXEL-PERFECT A4 PORTRAIT DOCUMENT */}
           {(activeTab === 'preview' || true) && (
             <div
+              id="incident-report-printable-document"
               ref={printRef}
               className={`${activeTab === 'form' ? 'hidden print:block' : 'block'} bg-white mx-auto text-slate-900 font-sans max-w-[210mm] p-6 sm:p-8 border border-slate-200 shadow-lg rounded-2xl print:max-w-none print:p-0 print:border-none print:shadow-none print:rounded-none`}
               style={{ minHeight: '297mm' }}
@@ -385,36 +386,91 @@ export default function IncidentReportModal({ incident, summary, patients = [], 
                 @media print {
                   @page {
                     size: A4 portrait;
-                    margin: 12mm 10mm 12mm 10mm;
+                    margin: 8mm 8mm 8mm 8mm;
                   }
-                  body {
+                  
+                  *, *::before, *::after {
+                    box-sizing: border-box !important;
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                    color-adjust: exact !important;
+                  }
+
+                  html, body {
+                    margin: 0 !important;
+                    padding: 0 !important;
                     background: white !important;
-                    color: black !important;
-                    font-size: 11pt;
+                    color: #000 !important;
+                    font-size: 10pt !important;
+                    font-family: 'Sarabun', 'Noto Sans Thai', system-ui, -apple-system, sans-serif !important;
                   }
-                  .print\\:hidden {
+
+                  /* Hide non-printable elements */
+                  body * {
+                    visibility: hidden !important;
+                  }
+
+                  #incident-report-printable-document,
+                  #incident-report-printable-document * {
+                    visibility: visible !important;
+                  }
+
+                  #incident-report-printable-document {
+                    display: block !important;
+                    position: absolute !important;
+                    left: 0 !important;
+                    top: 0 !important;
+                    width: 100% !important;
+                    max-width: 100% !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    border: none !important;
+                    box-shadow: none !important;
+                    background: white !important;
+                  }
+
+                  .print\\:hidden, .no-print {
                     display: none !important;
+                  }
+
+                  table {
+                    width: 100% !important;
+                    table-layout: fixed !important;
+                    border-collapse: collapse !important;
+                  }
+
+                  thead {
+                    display: table-header-group !important;
+                  }
+
+                  tbody {
+                    display: table-row-group !important;
+                  }
+
+                  tr {
+                    page-break-inside: avoid !important;
+                    break-inside: avoid !important;
                   }
                 }
               `}</style>
 
               {/* 1. DOCUMENT TITLE & LOGO */}
-              <div className="text-center pb-2.5 border-b-2 border-slate-900">
+              <div className="text-center pb-2 border-b-2 border-slate-900">
                 <img
                   src="/logo.jpg"
                   alt="ตราสัญลักษณ์"
-                  className="w-16 h-16 sm:w-20 sm:h-20 object-contain mx-auto mb-1.5"
+                  className="w-14 h-14 sm:w-16 sm:h-16 object-contain mx-auto mb-1"
                 />
-                <h1 className="text-lg sm:text-xl font-black text-slate-950 tracking-tight leading-tight">
+                <h1 className="text-base sm:text-lg font-black text-slate-950 tracking-tight leading-snug">
                   แบบรายงานอุบัติเหตุหมู่/สาธารณภัย ในโรงพยาบาลเถิน จังหวัดลำปาง
                 </h1>
-                <p className="text-xs sm:text-sm font-bold text-slate-700 mt-1">
+                <p className="text-xs font-bold text-slate-700 mt-0.5">
                   โรงพยาบาลเถิน จังหวัดลำปาง โทรศัพท์ 054292275
                 </p>
               </div>
 
               {/* 2. INCIDENT METADATA HEADER */}
-              <div className="text-xs sm:text-sm text-slate-900 font-medium py-3 space-y-1.5 border-b border-slate-300">
+              <div className="text-xs text-slate-900 font-medium py-2.5 space-y-1 border-b border-slate-300">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <div>
                     <strong>เหตุการณ์:</strong> <span className="font-bold underline decoration-slate-400 underline-offset-2">{incident?.title || '-'}</span>
@@ -432,10 +488,10 @@ export default function IncidentReportModal({ incident, summary, patients = [], 
                 {/* Road Conditions Checkboxes */}
                 <div>
                   <strong className="mr-1">บริเวณที่เกิดเหตุ(อุบัติเหตุจราจร):</strong>
-                  <span className="space-x-3 text-xs leading-relaxed">
+                  <span className="space-x-2 text-[11px] leading-relaxed">
                     {ROAD_OPTIONS.map((opt) => (
-                      <span key={opt} className="inline-flex items-center gap-1">
-                        <span className="font-mono text-sm font-black">
+                      <span key={opt} className="inline-flex items-center gap-0.5">
+                        <span className="font-mono text-xs font-black">
                           {roadConditions.includes(opt) ? '[✓]' : '[ ]'}
                         </span>
                         <span>{opt}</span>
@@ -447,10 +503,10 @@ export default function IncidentReportModal({ incident, summary, patients = [], 
                 {/* Management Actions Checkboxes */}
                 <div>
                   <strong className="mr-1">การจัดการ:</strong>
-                  <span className="space-x-3 text-xs leading-relaxed">
+                  <span className="space-x-2 text-[11px] leading-relaxed">
                     {MANAGEMENT_OPTIONS.map((opt) => (
-                      <span key={opt} className="inline-flex items-center gap-1">
-                        <span className="font-mono text-sm font-black">
+                      <span key={opt} className="inline-flex items-center gap-0.5">
+                        <span className="font-mono text-xs font-black">
                           {managementActions.includes(opt) ? '[✓]' : '[ ]'}
                         </span>
                         <span>{opt}</span>
@@ -466,40 +522,54 @@ export default function IncidentReportModal({ incident, summary, patients = [], 
               </div>
 
               {/* 3. PATIENTS TABLE SECTION */}
-              <div className="pt-3">
-                <h2 className="text-xs sm:text-sm font-black text-slate-950 mb-2">
+              <div className="pt-2.5">
+                <h2 className="text-xs sm:text-sm font-black text-slate-950 mb-1.5">
                   ข้อมูลผู้บาดเจ็บ
                 </h2>
 
-                <div className="w-full overflow-hidden border border-slate-900 rounded-sm">
-                  <table className="w-full text-left border-collapse table-fixed text-[11px] sm:text-xs">
+                <div className="w-full overflow-hidden border border-slate-900 rounded-xs">
+                  <table className="w-full text-left border-collapse table-fixed text-[10px] sm:text-[11px]">
+                    <colgroup>
+                      <col style={{ width: '4%' }} />
+                      <col style={{ width: '16.5%' }} />
+                      <col style={{ width: '5.5%' }} />
+                      <col style={{ width: '11.5%' }} />
+                      <col style={{ width: '10%' }} />
+                      <col style={{ width: '17%' }} />
+                      <col style={{ width: '4.5%' }} />
+                      <col style={{ width: '4.5%' }} />
+                      <col style={{ width: '11.5%' }} />
+                      <col style={{ width: '5%' }} />
+                      <col style={{ width: '5%' }} />
+                      <col style={{ width: '5%' }} />
+                    </colgroup>
                     <thead>
                       {/* Sub-Header Row 1 */}
-                      <tr className="bg-slate-100 text-slate-900 font-bold border-b border-slate-900 text-center">
-                        <th rowSpan="2" className="border-r border-slate-900 p-1 w-9 align-middle">ลำดับ</th>
-                        <th rowSpan="2" className="border-r border-slate-900 p-1.5 w-32 align-middle text-left">ชื่อสกุล</th>
-                        <th rowSpan="2" className="border-r border-slate-900 p-1 w-12 align-middle">อายุ (ปี)</th>
-                        <th rowSpan="2" className="border-r border-slate-900 p-1 w-20 align-middle">Triage Sieve</th>
-                        <th rowSpan="2" className="border-r border-slate-900 p-1 w-22 align-middle">พาหนะผู้บาดเจ็บ</th>
-                        <th rowSpan="2" className="border-r border-slate-900 p-1.5 w-36 align-middle text-left">วินิจฉัยเบื้องต้น</th>
-                        <th colSpan="6" className="border-b border-slate-900 p-1 bg-slate-200/80 font-black">ผลการรักษา</th>
+                      <tr className="bg-slate-100 text-slate-950 font-bold border-b border-slate-900 text-center">
+                        <th rowSpan="2" className="border border-slate-900 p-1 text-center align-middle">ลำดับ</th>
+                        <th rowSpan="2" className="border border-slate-900 p-1 text-left align-middle">ชื่อสกุล</th>
+                        <th rowSpan="2" className="border border-slate-900 p-0.5 text-center align-middle">อายุ (ปี)</th>
+                        <th rowSpan="2" className="border border-slate-900 p-1 text-center align-middle">Triage Sieve</th>
+                        <th rowSpan="2" className="border border-slate-900 p-1 text-center align-middle">พาหนะ</th>
+                        <th rowSpan="2" className="border border-slate-900 p-1 text-left align-middle">วินิจฉัยเบื้องต้น</th>
+                        <th colSpan="6" className="border border-slate-900 p-1 bg-slate-200 text-center font-black">ผลการรักษา</th>
                       </tr>
 
                       {/* Sub-Header Row 2 */}
-                      <tr className="bg-slate-100 text-slate-900 font-bold border-b border-slate-900 text-center">
-                        <th className="border-r border-slate-900 p-1 w-9 align-middle">D/C</th>
-                        <th className="border-r border-slate-900 p-1 w-9 align-middle">Admit</th>
-                        <th className="border-r border-slate-900 p-1 w-24 align-middle">Refer (ระบุ รพ.)</th>
-                        <th className="border-r border-slate-900 p-0.5 w-14 align-middle text-[10px]">จุดเกิดเหตุ</th>
-                        <th className="border-r border-slate-900 p-0.5 w-14 align-middle text-[10px]">ระหว่างนำส่ง</th>
-                        <th className="p-0.5 w-14 align-middle text-[10px]">ใน รพ.</th>
+                      <tr className="bg-slate-100 text-slate-950 font-bold border-b border-slate-900 text-center text-[9px] sm:text-[10px]">
+                        <th className="border border-slate-900 p-0.5 text-center align-middle">D/C</th>
+                        <th className="border border-slate-900 p-0.5 text-center align-middle">Admit</th>
+                        <th className="border border-slate-900 p-1 text-center align-middle">Refer (ระบุ รพ.)</th>
+                        <th className="border border-slate-900 p-0.5 text-center align-middle">จุดเกิดเหตุ</th>
+                        <th className="border border-slate-900 p-0.5 text-center align-middle">ระหว่างส่ง</th>
+                        <th className="border border-slate-900 p-0.5 text-center align-middle">ใน รพ.</th>
                       </tr>
                     </thead>
 
                     <tbody className="divide-y divide-slate-800">
                       {patients.length === 0 ? (
                         <tr>
-                          <td colSpan="12" className="p-4 text-center text-slate-500 italic">
+                          <td colSpan="12" className="border border-slate-900 p-3 text-center text-slate-500 italic">
                             ไม่พบข้อมูลผู้บาดเจ็บในช่วงเวลาที่ระบุ
                           </td>
                         </tr>
@@ -519,58 +589,58 @@ export default function IncidentReportModal({ incident, summary, patients = [], 
                           const isDeadHospital = isDead && (status.includes('ใน รพ') || pt.dead_in_hospital || status.includes('ในโรงพยาบาล'));
                           const isDeadTransport = isDead && !isDeadScene && !isDeadHospital;
 
-                          let triageBadgeColor = 'text-slate-900 font-extrabold';
                           let triageLabel = pt.triage_level || '-';
+                          let triageClass = 'text-slate-950 font-bold';
                           if (pt.triage_color === 'red') {
                             triageLabel = 'วิกฤต (แดง)';
-                            triageBadgeColor = 'text-rose-700 font-black';
+                            triageClass = 'text-rose-700 font-black';
                           } else if (pt.triage_color === 'yellow') {
                             triageLabel = 'เร่งด่วน (เหลือง)';
-                            triageBadgeColor = 'text-amber-800 font-black';
+                            triageClass = 'text-amber-800 font-black';
                           } else if (pt.triage_color === 'green') {
                             triageLabel = 'ไม่เร่งด่วน (เขียว)';
-                            triageBadgeColor = 'text-emerald-800 font-bold';
+                            triageClass = 'text-emerald-800 font-bold';
                           } else if (pt.triage_color === 'black' || pt.triage_color === 'white') {
                             triageLabel = 'เสียชีวิต (ดำ)';
-                            triageBadgeColor = 'text-slate-900 font-black';
+                            triageClass = 'text-slate-950 font-black';
                           }
 
                           return (
-                            <tr key={pt.id || idx} className="hover:bg-slate-50 transition-colors">
-                              <td className="border-r border-slate-800 p-1 text-center font-mono align-middle">
+                            <tr key={pt.id || idx}>
+                              <td className="border border-slate-900 p-1 text-center font-mono align-middle">
                                 {idx + 1}
                               </td>
-                              <td className="border-r border-slate-800 p-1.5 font-bold align-middle truncate">
+                              <td className="border border-slate-900 p-1 font-bold align-middle break-words text-left leading-tight">
                                 {pt.pt_name || 'ไม่ระบุชื่อ'}
                               </td>
-                              <td className="border-r border-slate-800 p-1 text-center align-middle">
+                              <td className="border border-slate-900 p-0.5 text-center align-middle">
                                 {pt.age || '-'}
                               </td>
-                              <td className={`border-r border-slate-800 p-1 text-center align-middle text-[10px] ${triageBadgeColor}`}>
+                              <td className={`border border-slate-900 p-0.5 text-center align-middle text-[9px] sm:text-[10px] ${triageClass}`}>
                                 {triageLabel}
                               </td>
-                              <td className="border-r border-slate-800 p-1 text-center align-middle text-[11px] truncate">
+                              <td className="border border-slate-900 p-0.5 text-center align-middle text-[9px] sm:text-[10px] break-words">
                                 {pt.transport && pt.transport !== '-' ? pt.transport : '-'}
                               </td>
-                              <td className="border-r border-slate-800 p-1.5 align-middle text-[11px] break-words">
+                              <td className="border border-slate-900 p-1 align-middle text-[9px] sm:text-[10px] break-words text-left leading-tight">
                                 {pt.diag && pt.diag !== '-' ? pt.diag : (pt.injury_info || '-')}
                               </td>
-                              <td className="border-r border-slate-800 p-1 text-center font-bold text-slate-900 align-middle">
+                              <td className="border border-slate-900 p-0.5 text-center font-bold text-slate-950 align-middle">
                                 {isDC ? '✓' : ''}
                               </td>
-                              <td className="border-r border-slate-800 p-1 text-center font-bold text-slate-900 align-middle">
+                              <td className="border border-slate-900 p-0.5 text-center font-bold text-slate-950 align-middle">
                                 {isAdmit ? '✓' : ''}
                               </td>
-                              <td className="border-r border-slate-800 p-1 text-center font-medium text-[11px] align-middle truncate">
+                              <td className="border border-slate-900 p-0.5 text-center font-medium text-[9px] sm:text-[10px] align-middle break-words leading-tight">
                                 {referHosp || '-'}
                               </td>
-                              <td className="border-r border-slate-800 p-0.5 text-center font-bold text-rose-700 align-middle">
+                              <td className="border border-slate-900 p-0.5 text-center font-bold text-rose-700 align-middle">
                                 {isDeadScene ? '✓' : ''}
                               </td>
-                              <td className="border-r border-slate-800 p-0.5 text-center font-bold text-rose-700 align-middle">
+                              <td className="border border-slate-900 p-0.5 text-center font-bold text-rose-700 align-middle">
                                 {isDeadTransport ? '✓' : ''}
                               </td>
-                              <td className="p-0.5 text-center font-bold text-rose-700 align-middle">
+                              <td className="border border-slate-900 p-0.5 text-center font-bold text-rose-700 align-middle">
                                 {isDeadHospital ? '✓' : ''}
                               </td>
                             </tr>
@@ -582,18 +652,18 @@ export default function IncidentReportModal({ incident, summary, patients = [], 
                 </div>
               </div>
 
-              {/* 4. SUMMARY STATISTICS FOOTER (Matching user's request) */}
-              <div className="mt-4 p-3 border border-slate-800 rounded-lg bg-slate-50 text-xs sm:text-sm text-slate-900 space-y-1.5">
+              {/* 4. SUMMARY STATISTICS FOOTER */}
+              <div className="mt-3 p-2.5 border border-slate-800 rounded bg-slate-50 text-xs text-slate-900 space-y-1">
                 <div className="font-bold flex flex-wrap items-center justify-between">
                   <span>
                     <strong>สรุปผลผู้บาดเจ็บทั้งหมด:</strong>{' '}
-                    <span className="text-sm sm:text-base font-black text-slate-950 underline decoration-slate-400">
+                    <span className="text-xs sm:text-sm font-black text-slate-950 underline decoration-slate-400">
                       {totalCount} คน
                     </span>{' '}
                     (รับการตรวจรักษาใน รพ.: <strong>{regCount}</strong> คน, ไม่ประสงค์ตรวจรักษา: <strong>{refuseCount}</strong> คน)
                   </span>
                 </div>
-                <div className="text-xs text-slate-800 font-medium flex flex-wrap items-center gap-3 pt-1 border-t border-slate-200">
+                <div className="text-[11px] text-slate-800 font-medium flex flex-wrap items-center gap-2.5 pt-1 border-t border-slate-300">
                   <span><strong>สถิติตามระดับความรุนแรง:</strong></span>
                   <span className="text-rose-700 font-bold">วิกฤต (แดง): {summary?.red || 0} คน</span>
                   <span>|</span>
@@ -606,7 +676,7 @@ export default function IncidentReportModal({ incident, summary, patients = [], 
               </div>
 
               {/* 5. REPORT FOOTER NOTICE */}
-              <div className="mt-6 pt-3 border-t border-slate-200 text-[10px] text-slate-500 flex justify-between items-center">
+              <div className="mt-4 pt-2 border-t border-slate-300 text-[9px] text-slate-500 flex justify-between items-center">
                 <span>ระบบศูนย์บัญชาการอุบัติเหตุหมู่ (MCI Command) • โรงพยาบาลเถิน จ.ลำปาง</span>
                 <span>พิมพ์เมื่อ: {new Date().toLocaleDateString('th-TH')} {new Date().toLocaleTimeString('th-TH')}</span>
               </div>
