@@ -83,11 +83,13 @@ async function queryHosxpAccidentPatients({ startDate, endDate, startTime, endTi
   if (endDate && endTime && endTime.trim()) {
     let eTime = endTime.trim();
     if (eTime.length === 5) eTime = `${eTime}:59`;
+    const eDate = String(endDate).slice(0, 10);
     conditions.push("TIMESTAMP(e.vstdate, COALESCE(o.vsttime, '00:00:00')) <= ?");
-    params.push(`${endDate} ${eTime}`);
-  } else if (endDate && endDate !== sDate) {
+    params.push(`${eDate} ${eTime}`);
+  } else if (endDate) {
+    const eDate = String(endDate).slice(0, 10);
     conditions.push("TIMESTAMP(e.vstdate, COALESCE(o.vsttime, '00:00:00')) <= ?");
-    params.push(`${endDate} 23:59:59`);
+    params.push(`${eDate} 23:59:59`);
   } else if (endTime && endTime.trim()) {
     let eTime = endTime.trim();
     if (eTime.length === 5) eTime = `${eTime}:59`;

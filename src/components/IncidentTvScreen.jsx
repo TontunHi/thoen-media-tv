@@ -245,23 +245,23 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
   const leftColPatients = isMultiColumn ? patients.slice(0, half) : patients;
   const rightColPatients = isMultiColumn ? patients.slice(half) : [];
 
-  // Dynamic Row Padding calculation: scales up row height to fill the TV screen
+  // Dynamic Row Padding calculation: balanced to fit comfortably on screen without overflow
   const countPerCol = isMultiColumn ? Math.ceil(patients.length / 2) : patients.length;
   const getRowPyClass = () => {
-    if (countPerCol <= 4) return 'py-7 lg:py-9';
-    if (countPerCol <= 6) return 'py-5.5 lg:py-7';
-    if (countPerCol <= 8) return 'py-4.5 lg:py-5.5';
-    if (countPerCol <= 12) return 'py-3.5 lg:py-4.5';
-    if (countPerCol <= 16) return 'py-2.5 lg:py-3.5';
-    return 'py-2 lg:py-2.5';
+    if (countPerCol <= 4) return 'py-4 lg:py-6';
+    if (countPerCol <= 6) return 'py-2.5 lg:py-3.5';
+    if (countPerCol <= 8) return 'py-2 lg:py-3';
+    if (countPerCol <= 12) return 'py-1.5 lg:py-2.5';
+    if (countPerCol <= 16) return 'py-1 lg:py-2';
+    return 'py-1 lg:py-1.5';
   };
 
   // Helper to render Patient Name on a single line
   const renderPatientName = (name, isCompact = false) => {
     if (!name) return <span className="text-slate-400 italic">ไม่ระบุชื่อ</span>;
     return (
-      <div className={`font-black text-slate-950 leading-normal truncate ${
-        countPerCol <= 6 ? 'text-lg sm:text-xl lg:text-2xl' : countPerCol <= 10 ? 'text-base sm:text-lg lg:text-xl' : 'text-sm sm:text-base lg:text-lg'
+      <div className={`font-black text-slate-950 leading-snug truncate ${
+        countPerCol <= 4 ? 'text-lg sm:text-xl lg:text-2xl' : countPerCol <= 8 ? 'text-base sm:text-lg lg:text-xl' : 'text-sm sm:text-base lg:text-lg'
       }`}>
         {name.trim()}
       </div>
@@ -271,9 +271,11 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
   // Helper to render Triage Badges
   const renderTriageBadge = (color, isCompact = false) => {
     const c = (color || 'green').toLowerCase();
-    const padding = countPerCol <= 8
+    const padding = countPerCol <= 4
       ? 'px-4 py-2 text-sm sm:text-base lg:text-lg font-black'
-      : 'px-3 py-1 text-xs sm:text-sm lg:text-base font-black';
+      : countPerCol <= 8
+      ? 'px-3.5 py-1.5 text-xs sm:text-sm lg:text-base font-black'
+      : 'px-2.5 py-1 text-xs sm:text-sm font-black';
     
     if (c === 'red') {
       return (
@@ -338,9 +340,9 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
       colorClass = 'bg-emerald-100 text-emerald-950 border-2 border-emerald-400';
     }
 
-    const padClass = countPerCol <= 8 ? 'px-4 py-2' : 'px-3 py-1';
-    const topTextSize = countPerCol <= 8 ? 'text-sm sm:text-base lg:text-lg' : 'text-xs sm:text-sm lg:text-base';
-    const bottomTextSize = countPerCol <= 8 ? 'text-xs sm:text-sm lg:text-base' : 'text-[11px] sm:text-xs';
+    const padClass = countPerCol <= 4 ? 'px-4 py-2' : countPerCol <= 8 ? 'px-3 py-1.5' : 'px-2.5 py-1';
+    const topTextSize = countPerCol <= 4 ? 'text-sm sm:text-base lg:text-lg' : countPerCol <= 8 ? 'text-xs sm:text-sm lg:text-base' : 'text-xs sm:text-sm';
+    const bottomTextSize = countPerCol <= 4 ? 'text-xs sm:text-sm lg:text-base' : countPerCol <= 8 ? 'text-[11px] sm:text-xs' : 'text-[10px] sm:text-[11px]';
 
     return (
       <div className={`inline-flex flex-col items-center justify-center rounded-xl leading-tight font-black shadow-xs ${padClass} ${colorClass}`}>

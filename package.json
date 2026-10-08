@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "concurrently \"node server/index.js\" \"vite --host\"",
-    "dev:server": "node server/index.js",
+    "dev": "concurrently \"nodemon server/index.js\" \"vite --host\"",
+    "dev:server": "nodemon server/index.js",
     "dev:client": "vite --host",
     "build": "vite build",
     "start": "node server/index.js"

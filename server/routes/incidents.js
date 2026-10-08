@@ -385,8 +385,10 @@ router.post('/:id/sync-hosxp', authenticateToken, async (req, res) => {
 
     // Fetch details for these VNs from HOSxP
     const hosxpPatients = await queryHosxpAccidentPatients({
-      startDate: incident.incident_date,
-      endDate: incident.incident_date
+      startDate: incident.incident_date ? String(incident.incident_date).slice(0, 10) : undefined,
+      endDate: incident.end_date ? String(incident.end_date).slice(0, 10) : (incident.incident_date ? String(incident.incident_date).slice(0, 10) : undefined),
+      startTime: incident.start_time,
+      endTime: incident.end_time
     });
 
     const selectedMap = new Map();
