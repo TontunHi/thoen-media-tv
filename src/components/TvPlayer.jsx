@@ -182,6 +182,7 @@ export default function TvPlayer() {
   const [showControls, setShowControls] = useState(false);
   const [cycleTick, setCycleTick] = useState(0);
 
+  const isAudioUnlockedRef = useRef(false);
   const videoRef = useRef(null);
   const timerRef = useRef(null);
   const controlsTimeoutRef = useRef(null);
@@ -236,6 +237,7 @@ export default function TvPlayer() {
 
   // Unlock all Audio Subsystems
   const unlockAudio = useCallback(() => {
+    isAudioUnlockedRef.current = true;
     setIsMuted(false);
 
     try {
@@ -251,7 +253,9 @@ export default function TvPlayer() {
     if (videoRef.current) {
       videoRef.current.muted = false;
       videoRef.current.volume = 1.0;
-      videoRef.current.play().catch(() => {});
+      if (videoRef.current.paused) {
+        videoRef.current.play().catch(() => {});
+      }
     }
     if (ytPlayerRef.current && typeof ytPlayerRef.current.unMute === 'function') {
       try {
@@ -260,15 +264,14 @@ export default function TvPlayer() {
         ytPlayerRef.current.playVideo();
       } catch (e) {}
     }
-    if (fbPlayerRef.current) {
+    if (fbPlayerRef.current && typeof fbPlayerRef.current.unmute === 'function') {
       try {
         fbPlayerRef.current.unmute();
-        fbPlayerRef.current.play();
       } catch (e) {}
     }
   }, []);
 
-  // Initialize AudioContext and Auto-unmute Subsystems for TV Displays
+  // Listen to any user interaction gesture to unlock audio permanently across the whole session
   useEffect(() => {
     try {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -277,25 +280,16 @@ export default function TvPlayer() {
         if (ctx.state === 'suspended') {
           ctx.resume().catch(() => {});
         }
-        // Prime audio buffer
-        const buffer = ctx.createBuffer(1, 1, 22050);
-        const source = ctx.createBufferSource();
-        source.buffer = buffer;
-        source.connect(ctx.destination);
-        source.start(0);
       }
     } catch (e) {}
 
-    window.addEventListener('click', unlockAudio, { once: true });
-    window.addEventListener('touchstart', unlockAudio, { once: true });
-    window.addEventListener('keydown', unlockAudio, { once: true });
-    window.addEventListener('pointerdown', unlockAudio, { once: true });
-
+    const handleGesture = () => {
+      unlockAudio();
+    };
+    const events = ['click', 'touchstart', 'touchend', 'keydown', 'mousedown', 'pointerdown'];
+    events.forEach((evt) => window.addEventListener(evt, handleGesture, { passive: true }));
     return () => {
-      window.removeEventListener('click', unlockAudio);
-      window.removeEventListener('touchstart', unlockAudio);
-      window.removeEventListener('keydown', unlockAudio);
-      window.removeEventListener('pointerdown', unlockAudio);
+      events.forEach((evt) => window.removeEventListener(evt, handleGesture));
     };
   }, [unlockAudio]);
 
@@ -401,34 +395,30 @@ export default function TvPlayer() {
     setCurrentIndex((prev) => (prev + 1) % list.length);
   }, []);
 
-  // Video unmuted autoplay: immediately play with full audio without requiring user tap/click
+  // Video autoplay: immediately play smoothly without getting stuck or paused
   useEffect(() => {
     if (currentItem?.file_type === 'video' && videoRef.current) {
       const videoEl = videoRef.current;
-      videoEl.muted = false;
+      videoEl.muted = isMuted || !isAudioUnlockedRef.current;
       videoEl.volume = 1.0;
 
       const playPromise = videoEl.play();
       if (playPromise !== undefined) {
         playPromise
           .then(() => {
-            videoEl.muted = false;
-            videoEl.volume = 1.0;
+            if (isAudioUnlockedRef.current && !isMuted) {
+              videoEl.muted = false;
+              videoEl.volume = 1.0;
+            }
           })
           .catch((err) => {
-            console.warn('Initial unmuted play rejected by browser policy, executing immediate auto-unmute sequence:', err);
-            // Fallback: start playback muted, then immediately unmute after first frame
+            console.warn('Initial unmuted play rejected by browser policy, starting safe muted playback:', err);
             videoEl.muted = true;
-            videoEl.play().then(() => {
-              setTimeout(() => {
-                videoEl.muted = false;
-                videoEl.volume = 1.0;
-              }, 120);
-            }).catch(() => {});
+            videoEl.play().catch(() => {});
           });
       }
     }
-  }, [currentItemId, cycleTick, currentItem?.file_type]);
+  }, [currentItemId, cycleTick, currentItem?.file_type, isMuted]);
 
   // HLS (.m3u8) Direct Stream playback support (OBS / Live Streaming server / CCTV)
   useEffect(() => {
@@ -636,22 +626,8 @@ export default function TvPlayer() {
               key={`${currentItem.id}-${cycleTick}`}
               src={currentItem.file_path}
               autoPlay
+              muted={isMuted || !isAudioUnlockedRef.current}
               playsInline
-              onPlaying={(e) => {
-                e.target.muted = false;
-                e.target.volume = 1.0;
-              }}
-              onCanPlay={(e) => {
-                e.target.muted = false;
-                e.target.volume = 1.0;
-                e.target.play().catch(() => {});
-              }}
-              onTimeUpdate={(e) => {
-                if (e.target.muted && !isMuted) {
-                  e.target.muted = false;
-                  e.target.volume = 1.0;
-                }
-              }}
               onEnded={nextItem}
               onError={(e) => {
                 console.error('Video error (possibly moved or removed):', e);

@@ -299,6 +299,7 @@
       var currentIndex = 0;
       var activeLayerIndex = 0;
       var isMuted = false;
+      var isAudioUnlocked = false;
       var slideTimer = null;
       var syncTimer = null;
       var clockTimer = null;
@@ -403,7 +404,7 @@
                 videoId: yId,
                 playerVars: {
                   autoplay: 1,
-                  mute: isMuted ? 1 : 0,
+                  mute: (isMuted || !isAudioUnlocked) ? 1 : 0,
                   controls: 0,
                   rel: 0,
                   modestbranding: 1,
@@ -414,7 +415,7 @@
                 events: {
                   onReady: function (e) {
                     try {
-                      if (!isMuted) {
+                      if (isAudioUnlocked && !isMuted) {
                         e.target.unMute();
                         e.target.setVolume(100);
                       }
@@ -424,7 +425,7 @@
                   onStateChange: function (e) {
                     if (e.data === window.YT.PlayerState.PLAYING) {
                       try {
-                        if (!isMuted) {
+                        if (isAudioUnlocked && !isMuted) {
                           e.target.unMute();
                           e.target.setVolume(100);
                         }
@@ -442,7 +443,7 @@
             } catch (err) {
               var iframeYt = document.createElement('iframe');
               iframeYt.className = 'media-frame';
-              iframeYt.src = getYouTubeEmbedUrl(filePath, true, isMuted);
+              iframeYt.src = getYouTubeEmbedUrl(filePath, true, isMuted || !isAudioUnlocked);
               iframeYt.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen';
               iframeYt.allowFullscreen = true;
               layer.appendChild(iframeYt);
@@ -450,7 +451,7 @@
           } else {
             var iframeYt = document.createElement('iframe');
             iframeYt.className = 'media-frame';
-            iframeYt.src = getYouTubeEmbedUrl(filePath, true, isMuted);
+            iframeYt.src = getYouTubeEmbedUrl(filePath, true, isMuted || !isAudioUnlocked);
             iframeYt.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen';
             iframeYt.allowFullscreen = true;
             layer.appendChild(iframeYt);
@@ -458,7 +459,7 @@
         } else if (fileType === 'facebook') {
           var iframeFb = document.createElement('iframe');
           iframeFb.className = 'media-frame';
-          iframeFb.src = getFacebookEmbedUrl(filePath, true, isMuted);
+          iframeFb.src = getFacebookEmbedUrl(filePath, true, isMuted || !isAudioUnlocked);
           iframeFb.allow = 'autoplay; fullscreen';
           iframeFb.allowFullscreen = true;
           layer.appendChild(iframeFb);
@@ -468,7 +469,7 @@
             vStream.className = 'media-fit';
             vStream.src = filePath;
             vStream.autoplay = true;
-            vStream.muted = isMuted;
+            vStream.muted = isMuted || !isAudioUnlocked;
             vStream.setAttribute('playsinline', '');
             vStream.onended = onVideoEnd;
             vStream.onerror = onMediaError;
@@ -490,30 +491,27 @@
           videoEl.className = 'media-fit';
           videoEl.src = filePath;
           videoEl.autoplay = true;
-          videoEl.muted = isMuted;
+          videoEl.muted = isMuted || !isAudioUnlocked;
           videoEl.volume = 1.0;
           videoEl.setAttribute('playsinline', '');
           videoEl.onended = onVideoEnd;
           videoEl.onerror = onMediaError;
           layer.appendChild(videoEl);
 
-          // Force unmuted playback with graceful fallback
           var playPromise = videoEl.play();
           if (playPromise !== undefined) {
             playPromise.then(function () {
-              if (!isMuted) {
+              // Video is actively playing
+              if (isAudioUnlocked && !isMuted) {
                 videoEl.muted = false;
                 videoEl.volume = 1.0;
               }
-            }).catch(function () {
-              // Fallback: start muted then immediately unmute after first frame
+            }).catch(function (err) {
+              // If unmuted playback was rejected by browser policy, play muted immediately so video never stops
               videoEl.muted = true;
-              videoEl.play().then(function () {
-                if (!isMuted) {
-                  videoEl.muted = false;
-                  videoEl.volume = 1.0;
-                }
-              }).catch(function () {});
+              videoEl.play().catch(function (e) {
+                console.error('Video autoplay failed:', e);
+              });
             });
           }
         } else {
@@ -785,22 +783,27 @@
 
       // 11. Global Audio and Fullscreen Interaction handlers
       function unlockAudio() {
+        isAudioUnlocked = true;
         isMuted = false;
         if (iconVolOn) iconVolOn.style.display = 'inline';
         if (iconVolOff) iconVolOff.style.display = 'none';
 
         var activeLayer = layers[activeLayerIndex];
-        var videos = activeLayer.getElementsByTagName('video');
-        for (var i = 0; i < videos.length; i++) {
-          videos[i].muted = false;
-          videos[i].volume = 1.0;
-          videos[i].play().catch(function () {});
-        }
-        if (activeLayer.__ytPlayer && typeof activeLayer.__ytPlayer.unMute === 'function') {
-          try {
-            activeLayer.__ytPlayer.unMute();
-            activeLayer.__ytPlayer.setVolume(100);
-          } catch (e) {}
+        if (activeLayer) {
+          var videos = activeLayer.getElementsByTagName('video');
+          for (var i = 0; i < videos.length; i++) {
+            videos[i].muted = false;
+            videos[i].volume = 1.0;
+            if (videos[i].paused) {
+              videos[i].play().catch(function () {});
+            }
+          }
+          if (activeLayer.__ytPlayer && typeof activeLayer.__ytPlayer.unMute === 'function') {
+            try {
+              activeLayer.__ytPlayer.unMute();
+              activeLayer.__ytPlayer.setVolume(100);
+            } catch (e) {}
+          }
         }
       }
 
@@ -810,20 +813,22 @@
         if (iconVolOff) iconVolOff.style.display = isMuted ? 'inline' : 'none';
 
         var activeLayer = layers[activeLayerIndex];
-        var videos = activeLayer.getElementsByTagName('video');
-        for (var i = 0; i < videos.length; i++) {
-          videos[i].muted = isMuted;
-          if (!isMuted) videos[i].volume = 1.0;
-        }
-        if (activeLayer.__ytPlayer) {
-          try {
-            if (isMuted) {
-              activeLayer.__ytPlayer.mute();
-            } else {
-              activeLayer.__ytPlayer.unMute();
-              activeLayer.__ytPlayer.setVolume(100);
-            }
-          } catch (e) {}
+        if (activeLayer) {
+          var videos = activeLayer.getElementsByTagName('video');
+          for (var i = 0; i < videos.length; i++) {
+            videos[i].muted = isMuted;
+            if (!isMuted) videos[i].volume = 1.0;
+          }
+          if (activeLayer.__ytPlayer) {
+            try {
+              if (isMuted) {
+                activeLayer.__ytPlayer.mute();
+              } else {
+                activeLayer.__ytPlayer.unMute();
+                activeLayer.__ytPlayer.setVolume(100);
+              }
+            } catch (e) {}
+          }
         }
       }
 
@@ -857,12 +862,12 @@
         }, 3000);
       }
 
-      // Event Listeners
-      window.addEventListener('click', unlockAudio);
-      window.addEventListener('touchstart', unlockAudio);
-      window.addEventListener('keydown', unlockAudio);
-      window.addEventListener('mousemove', onUserActivity);
-      window.addEventListener('touchstart', onUserActivity);
+      // Unlock audio on any interaction gesture across the window
+      var unlockEvents = ['click', 'touchstart', 'touchend', 'keydown', 'mousedown', 'pointerdown'];
+      unlockEvents.forEach(function (evt) {
+        window.addEventListener(evt, unlockAudio, { passive: true });
+      });
+      window.addEventListener('mousemove', onUserActivity, { passive: true });
 
       if (btnMuteEl) btnMuteEl.addEventListener('click', toggleMute);
       if (btnFullscreenEl) btnFullscreenEl.addEventListener('click', toggleFullscreen);
