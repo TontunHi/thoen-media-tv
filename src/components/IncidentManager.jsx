@@ -708,225 +708,142 @@ export default function IncidentManager() {
             </div>
           </div>
 
-          {/* 4. INCIDENT SETTINGS & LIVE MINI TV PREVIEW */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            {/* Left: Incident Filter Configuration (7 cols) */}
-            <div className="lg:col-span-7 bg-white p-6 rounded-3xl border border-slate-200/90 shadow-sm space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
-                    <Sliders size={18} />
-                  </div>
-                  <div>
-                    <h2 className="text-base font-black text-slate-800">
-                      การตั้งค่าเหตุการณ์และการกรอง HOSxP
-                    </h2>
-                    <p className="text-xs text-slate-500">
-                      ปรับเปลี่ยนวัน/เวลาเริ่มเหตุ ระบบจะดึงข้อมูล HOSxP มาแสดงบนจอทีวีอัตโนมัติ
-                    </p>
-                  </div>
+          {/* 4. INCIDENT SETTINGS & HOSXP CONFIGURATION */}
+          <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-200/90 shadow-sm space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                  <Sliders size={20} />
                 </div>
-                <button
-                  type="button"
-                  onClick={handleDeleteIncident}
-                  className="text-xs font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-3 py-1.5 rounded-xl transition cursor-pointer"
-                >
-                  ลบเหตุการณ์
-                </button>
+                <div>
+                  <h2 className="text-base md:text-lg font-black text-slate-800">
+                    การตั้งค่าเหตุการณ์และการกรอง HOSxP
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    ปรับเปลี่ยนวัน/เวลาเริ่มเหตุ ระบบจะดึงข้อมูล HOSxP มาแสดงบนจอทีวีอัตโนมัติ
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleDeleteIncident}
+                className="text-xs font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-3.5 py-2 rounded-xl transition cursor-pointer"
+              >
+                ลบเหตุการณ์
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveIncident} className="space-y-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-extrabold text-slate-700 mb-1">
+                    ชื่อเหตุการณ์ / เหตุเกิด *
+                  </label>
+                  <input
+                    type="text"
+                    value={formState.title}
+                    onChange={(e) => setFormState({ ...formState, title: e.target.value })}
+                    placeholder="เช่น รถบัสตกเขาทางหลวง 106"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-extrabold text-slate-700 mb-1">
+                    สถานที่เกิดเหตุ
+                  </label>
+                  <input
+                    type="text"
+                    value={formState.location}
+                    onChange={(e) => setFormState({ ...formState, location: e.target.value })}
+                    placeholder="เช่น ทล.106 กม.45 ต.แม่ตื่น"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                  />
+                </div>
               </div>
 
-              <form onSubmit={handleSaveIncident} className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                  <div>
-                    <label className="block text-xs font-extrabold text-slate-700 mb-1">
-                      ชื่อเหตุการณ์ / เหตุเกิด *
-                    </label>
-                    <input
-                      type="text"
-                      value={formState.title}
-                      onChange={(e) => setFormState({ ...formState, title: e.target.value })}
-                      placeholder="เช่น รถบัสตกเขาทางหลวง 106"
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-extrabold text-slate-700 mb-1">
-                      สถานที่เกิดเหตุ
-                    </label>
-                    <input
-                      type="text"
-                      value={formState.location}
-                      onChange={(e) => setFormState({ ...formState, location: e.target.value })}
-                      placeholder="เช่น ทล.106 กม.45 ต.แม่ตื่น"
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                    />
-                  </div>
-                </div>
-
-                {/* Incident Date with Thai Selector & Time / Refuse Counts */}
-                <div className="space-y-3.5">
+              {/* Incident Date with Thai Selector & Time / Refuse Counts */}
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+                <div className="md:col-span-7">
                   <ThaiDateSelector
                     value={formState.incident_date}
                     onChange={(val) => setFormState({ ...formState, incident_date: val })}
                     label="วันที่เกิดเหตุ *"
                     required
                   />
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="block text-xs font-extrabold text-slate-700">
-                          เวลาเริ่มเหตุ (HH:mm)
-                        </label>
-                      </div>
-                      <input
-                        type="text"
-                        value={formState.start_time}
-                        onChange={(e) => setFormState({ ...formState, start_time: e.target.value })}
-                        placeholder="เช่น 14:00"
-                        className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-extrabold text-slate-700 mb-1">
-                        ไม่ประสงค์ตรวจ (คน)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={formState.refuse_treatment_count}
-                        onChange={(e) => setFormState({ ...formState, refuse_treatment_count: Number(e.target.value) })}
-                        className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-amber-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                      />
-                    </div>
-                  </div>
                 </div>
 
-                {/* Auto-Sync Toggle & Connection Status Strip (Manual Sync Button Removed) */}
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-2.5">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                    <label className="flex items-center gap-2.5 cursor-pointer select-none font-bold text-xs text-slate-900">
-                      <input
-                        type="checkbox"
-                        checked={formState.is_auto_sync}
-                        onChange={(e) => setFormState({ ...formState, is_auto_sync: e.target.checked })}
-                        className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 cursor-pointer"
-                      />
-                      <span>⚡ ดึงข้อมูลจาก HOSxP อัตโนมัติ (ต่อเนื่องจนถึงปัจจุบัน)</span>
-                    </label>
-
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100/80 border border-emerald-300 text-emerald-950 text-xs font-black shadow-2xs">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                      <span>ซิงค์อัตโนมัติทุก 15 วินาที</span>
-                    </div>
-                  </div>
-
-                  <div className="text-[11px] text-slate-500 flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-200/70">
-                    <span className="flex items-center gap-1 font-medium">
-                      <Server size={12} className="text-slate-400" />
-                      <span>เชื่อมต่อฐานข้อมูล HOSxP: <strong>192.168.1.4:3306</strong> (er_pt_type = 2)</span>
-                    </span>
-                    <span className="font-semibold text-slate-600">
-                      ซิงค์ล่าสุด: {lastSyncTime ? lastSyncTime.toLocaleTimeString('th-TH') : '-'}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex justify-end pt-1">
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="flex items-center gap-2 px-6 py-2.5 bg-slate-900 hover:bg-slate-800 active:scale-98 text-white text-sm font-bold rounded-2xl shadow-sm transition cursor-pointer"
-                  >
-                    <Save size={16} />
-                    <span>บันทึกและอัปเดตจอ TV ทันที</span>
-                  </button>
-                </div>
-              </form>
-            </div>
-
-            {/* Right: Live Interactive Mini TV Screen Preview (5 cols) */}
-            <div className="lg:col-span-5 bg-white p-6 rounded-3xl border border-slate-200/90 shadow-sm space-y-3.5 flex flex-col justify-between">
-              <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center font-bold">
-                    <Tv size={16} />
-                  </div>
+                <div className="md:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-0.5">
                   <div>
-                    <h2 className="text-sm font-black text-slate-800">
-                      หน้าจอ TV สด (Live TV Preview)
-                    </h2>
+                    <label className="block text-xs font-extrabold text-slate-700 mb-1">
+                      เวลาเริ่มเหตุ (HH:mm)
+                    </label>
+                    <input
+                      type="text"
+                      value={formState.start_time}
+                      onChange={(e) => setFormState({ ...formState, start_time: e.target.value })}
+                      placeholder="เช่น 14:00"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-extrabold text-slate-700 mb-1">
+                      ไม่ประสงค์ตรวจ (คน)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formState.refuse_treatment_count}
+                      onChange={(e) => setFormState({ ...formState, refuse_treatment_count: Number(e.target.value) })}
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-amber-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                    />
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={handleCopyTvLink}
-                    className="text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-lg flex items-center gap-1 transition cursor-pointer"
-                    title="คัดลอกลิงก์จอทีวี"
-                  >
-                    {copiedLink ? <Check size={12} className="text-emerald-600" /> : <Copy size={12} />}
-                    <span>{copiedLink ? 'คัดลอกแล้ว' : 'คัดลอกลิงก์'}</span>
-                  </button>
-                  <a
-                    href={`/tv-incident?id=${selectedIncidentId}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
-                  >
-                    <span>เต็มจอ</span>
-                    <ExternalLink size={13} />
-                  </a>
-                </div>
               </div>
 
-              {/* Hardware TV Monitor Frame (16:9 Bezel) */}
-              <div className="relative w-full rounded-2xl border-4 border-slate-800 bg-slate-950 p-1.5 shadow-xl">
-                {/* TV Top Bezel Indicator */}
-                <div className="flex items-center justify-between px-2 py-0.5 mb-1 text-[10px] text-slate-400 font-mono">
-                  <span className="flex items-center gap-1.5 text-slate-300 font-bold">
+              {/* Auto-Sync Toggle & Connection Status Strip */}
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-2.5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <label className="flex items-center gap-2.5 cursor-pointer select-none font-bold text-xs text-slate-900">
+                    <input
+                      type="checkbox"
+                      checked={formState.is_auto_sync}
+                      onChange={(e) => setFormState({ ...formState, is_auto_sync: e.target.checked })}
+                      className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 cursor-pointer"
+                    />
+                    <span>⚡ ดึงข้อมูลจาก HOSxP อัตโนมัติ (ต่อเนื่องจนถึงปัจจุบัน)</span>
+                  </label>
+
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100/80 border border-emerald-300 text-emerald-950 text-xs font-black shadow-2xs">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    LIVE ER BROADCAST
+                    <span>ซิงค์อัตโนมัติทุก 15 วินาที</span>
+                  </div>
+                </div>
+
+                <div className="text-[11px] text-slate-500 flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-200/70">
+                  <span className="flex items-center gap-1 font-medium">
+                    <Server size={12} className="text-slate-400" />
+                    <span>เชื่อมต่อฐานข้อมูล HOSxP: <strong>192.168.1.4:3306</strong> (er_pt_type = 2)</span>
                   </span>
-                  <span className="text-slate-500">1080p FHD</span>
-                </div>
-
-                {/* 16:9 Screen Display Frame */}
-                <div className="relative w-full aspect-video rounded-xl bg-slate-900 overflow-hidden shadow-inner flex items-center justify-center">
-                  <iframe
-                    key={previewKey}
-                    src={`/tv-incident?id=${selectedIncidentId}`}
-                    title="Live TV Incident Preview"
-                    className="w-[1920px] h-[1080px] border-0 pointer-events-none transform scale-[0.24] origin-top-left sm:scale-[0.27] lg:scale-[0.24] xl:scale-[0.28]"
-                    style={{
-                      width: '1920px',
-                      height: '1080px',
-                      transformOrigin: '0 0',
-                    }}
-                  />
+                  <span className="font-semibold text-slate-600">
+                    ซิงค์ล่าสุด: {lastSyncTime ? lastSyncTime.toLocaleTimeString('th-TH') : '-'}
+                  </span>
                 </div>
               </div>
 
-              {/* TV Footer Info & Quick Fullscreen Action */}
-              <div className="pt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
-                <div className="flex items-center gap-1.5 font-bold">
-                  <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
-                  <span>กำลังแสดงผล {patientCount} รายชื่อ (เลื่อนขึ้น-ลง 20px/s)</span>
-                </div>
-                <a
-                  href={`/tv-incident?id=${selectedIncidentId}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-black rounded-xl transition text-[11px] flex items-center gap-1.5 shadow-xs"
+              <div className="flex justify-end pt-1">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="flex items-center gap-2 px-6 py-2.5 bg-slate-900 hover:bg-slate-800 active:scale-98 text-white text-sm font-bold rounded-2xl shadow-sm transition cursor-pointer"
                 >
-                  <Maximize2 size={13} className="text-yellow-300" />
-                  <span>ขยายเต็มจอ TV 📺</span>
-                </a>
+                  <Save size={16} />
+                  <span>บันทึกและอัปเดตจอ TV ทันที</span>
+                </button>
               </div>
-            </div>
+            </form>
           </div>
         </>
       ) : (
