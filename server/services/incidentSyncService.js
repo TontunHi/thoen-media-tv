@@ -96,10 +96,12 @@ async function syncIncidentWithHosxp(incidentId, io = null) {
         const isLevelChanged = norm(hp.triage_level) && norm(hp.triage_level) !== norm(existing.triage_level);
         const isStatusChanged = norm(hp.current_status) && norm(hp.current_status) !== norm(existing.current_status);
         const isInjuryChanged = norm(hp.injury_info) !== norm(existing.injury_info);
+        const isTransportChanged = norm(hp.transport) !== norm(existing.transport);
+        const isDiagChanged = norm(hp.diag) !== norm(existing.diag);
         const isSexChanged = norm(hp.sex) && norm(hp.sex) !== norm(existing.sex);
         const isAgeChanged = norm(hp.age) && norm(hp.age) !== norm(existing.age);
 
-        if (isNameChanged || isTriageChanged || isLevelChanged || isStatusChanged || isInjuryChanged || isSexChanged || isAgeChanged) {
+        if (isNameChanged || isTriageChanged || isLevelChanged || isStatusChanged || isInjuryChanged || isTransportChanged || isDiagChanged || isSexChanged || isAgeChanged) {
           await pool.query(`
             UPDATE incident_patients SET
               pt_name = ?,
@@ -108,6 +110,8 @@ async function syncIncidentWithHosxp(incidentId, io = null) {
               triage_level = ?,
               triage_color = ?,
               injury_info = ?,
+              transport = ?,
+              diag = ?,
               current_status = ?,
               hn = COALESCE(hn, ?),
               vn = COALESCE(vn, ?)
@@ -119,6 +123,8 @@ async function syncIncidentWithHosxp(incidentId, io = null) {
             hp.triage_level,
             hp.triage_color,
             hp.injury_info,
+            hp.transport || '-',
+            hp.diag || '-',
             hp.current_status,
             hp.hn,
             hp.vn,
@@ -134,8 +140,8 @@ async function syncIncidentWithHosxp(incidentId, io = null) {
 
         await pool.query(`
           INSERT INTO incident_patients 
-            (incident_id, tag_number, display_order, vn, hn, pt_name, sex, age, triage_level, triage_color, injury_info, current_status)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (incident_id, tag_number, display_order, vn, hn, pt_name, sex, age, triage_level, triage_color, injury_info, transport, diag, current_status)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
           incidentId,
           tempTag,
@@ -148,6 +154,8 @@ async function syncIncidentWithHosxp(incidentId, io = null) {
           hp.triage_level || 'ไม่เร่งด่วน',
           hp.triage_color || 'green',
           hp.injury_info || '',
+          hp.transport || '-',
+          hp.diag || '-',
           hp.current_status || 'ห้องฉุกเฉิน (ER)'
         ]);
 

@@ -3,6 +3,7 @@ const { getPool } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
 const { queryHosxpAccidentPatients, mapTriageColor } = require('../hosxpDb');
 const { syncIncidentWithHosxp } = require('../services/incidentSyncService');
+const { generateIncidentExcelWorkbook } = require('../services/incidentExportService');
 
 const router = express.Router();
 
@@ -202,16 +203,33 @@ router.get('/', authenticateToken, async (req, res) => {
  * Create new incident
  */
 router.post('/', authenticateToken, async (req, res) => {
-  const { title, location, incident_date, end_date, start_time, end_time, refuse_treatment_count, notes, is_auto_sync } = req.body;
+  const {
+    title,
+    location,
+    incident_date,
+    end_date,
+    start_time,
+    end_time,
+    refuse_treatment_count,
+    road_conditions,
+    management_actions,
+    ems_units,
+    notes,
+    is_auto_sync
+  } = req.body;
+
   if (!title || !incident_date) {
     return res.status(400).json({ error: 'ชื่อเหตุการณ์ และ วันที่เกิดเหตุ จำเป็นต้องระบุ' });
   }
 
   try {
     const pool = getPool();
+    const roadCondStr = Array.isArray(road_conditions) ? JSON.stringify(road_conditions) : (road_conditions || '[]');
+    const mgmtActStr = Array.isArray(management_actions) ? JSON.stringify(management_actions) : (management_actions || '[]');
+
     const [result] = await pool.query(`
-      INSERT INTO incidents (title, location, incident_date, end_date, start_time, end_time, refuse_treatment_count, notes, is_auto_sync)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO incidents (title, location, incident_date, end_date, start_time, end_time, refuse_treatment_count, road_conditions, management_actions, ems_units, notes, is_auto_sync)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       title.trim(),
       location ? location.trim() : '',
@@ -220,6 +238,9 @@ router.post('/', authenticateToken, async (req, res) => {
       start_time || '',
       end_time || '',
       parseInt(refuse_treatment_count) || 0,
+      roadCondStr,
+      mgmtActStr,
+      ems_units ? ems_units.trim() : '',
       notes || '',
       is_auto_sync === false || is_auto_sync === 0 ? 0 : 1
     ]);
@@ -284,7 +305,21 @@ router.get('/:id', authenticateToken, async (req, res) => {
  */
 router.put('/:id', authenticateToken, async (req, res) => {
   const { id } = req.params;
-  const { title, location, incident_date, end_date, start_time, end_time, refuse_treatment_count, notes, is_active, is_auto_sync } = req.body;
+  const {
+    title,
+    location,
+    incident_date,
+    end_date,
+    start_time,
+    end_time,
+    refuse_treatment_count,
+    road_conditions,
+    management_actions,
+    ems_units,
+    notes,
+    is_active,
+    is_auto_sync
+  } = req.body;
 
   try {
     const pool = getPool();
@@ -298,6 +333,15 @@ router.put('/:id', authenticateToken, async (req, res) => {
     if (start_time !== undefined) { updates.push('start_time = ?'); params.push(start_time); }
     if (end_time !== undefined) { updates.push('end_time = ?'); params.push(end_time); }
     if (refuse_treatment_count !== undefined) { updates.push('refuse_treatment_count = ?'); params.push(parseInt(refuse_treatment_count) || 0); }
+    if (road_conditions !== undefined) {
+      updates.push('road_conditions = ?');
+      params.push(Array.isArray(road_conditions) ? JSON.stringify(road_conditions) : (road_conditions || '[]'));
+    }
+    if (management_actions !== undefined) {
+      updates.push('management_actions = ?');
+      params.push(Array.isArray(management_actions) ? JSON.stringify(management_actions) : (management_actions || '[]'));
+    }
+    if (ems_units !== undefined) { updates.push('ems_units = ?'); params.push(ems_units ? ems_units.trim() : ''); }
     if (notes !== undefined) { updates.push('notes = ?'); params.push(notes); }
     if (is_active !== undefined) { updates.push('is_active = ?'); params.push(is_active ? 1 : 0); }
     if (is_auto_sync !== undefined) { updates.push('is_auto_sync = ?'); params.push(is_auto_sync ? 1 : 0); }
@@ -625,6 +669,45 @@ router.post('/:id/broadcast', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Error setting incident broadcast:', error);
     res.status(500).json({ error: 'Failed to broadcast incident' });
+  }
+});
+
+/**
+ * GET /api/incidents/:id/export/excel
+ * Export incident report as formatted Excel (.xlsx) file matching the official template
+ */
+router.get('/:id/export/excel', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const pool = getPool();
+    const [incidents] = await pool.query('SELECT * FROM incidents WHERE id = ?', [id]);
+    if (incidents.length === 0) {
+      return res.status(404).json({ error: 'Incident not found' });
+    }
+    const incident = incidents[0];
+
+    const [patients] = await pool.query(`
+      SELECT * FROM incident_patients 
+      WHERE incident_id = ? 
+      ORDER BY display_order ASC, id ASC
+    `, [incident.id]);
+
+    const summary = calculateIncidentSummary(patients, incident.refuse_treatment_count);
+
+    const workbook = await generateIncidentExcelWorkbook(incident, summary, patients);
+
+    const safeTitle = (incident.title || 'MCI_Report').replace(/[/\\?%*:|"<>]/g, '_');
+    const dateStr = incident.incident_date ? String(incident.incident_date).slice(0, 10) : '';
+    const filename = encodeURIComponent(`รายงานอุบัติเหตุหมู่_${safeTitle}_${dateStr}.xlsx`);
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"; filename*=UTF-8''${filename}`);
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    console.error('Error exporting incident Excel:', error);
+    res.status(500).json({ error: 'Failed to generate Excel report: ' + error.message });
   }
 });
 

@@ -249,10 +249,15 @@ ORDER BY
       age: row.age !== null && row.age !== undefined ? String(row.age) : '-',
       triage_level: row.triage_level,
       triage_color: triageColor,
+      transport: row.transport && row.transport !== '-' ? row.transport : '-',
+      diag: row.diag && row.diag.trim() ? row.diag : (row.injury_info && row.injury_info.trim() ? row.injury_info : '-'),
       injury_info: injuryParts.join(' / ') || 'อุบัติเหตุ',
       current_status: currentStatus,
       raw_status: row.er_status,
       dead: row.dead,
+      dead_before_arrive: row.accident_dead_before_arrive === 'Y',
+      dead_in_hospital: row.accident_dead_in_hospital === 'Y',
+      accident_admit: row.accident_admit === 'Y',
       refer_to: row.refer_to
     };
   });

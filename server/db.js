@@ -187,18 +187,30 @@ async function initDB() {
         is_active TINYINT(1) DEFAULT 0,
         is_auto_sync TINYINT(1) DEFAULT 1,
         broadcast_tvs JSON NULL,
+        road_conditions TEXT NULL,
+        management_actions TEXT NULL,
+        ems_units VARCHAR(255) DEFAULT '',
         notes TEXT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
 
-    // Ensure is_auto_sync and end_date columns exist
+    // Ensure is_auto_sync, end_date and report context columns exist
     try {
       await connection.query('ALTER TABLE incidents ADD COLUMN is_auto_sync TINYINT(1) DEFAULT 1;');
     } catch (e) {}
     try {
       await connection.query('ALTER TABLE incidents ADD COLUMN end_date DATE NULL AFTER incident_date;');
+    } catch (e) {}
+    try {
+      await connection.query('ALTER TABLE incidents ADD COLUMN road_conditions TEXT NULL;');
+    } catch (e) {}
+    try {
+      await connection.query('ALTER TABLE incidents ADD COLUMN management_actions TEXT NULL;');
+    } catch (e) {}
+    try {
+      await connection.query('ALTER TABLE incidents ADD COLUMN ems_units VARCHAR(255) DEFAULT \'\';');
     } catch (e) {}
 
     // Incident Patients table (รายชื่อผู้ประสบเหตุ/ผู้บาดเจ็บ)
@@ -216,6 +228,8 @@ async function initDB() {
         triage_level VARCHAR(100) DEFAULT 'เขียว',
         triage_color VARCHAR(20) DEFAULT 'green',
         injury_info TEXT NULL,
+        transport VARCHAR(100) DEFAULT '-',
+        diag TEXT NULL,
         current_status VARCHAR(255) DEFAULT 'ห้องฉุกเฉิน (ER)',
         notes TEXT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -223,6 +237,13 @@ async function initDB() {
         FOREIGN KEY (incident_id) REFERENCES incidents(id) ON DELETE CASCADE
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
+
+    try {
+      await connection.query('ALTER TABLE incident_patients ADD COLUMN transport VARCHAR(100) DEFAULT \'-\';');
+    } catch (e) {}
+    try {
+      await connection.query('ALTER TABLE incident_patients ADD COLUMN diag TEXT NULL;');
+    } catch (e) {}
 
     // Auto-repair any mojibake filenames in media_files
     try {

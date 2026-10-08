@@ -30,11 +30,15 @@ import {
   Copy,
   MonitorPlay,
   RotateCcw,
-  Volume2
+  Volume2,
+  FileText,
+  FileSpreadsheet,
+  Printer
 } from 'lucide-react';
 import { api } from '../services/api';
 import { getSocket } from '../services/socket';
 import ThaiDateSelector from './ThaiDateSelector';
+import IncidentReportModal from './IncidentReportModal';
 
 // Helper to format date string to Thai DD/MM/BBBB
 const formatThaiDateShort = (dateStr) => {
@@ -58,6 +62,7 @@ export default function IncidentManager() {
   const [incidentData, setIncidentData] = useState(null);
   const [summary, setSummary] = useState({ red: 0, yellow: 0, green: 0, black: 0, refuse_treatment: 0, total: 0 });
   const [patientCount, setPatientCount] = useState(0);
+  const [patientsList, setPatientsList] = useState([]);
   const [tvs, setTvs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -66,6 +71,7 @@ export default function IncidentManager() {
   const [lastSyncTime, setLastSyncTime] = useState(null);
   const [copiedLink, setCopiedLink] = useState(false);
   const [previewKey, setPreviewKey] = useState(0);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   // Incident Edit Form State
   const [formState, setFormState] = useState({
@@ -162,6 +168,7 @@ export default function IncidentManager() {
     try {
       const res = await api.getIncident(id);
       setIncidentData(res.incident);
+      setPatientsList(res.patients || []);
       setPatientCount(res.patients?.length || 0);
       setSummary(res.summary || { red: 0, yellow: 0, green: 0, black: 0, refuse_treatment: 0, total: 0 });
       setLastSyncTime(new Date());
@@ -464,6 +471,17 @@ export default function IncidentManager() {
             </select>
             <ChevronDown size={18} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           </div>
+
+          {selectedIncidentId && (
+            <button
+              type="button"
+              onClick={() => setShowExportModal(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white text-sm font-black rounded-2xl shadow-md shadow-emerald-600/20 transition cursor-pointer"
+            >
+              <FileSpreadsheet size={18} />
+              <span>ส่งออกรายงาน (Excel/PDF)</span>
+            </button>
+          )}
 
           <button
             type="button"
@@ -914,7 +932,16 @@ export default function IncidentManager() {
                 </div>
               </div>
 
-              <div className="flex justify-end pt-1">
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowExportModal(true)}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white text-sm font-black rounded-2xl shadow-sm transition cursor-pointer"
+                >
+                  <FileSpreadsheet size={16} />
+                  <span>📄 ออกรายงานอุบัติเหตุหมู่ (Excel / PDF)</span>
+                </button>
+
                 <button
                   type="submit"
                   disabled={saving}
@@ -1066,6 +1093,17 @@ export default function IncidentManager() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* ----------------- MODAL: EXPORT INCIDENT REPORT ----------------- */}
+      {showExportModal && incidentData && (
+        <IncidentReportModal
+          incident={incidentData}
+          summary={summary}
+          patients={patientsList}
+          onClose={() => setShowExportModal(false)}
+          onUpdateIncident={() => loadIncidentDetails(selectedIncidentId, true)}
+        />
       )}
     </div>
   );

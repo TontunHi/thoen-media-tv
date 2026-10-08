@@ -206,4 +206,31 @@ export const api = {
     }),
   getActiveIncidentDisplay: () => request('/incidents/active/display'),
   getIncidentDisplay: (id) => request(`/incidents/display/${id}`),
+  downloadIncidentExcel: async (id) => {
+    const token = getAuthToken();
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${BASE_URL}/incidents/${id}/export/excel`, { headers });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || 'ดาวน์โหลดไฟล์ Excel ไม่สำเร็จ');
+    }
+    const blob = await response.blob();
+    const contentDisposition = response.headers.get('content-disposition');
+    let filename = 'รายงานอุบัติเหตุหมู่_โรงพยาบาลเถิน.xlsx';
+    if (contentDisposition) {
+      const match = contentDisposition.match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/);
+      if (match) {
+        filename = decodeURIComponent(match[1] || match[2]);
+      }
+    }
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    a.remove();
+  },
 };
