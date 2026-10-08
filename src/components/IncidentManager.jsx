@@ -932,16 +932,7 @@ export default function IncidentManager() {
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-                <button
-                  type="button"
-                  onClick={() => setShowExportModal(true)}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white text-sm font-black rounded-2xl shadow-sm transition cursor-pointer"
-                >
-                  <FileSpreadsheet size={16} />
-                  <span>📄 ส่งออกรายงานอุบัติเหตุหมู่ (Excel)</span>
-                </button>
-
+              <div className="flex justify-end pt-1">
                 <button
                   type="submit"
                   disabled={saving}
