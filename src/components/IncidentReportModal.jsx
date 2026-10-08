@@ -398,11 +398,19 @@ export default function IncidentReportModal({ incident, summary, patients = [], 
                 }
               `}</style>
 
-              {/* 1. DOCUMENT TITLE */}
-              <div className="text-center pb-2 border-b-2 border-slate-900">
+              {/* 1. DOCUMENT TITLE & LOGO */}
+              <div className="text-center pb-2.5 border-b-2 border-slate-900">
+                <img
+                  src="/logo.jpg"
+                  alt="ตราสัญลักษณ์"
+                  className="w-16 h-16 sm:w-20 sm:h-20 object-contain mx-auto mb-1.5"
+                />
                 <h1 className="text-lg sm:text-xl font-black text-slate-950 tracking-tight leading-tight">
                   แบบรายงานอุบัติเหตุหมู่/สาธารณภัย ในโรงพยาบาลเถิน จังหวัดลำปาง
                 </h1>
+                <p className="text-xs sm:text-sm font-bold text-slate-700 mt-1">
+                  โรงพยาบาลเถิน จังหวัดลำปาง โทรศัพท์ 054292275
+                </p>
               </div>
 
               {/* 2. INCIDENT METADATA HEADER */}

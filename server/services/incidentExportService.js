@@ -1,4 +1,6 @@
 const ExcelJS = require('exceljs');
+const path = require('path');
+const fs = require('fs');
 
 /**
  * Format Date to Thai String
@@ -62,10 +64,10 @@ async function generateIncidentExcelWorkbook(incident, summary, patients = []) {
       fitToWidth: 1,
       fitToHeight: 0,
       margins: {
-        left: 0.4,
-        right: 0.4,
-        top: 0.5,
-        bottom: 0.5,
+        left: 0.35,
+        right: 0.35,
+        top: 0.4,
+        bottom: 0.4,
         header: 0.2,
         footer: 0.2
       }
@@ -74,18 +76,18 @@ async function generateIncidentExcelWorkbook(incident, summary, patients = []) {
 
   // Column definitions with proper widths
   sheet.columns = [
-    { key: 'colA', width: 8 },  // ลำดับ
+    { key: 'colA', width: 7 },  // ลำดับ
     { key: 'colB', width: 28 }, // ชื่อสกุล
-    { key: 'colC', width: 10 }, // อายุ (ปี)
+    { key: 'colC', width: 9 },  // อายุ (ปี)
     { key: 'colD', width: 16 }, // Triage Sieve
-    { key: 'colE', width: 20 }, // พาหนะผู้บาดเจ็บ
-    { key: 'colF', width: 32 }, // วินิจฉัยเบื้องต้น
+    { key: 'colE', width: 18 }, // พาหนะผู้บาดเจ็บ
+    { key: 'colF', width: 30 }, // วินิจฉัยเบื้องต้น
     { key: 'colG', width: 8 },  // D/C
     { key: 'colH', width: 8 },  // Admit
     { key: 'colI', width: 22 }, // Refer (ระบุ รพ.)
-    { key: 'colJ', width: 13 }, // Dead จุดเกิดเหตุ
-    { key: 'colK', width: 13 }, // Dead ระหว่างนำส่ง
-    { key: 'colL', width: 13 }  // Dead ใน รพ.
+    { key: 'colJ', width: 12 }, // Dead จุดเกิดเหตุ
+    { key: 'colK', width: 12 }, // Dead ระหว่างนำส่ง
+    { key: 'colL', width: 12 }  // Dead ใน รพ.
   ];
 
   const thinBorder = {
@@ -100,6 +102,19 @@ async function generateIncidentExcelWorkbook(incident, summary, patients = []) {
     pattern: 'solid',
     fgColor: { argb: 'FFF2F4F7' }
   };
+
+  // Embed Logo in Top Center
+  const logoPath = path.join(__dirname, '../../public/logo.jpg');
+  if (fs.existsSync(logoPath)) {
+    const imageId = workbook.addImage({
+      filename: logoPath,
+      extension: 'jpeg'
+    });
+    sheet.addImage(imageId, {
+      tl: { col: 5.2, row: 0.15 },
+      ext: { width: 68, height: 68 }
+    });
+  }
 
   // Helper to parse road conditions and management actions
   let roadConds = [];
@@ -126,125 +141,138 @@ async function generateIncidentExcelWorkbook(incident, summary, patients = []) {
   const allMgmtTypes = ['ใช้แผนอุบัติเหตุหมู่', 'รายงานศูนย์รับแจ้งเหตุ', 'รายงาน สสจ.', 'รายงาน สพฉ.(ศูนย์นเรนทร)'];
   const mgmtStr = allMgmtTypes.map(mt => `[${mgmtActions.includes(mt) ? '✓' : ' '}] ${mt}`).join('   ');
 
-  // 1. TITLE
-  sheet.mergeCells('A1:L1');
-  const r1 = sheet.getCell('A1');
-  r1.value = 'แบบรายงานอุบัติเหตุหมู่/สาธารณภัย ในโรงพยาบาลเถิน จังหวัดลำปาง';
-  r1.font = { name: 'Sarabun', size: 15, bold: true, color: { argb: 'FF111827' } };
-  r1.alignment = { horizontal: 'center', vertical: 'middle' };
-  sheet.getRow(1).height = 28;
+  // ROWS 1-3: Reserved for Logo
+  sheet.getRow(1).height = 20;
+  sheet.getRow(2).height = 20;
+  sheet.getRow(3).height = 16;
 
-  // 2. INCIDENT & TIMEFRAME
-  sheet.mergeCells('A2:L2');
-  const r2 = sheet.getCell('A2');
-  r2.value = `เหตุการณ์:  ${incident.title || '-'}        วัน-เวลาที่เกิดเหตุ:  ${buildTimeframeText(incident)}`;
-  r2.font = { name: 'Sarabun', size: 11, bold: true, color: { argb: 'FF1F2937' } };
-  r2.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
-  sheet.getRow(2).height = 22;
-
-  // 3. LOCATION
-  sheet.mergeCells('A3:L3');
-  const r3 = sheet.getCell('A3');
-  r3.value = `สถานที่เกิดเหตุ (ถนน, ตำบล, อำเภอ, จังหวัด)(รายละเอียด):  ${incident.location || '-'}`;
-  r3.font = { name: 'Sarabun', size: 11, color: { argb: 'FF374151' } };
-  r3.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
-  sheet.getRow(3).height = 22;
-
-  // 4. ROAD CONDITIONS (CHECKBOXES)
+  // 4. TITLE
   sheet.mergeCells('A4:L4');
   const r4 = sheet.getCell('A4');
-  r4.value = `บริเวณที่เกิดเหตุ(อุบัติเหตุจราจร):  ${roadStr}`;
-  r4.font = { name: 'Sarabun', size: 10.5, color: { argb: 'FF374151' } };
-  r4.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
-  sheet.getRow(4).height = 22;
+  r4.value = 'แบบรายงานอุบัติเหตุหมู่/สาธารณภัย ในโรงพยาบาลเถิน จังหวัดลำปาง';
+  r4.font = { name: 'Sarabun', size: 14, bold: true, color: { argb: 'FF111827' } };
+  r4.alignment = { horizontal: 'center', vertical: 'middle' };
+  sheet.getRow(4).height = 24;
 
-  // 5. MANAGEMENT ACTIONS (CHECKBOXES)
+  // 5. HOSPITAL & CONTACT INFO (BEFORE INCIDENT DATE)
   sheet.mergeCells('A5:L5');
   const r5 = sheet.getCell('A5');
-  r5.value = `การจัดการ:  ${mgmtStr}`;
-  r5.font = { name: 'Sarabun', size: 10.5, color: { argb: 'FF374151' } };
-  r5.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
-  sheet.getRow(5).height = 22;
+  r5.value = 'โรงพยาบาลเถิน จังหวัดลำปาง โทรศัพท์ 054292275';
+  r5.font = { name: 'Sarabun', size: 11, bold: true, color: { argb: 'FF374151' } };
+  r5.alignment = { horizontal: 'center', vertical: 'middle' };
+  sheet.getRow(5).height = 20;
 
-  // 6. EMS UNITS
+  // 6. INCIDENT & TIMEFRAME
   sheet.mergeCells('A6:L6');
   const r6 = sheet.getCell('A6');
-  r6.value = `ชุดปฎิบัติการฉุกเฉินที่ออกปฏิบัติการ:  ${incident.ems_units || '-'}`;
-  r6.font = { name: 'Sarabun', size: 11, color: { argb: 'FF374151' } };
+  r6.value = `เหตุการณ์:  ${incident.title || '-'}        วัน-เวลาที่เกิดเหตุ:  ${buildTimeframeText(incident)}`;
+  r6.font = { name: 'Sarabun', size: 11, bold: true, color: { argb: 'FF1F2937' } };
   r6.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
   sheet.getRow(6).height = 22;
 
-  // 7. SECTION HEADER
+  // 7. LOCATION
   sheet.mergeCells('A7:L7');
   const r7 = sheet.getCell('A7');
-  r7.value = 'ข้อมูลผู้บาดเจ็บ';
-  r7.font = { name: 'Sarabun', size: 12, bold: true, color: { argb: 'FF111827' } };
+  r7.value = `สถานที่เกิดเหตุ (ถนน, ตำบล, อำเภอ, จังหวัด)(รายละเอียด):  ${incident.location || '-'}`;
+  r7.font = { name: 'Sarabun', size: 10.5, color: { argb: 'FF374151' } };
   r7.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
-  sheet.getRow(7).height = 24;
+  sheet.getRow(7).height = 22;
 
-  // 8. TABLE HEADER ROW 1 (Row 8 in Excel: Result of treatment group header)
-  sheet.mergeCells('G8:L8');
-  const r8_G = sheet.getCell('G8');
-  r8_G.value = 'ผลการรักษา';
-  r8_G.font = { name: 'Sarabun', size: 11, bold: true };
-  r8_G.alignment = { horizontal: 'center', vertical: 'middle' };
-  sheet.getRow(8).height = 20;
+  // 8. ROAD CONDITIONS (CHECKBOXES)
+  sheet.mergeCells('A8:L8');
+  const r8 = sheet.getCell('A8');
+  r8.value = `บริเวณที่เกิดเหตุ(อุบัติเหตุจราจร):  ${roadStr}`;
+  r8.font = { name: 'Sarabun', size: 10, color: { argb: 'FF374151' } };
+  r8.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+  sheet.getRow(8).height = 22;
 
-  // 9. TABLE HEADER ROW 2 (Row 9 in Excel)
-  sheet.mergeCells('A9:A10');
-  sheet.getCell('A9').value = 'ลำดับ';
+  // 9. MANAGEMENT ACTIONS (CHECKBOXES)
+  sheet.mergeCells('A9:L9');
+  const r9 = sheet.getCell('A9');
+  r9.value = `การจัดการ:  ${mgmtStr}`;
+  r9.font = { name: 'Sarabun', size: 10, color: { argb: 'FF374151' } };
+  r9.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+  sheet.getRow(9).height = 22;
 
-  sheet.mergeCells('B9:B10');
-  sheet.getCell('B9').value = 'ชื่อสกุล';
+  // 10. EMS UNITS
+  sheet.mergeCells('A10:L10');
+  const r10 = sheet.getCell('A10');
+  r10.value = `ชุดปฎิบัติการฉุกเฉินที่ออกปฏิบัติการ:  ${incident.ems_units || '-'}`;
+  r10.font = { name: 'Sarabun', size: 10.5, color: { argb: 'FF374151' } };
+  r10.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+  sheet.getRow(10).height = 22;
 
-  sheet.mergeCells('C9:C10');
-  sheet.getCell('C9').value = 'อายุ (ปี)';
+  // 11. SECTION HEADER
+  sheet.mergeCells('A11:L11');
+  const r11 = sheet.getCell('A11');
+  r11.value = 'ข้อมูลผู้บาดเจ็บ';
+  r11.font = { name: 'Sarabun', size: 11.5, bold: true, color: { argb: 'FF111827' } };
+  r11.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+  sheet.getRow(11).height = 22;
 
-  sheet.mergeCells('D9:D10');
-  sheet.getCell('D9').value = 'Triage Sieve';
+  // 12. TABLE HEADER ROW 1 (Row 12 in Excel: Result of treatment group header)
+  sheet.mergeCells('G12:L12');
+  const r12_G = sheet.getCell('G12');
+  r12_G.value = 'ผลการรักษา';
+  r12_G.font = { name: 'Sarabun', size: 10.5, bold: true };
+  r12_G.alignment = { horizontal: 'center', vertical: 'middle' };
+  sheet.getRow(12).height = 20;
 
-  sheet.mergeCells('E9:E10');
-  sheet.getCell('E9').value = 'พาหนะผู้บาดเจ็บ';
+  // 13. TABLE HEADER ROW 2 (Row 13 in Excel)
+  sheet.mergeCells('A13:A14');
+  sheet.getCell('A13').value = 'ลำดับ';
 
-  sheet.mergeCells('F9:F10');
-  sheet.getCell('F9').value = 'วินิจฉัยเบื้องต้น';
+  sheet.mergeCells('B13:B14');
+  sheet.getCell('B13').value = 'ชื่อสกุล';
 
-  sheet.mergeCells('G9:G10');
-  sheet.getCell('G9').value = 'D/C';
+  sheet.mergeCells('C13:C14');
+  sheet.getCell('C13').value = 'อายุ (ปี)';
 
-  sheet.mergeCells('H9:H10');
-  sheet.getCell('H9').value = 'Admit';
+  sheet.mergeCells('D13:D14');
+  sheet.getCell('D13').value = 'Triage Sieve';
 
-  sheet.mergeCells('I9:I10');
-  sheet.getCell('I9').value = 'Refer (ระบุ รพ.)';
+  sheet.mergeCells('E13:E14');
+  sheet.getCell('E13').value = 'พาหนะผู้บาดเจ็บ';
 
-  sheet.mergeCells('J9:L9');
-  sheet.getCell('J9').value = 'Dead';
+  sheet.mergeCells('F13:F14');
+  sheet.getCell('F13').value = 'วินิจฉัยเบื้องต้น';
 
-  sheet.getRow(9).height = 20;
+  sheet.mergeCells('G13:G14');
+  sheet.getCell('G13').value = 'D/C';
 
-  // 10. TABLE HEADER ROW 3 (Row 10 in Excel: Dead sub-headers)
-  sheet.getCell('J10').value = 'จุดเกิดเหตุ';
-  sheet.getCell('K10').value = 'ระหว่างนำส่ง';
-  sheet.getCell('L10').value = 'ใน รพ.';
-  sheet.getRow(10).height = 20;
+  sheet.mergeCells('H13:H14');
+  sheet.getCell('H13').value = 'Admit';
 
-  // Apply borders and styling to table header rows (Rows 8, 9, 10)
-  for (let r = 8; r <= 10; r++) {
+  sheet.mergeCells('I13:I14');
+  sheet.getCell('I13').value = 'Refer (ระบุ รพ.)';
+
+  sheet.mergeCells('J13:L13');
+  sheet.getCell('J13').value = 'Dead';
+
+  sheet.getRow(13).height = 20;
+
+  // 14. TABLE HEADER ROW 3 (Row 14 in Excel: Dead sub-headers)
+  sheet.getCell('J14').value = 'จุดเกิดเหตุ';
+  sheet.getCell('K14').value = 'ระหว่างนำส่ง';
+  sheet.getCell('L14').value = 'ใน รพ.';
+  sheet.getRow(14).height = 20;
+
+  // Apply borders and styling to table header rows (Rows 12, 13, 14)
+  for (let r = 12; r <= 14; r++) {
     for (let c = 1; c <= 12; c++) {
       const cell = sheet.getRow(r).getCell(c);
       cell.border = thinBorder;
       cell.fill = headerFill;
-      cell.font = { name: 'Sarabun', size: 10, bold: true, color: { argb: 'FF1F2937' } };
+      cell.font = { name: 'Sarabun', size: 9.5, bold: true, color: { argb: 'FF1F2937' } };
       cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
     }
   }
 
-  // 11. PATIENT DATA ROWS
-  let currentRow = 11;
+  // 15. PATIENT DATA ROWS
+  let currentRow = 15;
   patients.forEach((pt, idx) => {
     const row = sheet.getRow(currentRow);
-    row.height = 22;
+    row.height = 21;
 
     const status = (pt.current_status || '').toLowerCase();
     const isDC = status.includes('กลับบ้าน') || status.includes('d/c') || status.includes('discharge');
@@ -284,7 +312,7 @@ async function generateIncidentExcelWorkbook(incident, summary, patients = []) {
     for (let c = 1; c <= 12; c++) {
       const cell = row.getCell(c);
       cell.border = thinBorder;
-      cell.font = { name: 'Sarabun', size: 10, color: { argb: 'FF111827' } };
+      cell.font = { name: 'Sarabun', size: 9.5, color: { argb: 'FF111827' } };
       if (c === 1 || c === 3 || c === 4 || c === 5 || c === 7 || c === 8 || c === 10 || c === 11 || c === 12) {
         cell.alignment = { horizontal: 'center', vertical: 'middle' };
       } else if (c === 9) {
@@ -308,11 +336,11 @@ async function generateIncidentExcelWorkbook(incident, summary, patients = []) {
     for (let c = 1; c <= 12; c++) {
       emptyRow.getCell(c).border = thinBorder;
     }
-    emptyRow.height = 25;
+    emptyRow.height = 24;
     currentRow++;
   }
 
-  // 12. SUMMARY STATS FOOTER (Matching user's request for comprehensive statistics)
+  // 16. SUMMARY STATS FOOTER (Matching user's request for comprehensive statistics)
   currentRow++; // blank line
   sheet.mergeCells(`A${currentRow}:L${currentRow}`);
   const sum1 = sheet.getCell(`A${currentRow}`);
@@ -321,17 +349,17 @@ async function generateIncidentExcelWorkbook(incident, summary, patients = []) {
   const totalCount = summary?.total !== undefined ? summary.total : (regCount + refuseCount);
 
   sum1.value = `สรุปผลผู้บาดเจ็บทั้งหมด:  ${totalCount} คน   (รับการตรวจรักษาใน รพ.: ${regCount} คน,  ไม่ประสงค์ตรวจรักษา: ${refuseCount} คน)`;
-  sum1.font = { name: 'Sarabun', size: 11, bold: true, color: { argb: 'FF111827' } };
+  sum1.font = { name: 'Sarabun', size: 10.5, bold: true, color: { argb: 'FF111827' } };
   sum1.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
-  sheet.getRow(currentRow).height = 24;
+  sheet.getRow(currentRow).height = 22;
 
   currentRow++;
   sheet.mergeCells(`A${currentRow}:L${currentRow}`);
   const sum2 = sheet.getCell(`A${currentRow}`);
   sum2.value = `สถิติตามระดับความรุนแรง:   วิกฤต (แดง): ${summary?.red || 0} คน  |  เร่งด่วน (เหลือง): ${summary?.yellow || 0} คน  |  ไม่เร่งด่วน (เขียว): ${summary?.green || 0} คน  |  เสียชีวิต (ดำ): ${summary?.black || 0} คน`;
-  sum2.font = { name: 'Sarabun', size: 11, bold: true, color: { argb: 'FF374151' } };
+  sum2.font = { name: 'Sarabun', size: 10.5, bold: true, color: { argb: 'FF374151' } };
   sum2.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
-  sheet.getRow(currentRow).height = 24;
+  sheet.getRow(currentRow).height = 22;
 
   return workbook;
 }
