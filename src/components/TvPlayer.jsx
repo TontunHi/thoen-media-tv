@@ -121,7 +121,6 @@ export default function TvPlayer() {
   const [error, setError] = useState('');
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isMuted, setIsMuted] = useState(false);
-  const [isAudioBlocked, setIsAudioBlocked] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(false);
   const [cycleTick, setCycleTick] = useState(0);
@@ -181,7 +180,6 @@ export default function TvPlayer() {
   // Unlock all Audio Subsystems
   const unlockAudio = useCallback(() => {
     setIsMuted(false);
-    setIsAudioBlocked(false);
 
     try {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -222,6 +220,12 @@ export default function TvPlayer() {
         if (ctx.state === 'suspended') {
           ctx.resume().catch(() => {});
         }
+        // Prime audio buffer
+        const buffer = ctx.createBuffer(1, 1, 22050);
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(ctx.destination);
+        source.start(0);
       }
     } catch (e) {}
 
@@ -590,12 +594,7 @@ export default function TvPlayer() {
               onCanPlay={(e) => {
                 e.target.muted = false;
                 e.target.volume = 1.0;
-                const p = e.target.play();
-                if (p) {
-                  p.catch(() => {
-                    setIsAudioBlocked(true);
-                  });
-                }
+                e.target.play().catch(() => {});
               }}
               onTimeUpdate={(e) => {
                 if (e.target.muted && !isMuted) {
@@ -624,18 +623,6 @@ export default function TvPlayer() {
             />
           )}
         </div>
-      )}
-
-      {/* Floating 1-tap audio unlock button if browser blocked autoplay sound before first touch */}
-      {isAudioBlocked && (
-        <button
-          type="button"
-          onClick={unlockAudio}
-          className="absolute top-4 right-6 z-50 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2 rounded-2xl shadow-2xl flex items-center gap-2 text-xs animate-bounce cursor-pointer border border-amber-300 pointer-events-auto"
-        >
-          <Volume2 size={16} />
-          <span>แตะหน้าจอเพื่อเปิดเสียง</span>
-        </button>
       )}
 
       {/* Top Overlay: Digital Clock & Hospital Info */}
