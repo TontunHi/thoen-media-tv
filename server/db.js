@@ -2,11 +2,22 @@ const mysql = require('mysql2/promise');
 const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
+const rawHost = (process.env.DB_HOST || '192.168.1.7').trim();
+const hostParts = rawHost.includes(':') ? rawHost.split(':') : [rawHost, null];
+const host = hostParts[0];
+const port = parseInt(process.env.DB_PORT || hostParts[1] || '3306');
+let rawPass = process.env.DB_PASS || process.env.DB_PASSWORD || 'PRnew11152@';
+try {
+  if (rawPass && rawPass.includes('%')) {
+    rawPass = decodeURIComponent(rawPass);
+  }
+} catch (e) {}
+
 const dbConfig = {
-  host: process.env.DB_HOST || '192.168.1.7',
-  port: parseInt(process.env.DB_PORT || '3306'),
+  host,
+  port,
   user: process.env.DB_USER || 'prnew',
-  password: process.env.DB_PASSWORD || 'PRnew11152@',
+  password: rawPass,
   database: process.env.DB_NAME || 'thoen_media_tv',
   charset: 'utf8mb4',
   dateStrings: true,
