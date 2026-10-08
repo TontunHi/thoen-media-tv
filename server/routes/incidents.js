@@ -202,7 +202,7 @@ router.get('/', authenticateToken, async (req, res) => {
  * Create new incident
  */
 router.post('/', authenticateToken, async (req, res) => {
-  const { title, location, incident_date, start_time, end_time, refuse_treatment_count, notes, is_auto_sync } = req.body;
+  const { title, location, incident_date, end_date, start_time, end_time, refuse_treatment_count, notes, is_auto_sync } = req.body;
   if (!title || !incident_date) {
     return res.status(400).json({ error: 'ชื่อเหตุการณ์ และ วันที่เกิดเหตุ จำเป็นต้องระบุ' });
   }
@@ -210,12 +210,13 @@ router.post('/', authenticateToken, async (req, res) => {
   try {
     const pool = getPool();
     const [result] = await pool.query(`
-      INSERT INTO incidents (title, location, incident_date, start_time, end_time, refuse_treatment_count, notes, is_auto_sync)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO incidents (title, location, incident_date, end_date, start_time, end_time, refuse_treatment_count, notes, is_auto_sync)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       title.trim(),
       location ? location.trim() : '',
       incident_date,
+      end_date ? String(end_date).slice(0, 10) : null,
       start_time || '',
       end_time || '',
       parseInt(refuse_treatment_count) || 0,
@@ -283,7 +284,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
  */
 router.put('/:id', authenticateToken, async (req, res) => {
   const { id } = req.params;
-  const { title, location, incident_date, start_time, end_time, refuse_treatment_count, notes, is_active, is_auto_sync } = req.body;
+  const { title, location, incident_date, end_date, start_time, end_time, refuse_treatment_count, notes, is_active, is_auto_sync } = req.body;
 
   try {
     const pool = getPool();
@@ -293,6 +294,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
     if (title !== undefined) { updates.push('title = ?'); params.push(title.trim()); }
     if (location !== undefined) { updates.push('location = ?'); params.push(location.trim()); }
     if (incident_date !== undefined) { updates.push('incident_date = ?'); params.push(incident_date); }
+    if (end_date !== undefined) { updates.push('end_date = ?'); params.push(end_date ? String(end_date).slice(0, 10) : null); }
     if (start_time !== undefined) { updates.push('start_time = ?'); params.push(start_time); }
     if (end_time !== undefined) { updates.push('end_time = ?'); params.push(end_time); }
     if (refuse_treatment_count !== undefined) { updates.push('refuse_treatment_count = ?'); params.push(parseInt(refuse_treatment_count) || 0); }

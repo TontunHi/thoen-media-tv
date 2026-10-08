@@ -72,6 +72,7 @@ export default function IncidentManager() {
     title: '',
     location: '',
     incident_date: new Date().toISOString().slice(0, 10),
+    end_date: '',
     start_time: '',
     end_time: '',
     refuse_treatment_count: 0,
@@ -169,6 +170,7 @@ export default function IncidentManager() {
         title: res.incident.title || '',
         location: res.incident.location || '',
         incident_date: res.incident.incident_date ? res.incident.incident_date.slice(0, 10) : '',
+        end_date: res.incident.end_date ? res.incident.end_date.slice(0, 10) : '',
         start_time: res.incident.start_time || '',
         end_time: res.incident.end_time || '',
         refuse_treatment_count: res.incident.refuse_treatment_count || 0,
@@ -720,8 +722,8 @@ export default function IncidentManager() {
             </div>
 
             <form onSubmit={handleSaveIncident} className="space-y-5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="sm:col-span-2">
                   <label className="block text-xs font-extrabold text-slate-700 mb-1">
                     ชื่อเหตุการณ์ / เหตุเกิด *
                   </label>
@@ -749,43 +751,136 @@ export default function IncidentManager() {
                 </div>
               </div>
 
-              {/* Incident Date with Thai Selector & Time / Refuse Counts */}
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
-                <div className="md:col-span-7">
-                  <ThaiDateSelector
-                    value={formState.incident_date}
-                    onChange={(val) => setFormState({ ...formState, incident_date: val })}
-                    label="วันที่เกิดเหตุ *"
-                    required
-                  />
+              {/* TIMEFRAME SECTION: START & OPTIONAL END */}
+              <div className="p-5 rounded-2xl bg-slate-50/90 border border-slate-200/90 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/80 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Clock size={17} className="text-indigo-600" />
+                    <span className="text-sm font-black text-slate-800">
+                      ช่วงวันและเวลาของเหตุการณ์ (HOSxP Query Timeframe)
+                    </span>
+                  </div>
+                  {formState.end_date || formState.end_time ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-black bg-amber-100 text-amber-900 border border-amber-300">
+                      <span className="w-2 h-2 rounded-full bg-amber-500" />
+                      กำหนดช่วงเวลาสิ้นสุดแล้ว (ปิดเคส)
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-black bg-emerald-100 text-emerald-950 border border-emerald-300">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      ดึงข้อมูลต่อเนื่องจนถึงปัจจุบัน (Live)
+                    </span>
+                  )}
                 </div>
 
-                <div className="md:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-0.5">
-                  <div>
-                    <label className="block text-xs font-extrabold text-slate-700 mb-1">
-                      เวลาเริ่มเหตุ (HH:mm)
-                    </label>
-                    <input
-                      type="text"
-                      value={formState.start_time}
-                      onChange={(e) => setFormState({ ...formState, start_time: e.target.value })}
-                      placeholder="เช่น 14:00"
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                {/* 1. START DATE & TIME */}
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+                  <div className="md:col-span-7">
+                    <ThaiDateSelector
+                      value={formState.incident_date}
+                      onChange={(val) => setFormState({ ...formState, incident_date: val })}
+                      label="วันที่เริ่มต้นเหตุการณ์ *"
+                      required
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-extrabold text-slate-700 mb-1">
-                      ไม่ประสงค์ตรวจ (คน)
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={formState.refuse_treatment_count}
-                      onChange={(e) => setFormState({ ...formState, refuse_treatment_count: Number(e.target.value) })}
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-amber-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                    />
+                  <div className="md:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-3 pt-0.5">
+                    <div>
+                      <label className="block text-xs font-extrabold text-slate-700 mb-1">
+                        เวลาเริ่มเหตุ (HH:mm)
+                      </label>
+                      <input
+                        type="text"
+                        value={formState.start_time}
+                        onChange={(e) => setFormState({ ...formState, start_time: e.target.value })}
+                        placeholder="เช่น 14:00"
+                        className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-mono font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-extrabold text-slate-700 mb-1">
+                        ไม่ประสงค์ตรวจ (คน)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={formState.refuse_treatment_count}
+                        onChange={(e) => setFormState({ ...formState, refuse_treatment_count: Number(e.target.value) })}
+                        className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-amber-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                      />
+                    </div>
                   </div>
+                </div>
+
+                {/* 2. END DATE & TIME (OPTIONAL - FOR CONCLUDED INCIDENTS) */}
+                <div className="pt-3 border-t border-slate-200/80 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <label className="flex items-center gap-2.5 cursor-pointer select-none font-extrabold text-xs text-slate-800">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(formState.end_date || formState.end_time)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            const now = new Date();
+                            const currentTimeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+                            setFormState({
+                              ...formState,
+                              end_date: formState.end_date || formState.incident_date || now.toISOString().slice(0, 10),
+                              end_time: formState.end_time || currentTimeStr
+                            });
+                          } else {
+                            setFormState({ ...formState, end_date: '', end_time: '' });
+                          }
+                        }}
+                        className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 cursor-pointer"
+                      />
+                      <span>🔒 กำหนดวัน-เวลาสิ้นสุดเหตุการณ์ (เลือกเมื่อเสร็จสิ้นเหตุการณ์ หรือต้องการระบุช่วงเวลาย้อนหลัง)</span>
+                    </label>
+
+                    {Boolean(formState.end_date || formState.end_time) && (
+                      <button
+                        type="button"
+                        onClick={() => setFormState({ ...formState, end_date: '', end_time: '' })}
+                        className="text-xs font-bold text-rose-600 hover:text-rose-800 hover:underline cursor-pointer"
+                      >
+                        ✕ ล้างเวลาสิ้นสุด (เปลี่ยนเป็นดึงสดถึงปัจจุบัน)
+                      </button>
+                    )}
+                  </div>
+
+                  {Boolean(formState.end_date || formState.end_time) ? (
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start p-4 rounded-2xl bg-white border-2 border-indigo-200 shadow-2xs animate-fade">
+                      <div className="md:col-span-7">
+                        <ThaiDateSelector
+                          value={formState.end_date || formState.incident_date}
+                          onChange={(val) => setFormState({ ...formState, end_date: val })}
+                          label="วันที่สิ้นสุดเหตุการณ์"
+                        />
+                      </div>
+
+                      <div className="md:col-span-5 pt-0.5">
+                        <label className="block text-xs font-extrabold text-slate-700 mb-1">
+                          เวลาสิ้นสุดเหตุการณ์ (HH:mm)
+                        </label>
+                        <input
+                          type="text"
+                          value={formState.end_time}
+                          onChange={(e) => setFormState({ ...formState, end_time: e.target.value })}
+                          placeholder="เช่น 18:00"
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                        />
+                        <p className="text-[11px] text-slate-500 mt-1">
+                          ระบบจะดึงเฉพาะผู้ป่วยที่ลงทะเบียน HOSxP ภายในช่วงเวลาที่กำหนดนี้
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl text-xs text-emerald-950 font-bold flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                      <span>ขณะนี้ระบบทำงานโหมดถ่ายทอดสด: ดึงข้อมูลผู้ป่วยใหม่จาก HOSxP ต่อเนื่องตั้งแต่เวลาเริ่มเหตุจนถึงปัจจุบัน</span>
+                    </div>
+                  )}
                 </div>
               </div>
 

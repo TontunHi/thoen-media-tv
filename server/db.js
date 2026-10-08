@@ -180,6 +180,7 @@ async function initDB() {
         title VARCHAR(255) NOT NULL,
         location VARCHAR(255) DEFAULT '',
         incident_date DATE NOT NULL,
+        end_date DATE NULL,
         start_time VARCHAR(20) DEFAULT '',
         end_time VARCHAR(20) DEFAULT '',
         refuse_treatment_count INT DEFAULT 0,
@@ -192,9 +193,12 @@ async function initDB() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
 
-    // Ensure is_auto_sync column exists
+    // Ensure is_auto_sync and end_date columns exist
     try {
       await connection.query('ALTER TABLE incidents ADD COLUMN is_auto_sync TINYINT(1) DEFAULT 1;');
+    } catch (e) {}
+    try {
+      await connection.query('ALTER TABLE incidents ADD COLUMN end_date DATE NULL AFTER incident_date;');
     } catch (e) {}
 
     // Incident Patients table (รายชื่อผู้ประสบเหตุ/ผู้บาดเจ็บ)

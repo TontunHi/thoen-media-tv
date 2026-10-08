@@ -459,10 +459,20 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
               <span className="text-slate-700 font-semibold">({incident.location})</span>
             )}
           </div>
-          <div className="text-xs text-slate-700 mt-0.5 flex items-center gap-3 font-bold">
+          <div className="text-xs text-slate-700 mt-0.5 flex flex-wrap items-center justify-center gap-2 font-bold">
             <span>วันที่: <strong className="text-slate-950">{formatThaiDate(incident.incident_date)}</strong></span>
             {incident.start_time && (
-              <span>เวลาเริ่ม: <strong className="text-slate-950">{incident.start_time} น.</strong></span>
+              <span>
+                เวลา: <strong className="text-slate-950">{incident.start_time} น.</strong>
+                {incident.end_time ? (
+                  <span> ถึง <strong className="text-slate-950">{incident.end_time} น.</strong></span>
+                ) : (
+                  <span className="text-emerald-700 font-extrabold"> (สดถึงปัจจุบัน)</span>
+                )}
+              </span>
+            )}
+            {incident.end_date && String(incident.end_date).slice(0, 10) !== String(incident.incident_date).slice(0, 10) && (
+              <span>ถึงวันที่: <strong className="text-slate-950">{formatThaiDate(incident.end_date)}</strong></span>
             )}
           </div>
         </div>

@@ -23,13 +23,16 @@ async function syncIncidentWithHosxp(incidentId, io = null) {
       return { success: false, reason: 'auto_sync_disabled' };
     }
 
-    // Format start and end times for HOSxP filtering
+    // Format start and end dates/times for HOSxP filtering
+    const startDateFilter = incident.incident_date ? String(incident.incident_date).slice(0, 10) : undefined;
+    const endDateFilter = incident.end_date ? String(incident.end_date).slice(0, 10) : undefined;
     const startTimeFilter = incident.start_time ? incident.start_time.trim() : undefined;
     const endTimeFilter = incident.end_time ? incident.end_time.trim() : undefined;
 
-    // Query HOSxP accident patients (er_pt_type = 2) from incident start date & time continuously up to present
+    // Query HOSxP accident patients (er_pt_type = 2) from incident start date & time up to end date & time (or present)
     const hosxpPatients = await queryHosxpAccidentPatients({
-      startDate: incident.incident_date,
+      startDate: startDateFilter,
+      endDate: endDateFilter,
       startTime: startTimeFilter,
       endTime: endTimeFilter
     });
