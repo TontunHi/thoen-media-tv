@@ -7,6 +7,109 @@ import { getYouTubeEmbedUrl, getFacebookEmbedUrl, extractYouTubeId } from '../ut
 import Hls from 'hls.js';
 import IncidentTvScreen from './IncidentTvScreen';
 
+/**
+ * Dedicated YouTube Player with automatic unmuting and error recovery
+ */
+function YouTubePlayer({ videoUrl, isMuted, onEnded }) {
+  const containerRef = useRef(null);
+  const playerRef = useRef(null);
+  const videoId = useMemo(() => extractYouTubeId(videoUrl), [videoUrl]);
+
+  useEffect(() => {
+    if (!videoId || !containerRef.current) return;
+    let player = null;
+    let isCancelled = false;
+
+    const initYT = () => {
+      if (!window.YT || !window.YT.Player || !containerRef.current || isCancelled) return;
+      try {
+        player = new window.YT.Player(containerRef.current, {
+          videoId,
+          playerVars: {
+            autoplay: 1,
+            mute: isMuted ? 1 : 0,
+            controls: 1,
+            rel: 0,
+            modestbranding: 1,
+            enablejsapi: 1,
+            playsinline: 1,
+            origin: window.location.origin,
+            iv_load_policy: 3,
+          },
+          events: {
+            onReady: (event) => {
+              try {
+                if (!isMuted) {
+                  event.target.unMute();
+                  event.target.setVolume(100);
+                }
+                event.target.playVideo();
+              } catch (e) {}
+            },
+            onStateChange: (event) => {
+              if (event.data === window.YT.PlayerState.PLAYING) {
+                try {
+                  if (!isMuted) {
+                    event.target.unMute();
+                    event.target.setVolume(100);
+                  }
+                } catch (e) {}
+              } else if (event.data === window.YT.PlayerState.ENDED) {
+                if (onEnded) onEnded();
+              }
+            },
+            onError: () => {
+              if (onEnded) setTimeout(onEnded, 2000);
+            },
+          },
+        });
+        playerRef.current = player;
+      } catch (err) {
+        console.warn('YouTube Iframe Player init error:', err);
+      }
+    };
+
+    if (window.YT && window.YT.Player) {
+      initYT();
+    } else {
+      const timer = setInterval(() => {
+        if (window.YT && window.YT.Player) {
+          clearInterval(timer);
+          initYT();
+        }
+      }, 150);
+      return () => clearInterval(timer);
+    }
+
+    return () => {
+      isCancelled = true;
+      if (player && typeof player.destroy === 'function') {
+        try {
+          player.destroy();
+        } catch (e) {}
+      }
+    };
+  }, [videoId, isMuted, onEnded]);
+
+  if (!videoId) {
+    return (
+      <iframe
+        src={videoUrl}
+        title="YouTube Video"
+        className="w-full h-full border-0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+        allowFullScreen
+      />
+    );
+  }
+
+  return (
+    <div className="w-full h-full relative bg-black flex items-center justify-center">
+      <div ref={containerRef} className="w-full h-full pointer-events-auto" />
+    </div>
+  );
+}
+
 export default function TvPlayer() {
   const { slug } = useParams();
   const [loading, setLoading] = useState(true);
@@ -18,6 +121,7 @@ export default function TvPlayer() {
   const [error, setError] = useState('');
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isMuted, setIsMuted] = useState(false);
+  const [isAudioBlocked, setIsAudioBlocked] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(false);
   const [cycleTick, setCycleTick] = useState(0);
@@ -74,6 +178,41 @@ export default function TvPlayer() {
     }
   }, []);
 
+  // Unlock all Audio Subsystems
+  const unlockAudio = useCallback(() => {
+    setIsMuted(false);
+    setIsAudioBlocked(false);
+
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) {
+        const ctx = new AudioCtx();
+        if (ctx.state === 'suspended') {
+          ctx.resume().catch(() => {});
+        }
+      }
+    } catch (e) {}
+
+    if (videoRef.current) {
+      videoRef.current.muted = false;
+      videoRef.current.volume = 1.0;
+      videoRef.current.play().catch(() => {});
+    }
+    if (ytPlayerRef.current && typeof ytPlayerRef.current.unMute === 'function') {
+      try {
+        ytPlayerRef.current.unMute();
+        ytPlayerRef.current.setVolume(100);
+        ytPlayerRef.current.playVideo();
+      } catch (e) {}
+    }
+    if (fbPlayerRef.current) {
+      try {
+        fbPlayerRef.current.unmute();
+        fbPlayerRef.current.play();
+      } catch (e) {}
+    }
+  }, []);
+
   // Initialize AudioContext and Auto-unmute Subsystems for TV Displays
   useEffect(() => {
     try {
@@ -86,28 +225,6 @@ export default function TvPlayer() {
       }
     } catch (e) {}
 
-    const unlockAudio = () => {
-      setIsMuted(false);
-      if (videoRef.current) {
-        videoRef.current.muted = false;
-        videoRef.current.volume = 1.0;
-        videoRef.current.play().catch(() => {});
-      }
-      if (ytPlayerRef.current && typeof ytPlayerRef.current.unMute === 'function') {
-        try {
-          ytPlayerRef.current.unMute();
-          ytPlayerRef.current.setVolume(100);
-          ytPlayerRef.current.playVideo();
-        } catch (e) {}
-      }
-      if (fbPlayerRef.current) {
-        try {
-          fbPlayerRef.current.unmute();
-          fbPlayerRef.current.play();
-        } catch (e) {}
-      }
-    };
-
     window.addEventListener('click', unlockAudio, { once: true });
     window.addEventListener('touchstart', unlockAudio, { once: true });
     window.addEventListener('keydown', unlockAudio, { once: true });
@@ -119,7 +236,7 @@ export default function TvPlayer() {
       window.removeEventListener('keydown', unlockAudio);
       window.removeEventListener('pointerdown', unlockAudio);
     };
-  }, []);
+  }, [unlockAudio]);
 
   // Load TV Playback data
   const loadTvData = async (silent = false) => {
@@ -407,6 +524,9 @@ export default function TvPlayer() {
   return (
     <div
       onMouseMove={handleMouseMove}
+      onClick={unlockAudio}
+      onTouchStart={unlockAudio}
+      onPointerDown={unlockAudio}
       className="relative w-screen h-screen bg-black overflow-hidden select-none cursor-none group"
       style={{ cursor: showControls ? 'default' : 'none' }}
     >
@@ -414,16 +534,12 @@ export default function TvPlayer() {
       {currentItem && (
         <div className="w-full h-full flex items-center justify-center bg-black">
           {currentItem.file_type === 'youtube' ? (
-            <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center">
-              <iframe
-                key={`${currentItem.id}-${cycleTick}`}
-                src={getYouTubeEmbedUrl(currentItem.file_path, true, isMuted)}
-                title={currentItem.media_name}
-                className="w-full h-full border-0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
-                allowFullScreen
-              />
-            </div>
+            <YouTubePlayer
+              key={`${currentItem.id}-${cycleTick}`}
+              videoUrl={currentItem.file_path}
+              isMuted={isMuted}
+              onEnded={nextItem}
+            />
           ) : currentItem.file_type === 'facebook' ? (
             <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center">
               <iframe
@@ -474,7 +590,18 @@ export default function TvPlayer() {
               onCanPlay={(e) => {
                 e.target.muted = false;
                 e.target.volume = 1.0;
-                e.target.play().catch(() => {});
+                const p = e.target.play();
+                if (p) {
+                  p.catch(() => {
+                    setIsAudioBlocked(true);
+                  });
+                }
+              }}
+              onTimeUpdate={(e) => {
+                if (e.target.muted && !isMuted) {
+                  e.target.muted = false;
+                  e.target.volume = 1.0;
+                }
               }}
               onEnded={nextItem}
               onError={(e) => {
@@ -497,6 +624,18 @@ export default function TvPlayer() {
             />
           )}
         </div>
+      )}
+
+      {/* Floating 1-tap audio unlock button if browser blocked autoplay sound before first touch */}
+      {isAudioBlocked && (
+        <button
+          type="button"
+          onClick={unlockAudio}
+          className="absolute top-4 right-6 z-50 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2 rounded-2xl shadow-2xl flex items-center gap-2 text-xs animate-bounce cursor-pointer border border-amber-300 pointer-events-auto"
+        >
+          <Volume2 size={16} />
+          <span>แตะหน้าจอเพื่อเปิดเสียง</span>
+        </button>
       )}
 
       {/* Top Overlay: Digital Clock & Hospital Info */}
