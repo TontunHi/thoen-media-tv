@@ -288,12 +288,21 @@ async function generateIncidentExcelWorkbook(incident, summary, patients = []) {
     const isDeadHospital = isDead && (status.includes('ใน รพ') || pt.dead_in_hospital || status.includes('ในโรงพยาบาล'));
     const isDeadTransport = isDead && !isDeadScene && !isDeadHospital;
 
-    // Triage label text
-    let triageText = pt.triage_level || '-';
-    if (pt.triage_color === 'red') triageText = 'วิกฤต (แดง)';
-    else if (pt.triage_color === 'yellow') triageText = 'เร่งด่วน (เหลือง)';
-    else if (pt.triage_color === 'green') triageText = 'ไม่เร่งด่วน (เขียว)';
-    else if (pt.triage_color === 'black' || pt.triage_color === 'white') triageText = 'เสียชีวิต (ดำ)';
+    // Triage label text: แสดงเฉพาะสี (แดง, เหลือง, เขียว, ดำ) ไม่ต้องบอกระดับ
+    let triageText = '-';
+    const col = (pt.triage_color || '').toLowerCase();
+    if (col === 'red' || col === 'แดง') triageText = 'แดง';
+    else if (col === 'yellow' || col === 'เหลือง') triageText = 'เหลือง';
+    else if (col === 'green' || col === 'เขียว') triageText = 'เขียว';
+    else if (col === 'black' || col === 'white' || col === 'ดำ') triageText = 'ดำ';
+    else if (pt.triage_level) {
+      const lvl = String(pt.triage_level).toLowerCase();
+      if (lvl.includes('แดง') || lvl.includes('วิกฤต') || lvl.includes('red')) triageText = 'แดง';
+      else if (lvl.includes('เหลือง') || lvl.includes('เร่งด่วน') || lvl.includes('yellow')) triageText = 'เหลือง';
+      else if (lvl.includes('เขียว') || lvl.includes('ไม่เร่งด่วน') || lvl.includes('green')) triageText = 'เขียว';
+      else if (lvl.includes('ดำ') || lvl.includes('เสียชีวิต') || lvl.includes('black')) triageText = 'ดำ';
+      else triageText = pt.triage_level;
+    }
 
     row.getCell(1).value = idx + 1;
     row.getCell(2).value = pt.pt_name || 'ไม่ระบุชื่อ';
@@ -340,7 +349,7 @@ async function generateIncidentExcelWorkbook(incident, summary, patients = []) {
     currentRow++;
   }
 
-  // 16. SUMMARY STATS FOOTER (Matching user's request for comprehensive statistics)
+  // 16. SUMMARY STATS FOOTER
   currentRow++; // blank line
   sheet.mergeCells(`A${currentRow}:L${currentRow}`);
   const sum1 = sheet.getCell(`A${currentRow}`);
@@ -356,7 +365,7 @@ async function generateIncidentExcelWorkbook(incident, summary, patients = []) {
   currentRow++;
   sheet.mergeCells(`A${currentRow}:L${currentRow}`);
   const sum2 = sheet.getCell(`A${currentRow}`);
-  sum2.value = `สถิติตามระดับความรุนแรง:   วิกฤต (แดง): ${summary?.red || 0} คน  |  เร่งด่วน (เหลือง): ${summary?.yellow || 0} คน  |  ไม่เร่งด่วน (เขียว): ${summary?.green || 0} คน  |  เสียชีวิต (ดำ): ${summary?.black || 0} คน`;
+  sum2.value = `สถิติตามระดับความรุนแรง:   แดง: ${summary?.red || 0} คน  |  เหลือง: ${summary?.yellow || 0} คน  |  เขียว: ${summary?.green || 0} คน  |  ดำ: ${summary?.black || 0} คน`;
   sum2.font = { name: 'Sarabun', size: 10.5, bold: true, color: { argb: 'FF374151' } };
   sum2.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
   sheet.getRow(currentRow).height = 22;

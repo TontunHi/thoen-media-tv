@@ -1,20 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   FileSpreadsheet,
-  Printer,
   X,
   Save,
   CheckSquare,
   Square,
   ShieldAlert,
-  AlertCircle,
-  CheckCircle2,
-  FileText,
-  Clock,
-  MapPin,
+  Users,
   Ambulance,
   Sliders,
-  Users
+  CheckCircle2
 } from 'lucide-react';
 import { api } from '../services/api';
 
@@ -64,8 +59,7 @@ export default function IncidentReportModal({ incident, summary, patients = [], 
   const [emsUnits, setEmsUnits] = useState('');
   const [downloadingExcel, setDownloadingExcel] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState('preview'); // 'preview' | 'form'
-  const printRef = useRef(null);
+  const [savedSuccess, setSavedSuccess] = useState(false);
 
   // Initialize from incident
   useEffect(() => {
@@ -125,11 +119,14 @@ export default function IncidentReportModal({ incident, summary, patients = [], 
         management_actions: managementActions,
         ems_units: emsUnits
       });
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 2500);
       if (onUpdateIncident) {
         onUpdateIncident();
       }
     } catch (err) {
       console.error('Save metadata error:', err);
+      alert('บันทึกข้อมูลไม่สำเร็จ: ' + (err.message || err));
     } finally {
       setSaving(false);
     }
@@ -147,12 +144,6 @@ export default function IncidentReportModal({ incident, summary, patients = [], 
     } finally {
       setDownloadingExcel(false);
     }
-  };
-
-  // Trigger Print (A4 Portrait)
-  const handlePrint = async () => {
-    await handleSaveMetadata();
-    window.print();
   };
 
   // Format Timeframe Text
@@ -174,21 +165,39 @@ export default function IncidentReportModal({ incident, summary, patients = [], 
   const refuseCount = summary?.refuse_treatment || summary?.refuse_treatment_count || 0;
   const totalCount = summary?.total !== undefined ? summary.total : (regCount + refuseCount);
 
+  // Helper for Triage Sieve: แสดงเฉพาะสี (แดง, เหลือง, เขียว, ดำ) ไม่ต้องบอกระดับ
+  const getTriageColorLabel = (color, level) => {
+    const c = (color || '').toLowerCase();
+    if (c === 'red' || c === 'แดง') return { label: 'แดง', badgeClass: 'bg-rose-100 text-rose-800 border-rose-300' };
+    if (c === 'yellow' || c === 'เหลือง') return { label: 'เหลือง', badgeClass: 'bg-amber-100 text-amber-900 border-amber-300' };
+    if (c === 'green' || c === 'เขียว') return { label: 'เขียว', badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300' };
+    if (c === 'black' || c === 'white' || c === 'ดำ') return { label: 'ดำ', badgeClass: 'bg-slate-900 text-white border-slate-700' };
+
+    if (level) {
+      const lvl = String(level).toLowerCase();
+      if (lvl.includes('แดง') || lvl.includes('วิกฤต') || lvl.includes('red')) return { label: 'แดง', badgeClass: 'bg-rose-100 text-rose-800 border-rose-300' };
+      if (lvl.includes('เหลือง') || lvl.includes('เร่งด่วน') || lvl.includes('yellow')) return { label: 'เหลือง', badgeClass: 'bg-amber-100 text-amber-900 border-amber-300' };
+      if (lvl.includes('เขียว') || lvl.includes('ไม่เร่งด่วน') || lvl.includes('green')) return { label: 'เขียว', badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300' };
+      if (lvl.includes('ดำ') || lvl.includes('เสียชีวิต') || lvl.includes('black')) return { label: 'ดำ', badgeClass: 'bg-slate-900 text-white border-slate-700' };
+    }
+    return { label: level || '-', badgeClass: 'bg-slate-100 text-slate-800 border-slate-200' };
+  };
+
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 print:p-0 print:bg-white print:static">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5">
       {/* Modal Container */}
-      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-5xl overflow-hidden flex flex-col max-h-[92vh] print:max-h-none print:shadow-none print:border-none print:rounded-none">
-        {/* MODAL HEADER (Hidden when printing) */}
-        <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between shrink-0 print:hidden">
+      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-5xl overflow-hidden flex flex-col max-h-[92vh]">
+        {/* MODAL HEADER */}
+        <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-emerald-600 flex items-center justify-center text-white shadow-md shadow-emerald-600/30">
-              <FileText size={22} className="stroke-[2.2]" />
+              <FileSpreadsheet size={22} className="stroke-[2.2]" />
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-black tracking-tight flex items-center gap-2">
-                <span>ส่งออกรายงานอุบัติเหตุหมู่ / สาธารณภัย</span>
+                <span>ส่งออกรายงานอุบัติเหตุหมู่ (Excel)</span>
                 <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-emerald-400 border border-slate-700">
-                  A4 Portrait / Excel
+                  .xlsx
                 </span>
               </h2>
               <p className="text-xs text-slate-400">โรงพยาบาลเถิน จ.ลำปาง</p>
@@ -203,16 +212,7 @@ export default function IncidentReportModal({ incident, summary, patients = [], 
               className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white text-xs sm:text-sm font-black rounded-xl shadow-md shadow-emerald-600/20 transition cursor-pointer"
             >
               <FileSpreadsheet size={16} />
-              <span>{downloadingExcel ? 'กำลังสร้าง Excel...' : 'ดาวน์โหลด Excel (.xlsx)'}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={handlePrint}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 active:scale-98 text-white text-xs sm:text-sm font-black rounded-xl shadow-md shadow-indigo-600/20 transition cursor-pointer"
-            >
-              <Printer size={16} />
-              <span>พิมพ์ / บันทึก PDF</span>
+              <span>{downloadingExcel ? 'กำลังสร้างไฟล์...' : 'ดาวน์โหลด Excel (.xlsx)'}</span>
             </button>
 
             <button
@@ -226,462 +226,308 @@ export default function IncidentReportModal({ incident, summary, patients = [], 
           </div>
         </div>
 
-        {/* CONTROLS STRIP (Hidden when printing) */}
-        <div className="px-6 py-3 bg-slate-100 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 shrink-0 print:hidden">
+        {/* INCIDENT INFO BANNER */}
+        <div className="px-6 py-3 bg-emerald-50/80 border-b border-emerald-200/80 flex flex-wrap items-center justify-between gap-3 shrink-0">
           <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
             <span className="text-slate-900 font-extrabold">เหตุการณ์:</span>
-            <span className="text-indigo-900 font-black">{incident?.title}</span>
+            <span className="text-emerald-950 font-black">{incident?.title}</span>
             <span className="text-slate-400">•</span>
             <span>{timeframeText}</span>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setActiveTab('preview')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-black transition cursor-pointer ${
-                activeTab === 'preview'
-                  ? 'bg-white text-indigo-700 shadow-xs border border-slate-200'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              📄 ตัวอย่างเอกสาร A4
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('form')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-black transition cursor-pointer ${
-                activeTab === 'form'
-                  ? 'bg-white text-indigo-700 shadow-xs border border-slate-200'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              ✏️ กรอก/ติ๊กข้อมูลเพิ่มเติม
-            </button>
+          {savedSuccess && (
+            <div className="flex items-center gap-1.5 text-xs text-emerald-700 font-bold bg-emerald-100 px-3 py-1 rounded-full animate-fadeIn">
+              <CheckCircle2 size={14} />
+              <span>บันทึกข้อมูลเรียบร้อยแล้ว</span>
+            </div>
+          )}
+        </div>
+
+        {/* MODAL BODY */}
+        <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6">
+          {/* SECTION 1: CHECKLIST & METADATA FORM */}
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 space-y-4">
+            <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
+              <Sliders size={18} className="text-emerald-600" />
+              <h3 className="text-sm font-black text-slate-900">
+                ข้อมูลประกอบแบบรายงาน (บันทึกลงในไฟล์ Excel)
+              </h3>
+            </div>
+
+            {/* 1. บริเวณที่เกิดเหตุ (อุบัติเหตุจราจร) Checkboxes */}
+            <div>
+              <label className="block text-xs font-black text-slate-800 mb-2">
+                บริเวณที่เกิดเหตุ (อุบัติเหตุจราจร) :
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {ROAD_OPTIONS.map((item) => {
+                  const isChecked = roadConditions.includes(item);
+                  return (
+                    <button
+                      key={item}
+                      type="button"
+                      onClick={() => toggleRoad(item)}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold border transition text-left cursor-pointer ${
+                        isChecked
+                          ? 'bg-emerald-500/10 border-emerald-500 text-emerald-950 shadow-xs'
+                          : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      {isChecked ? (
+                        <CheckSquare size={16} className="text-emerald-600 shrink-0" />
+                      ) : (
+                        <Square size={16} className="text-slate-400 shrink-0" />
+                      )}
+                      <span className="truncate">{item}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 2. การจัดการ Checkboxes */}
+            <div>
+              <label className="block text-xs font-black text-slate-800 mb-2">
+                การจัดการ :
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {MANAGEMENT_OPTIONS.map((item) => {
+                  const isChecked = managementActions.includes(item);
+                  return (
+                    <button
+                      key={item}
+                      type="button"
+                      onClick={() => toggleManagement(item)}
+                      className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold border transition text-left cursor-pointer ${
+                        isChecked
+                          ? 'bg-emerald-500/10 border-emerald-500 text-emerald-950 shadow-xs'
+                          : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      {isChecked ? (
+                        <CheckSquare size={16} className="text-emerald-600 shrink-0" />
+                      ) : (
+                        <Square size={16} className="text-slate-400 shrink-0" />
+                      )}
+                      <span className="truncate">{item}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 3. ชุดปฏิบัติการฉุกเฉิน */}
+            <div>
+              <div className="flex items-center gap-2 mb-1.5">
+                <Ambulance size={16} className="text-emerald-600" />
+                <label htmlFor="ems-input" className="text-xs font-black text-slate-800">
+                  ชุดปฏิบัติการฉุกเฉินที่ออกปฏิบัติการ
+                </label>
+              </div>
+              <input
+                id="ems-input"
+                type="text"
+                value={emsUnits}
+                onChange={(e) => setEmsUnits(e.target.value)}
+                placeholder="เช่น EMS รพ.เถิน, กู้ภัยเถินบุรี, กู้ภัยออมบุญ"
+                className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+              />
+            </div>
+
+            <div className="flex justify-end pt-1">
+              <button
+                type="button"
+                onClick={handleSaveMetadata}
+                disabled={saving}
+                className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 active:scale-98 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer"
+              >
+                <Save size={14} />
+                <span>{saving ? 'กำลังบันทึก...' : 'บันทึกข้อมูลเพิ่มเติม'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* SECTION 2: STATS SUMMARY CARDS */}
+          <div>
+            <div className="flex items-center justify-between mb-2.5">
+              <h3 className="text-xs sm:text-sm font-black text-slate-900 flex items-center gap-2">
+                <Users size={16} className="text-emerald-600" />
+                <span>สรุปข้อมูลสถิติที่จะลงในรายงาน Excel</span>
+              </h3>
+              <span className="text-xs font-bold text-slate-500">
+                รวมทั้งหมด {totalCount} คน (ตรวจรักษาใน รพ. {regCount} คน, ไม่ประสงค์ตรวจ {refuseCount} คน)
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs font-bold">
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-950 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-rose-600" />
+                  <span>แดง:</span>
+                </span>
+                <span className="text-base font-black font-mono text-rose-700">{summary?.red || 0} คน</span>
+              </div>
+
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-950 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                  <span>เหลือง:</span>
+                </span>
+                <span className="text-base font-black font-mono text-amber-700">{summary?.yellow || 0} คน</span>
+              </div>
+
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-950 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-600" />
+                  <span>เขียว:</span>
+                </span>
+                <span className="text-base font-black font-mono text-emerald-700">{summary?.green || 0} คน</span>
+              </div>
+
+              <div className="p-3 bg-slate-100 border border-slate-300 rounded-xl text-slate-900 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-slate-900" />
+                  <span>ดำ:</span>
+                </span>
+                <span className="text-base font-black font-mono text-slate-900">{summary?.black || 0} คน</span>
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION 3: PATIENT DATA PREVIEW TABLE */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-xs sm:text-sm font-black text-slate-900">
+                ตัวอย่างรายชื่อผู้บาดเจ็บ ({patients.length} ราย)
+              </h3>
+              <span className="text-[11px] text-slate-500">
+                * Triage Sieve ในไฟล์ Excel จะแสดงเฉพาะชื่อสี (แดง, เหลือง, เขียว, ดำ)
+              </span>
+            </div>
+
+            <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+              <div className="overflow-x-auto max-h-72">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead className="sticky top-0 bg-slate-900 text-white font-black z-10">
+                    <tr>
+                      <th className="py-2.5 px-3 text-center w-12">ลำดับ</th>
+                      <th className="py-2.5 px-3">ชื่อสกุล</th>
+                      <th className="py-2.5 px-2 text-center w-16">อายุ</th>
+                      <th className="py-2.5 px-3 text-center w-24">Triage Sieve</th>
+                      <th className="py-2.5 px-3 text-center w-28">พาหนะ</th>
+                      <th className="py-2.5 px-3">วินิจฉัยเบื้องต้น</th>
+                      <th className="py-2.5 px-2 text-center w-14">D/C</th>
+                      <th className="py-2.5 px-2 text-center w-14">Admit</th>
+                      <th className="py-2.5 px-3 text-center w-28">Refer</th>
+                      <th className="py-2.5 px-2 text-center w-20">Dead</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 bg-white">
+                    {patients.length === 0 ? (
+                      <tr>
+                        <td colSpan="10" className="p-6 text-center text-slate-500 italic">
+                          ไม่พบข้อมูลผู้บาดเจ็บในช่วงเวลาที่ระบุ
+                        </td>
+                      </tr>
+                    ) : (
+                      patients.map((pt, idx) => {
+                        const status = (pt.current_status || '').toLowerCase();
+                        const isDC = status.includes('กลับบ้าน') || status.includes('d/c') || status.includes('discharge');
+                        const isAdmit = status.includes('admit') || status.includes('นอนโรงพยาบาล') || status.includes('ตึก');
+
+                        let referHosp = '';
+                        if (status.includes('ส่งต่อ') || status.includes('refer')) {
+                          referHosp = pt.current_status.replace(/^ส่งต่อ:\s*/i, '').replace(/^refer:\s*/i, '').trim();
+                        }
+
+                        const isDead = pt.triage_color === 'black' || pt.triage_color === 'white' || status.includes('เสียชีวิต') || status.includes('ตาย');
+                        const isDeadScene = isDead && (status.includes('ก่อนถึง') || pt.dead_before_arrive || status.includes('จุดเกิดเหตุ'));
+                        const isDeadHospital = isDead && (status.includes('ใน รพ') || pt.dead_in_hospital || status.includes('ในโรงพยาบาล'));
+                        const isDeadTransport = isDead && !isDeadScene && !isDeadHospital;
+
+                        let deadText = '';
+                        if (isDeadScene) deadText = 'จุดเกิดเหตุ';
+                        else if (isDeadTransport) deadText = 'ระหว่างส่ง';
+                        else if (isDeadHospital) deadText = 'ใน รพ.';
+
+                        const { label: triageColorOnly, badgeClass } = getTriageColorLabel(pt.triage_color, pt.triage_level);
+
+                        return (
+                          <tr key={pt.id || idx} className="hover:bg-slate-50">
+                            <td className="py-2 px-3 text-center font-mono font-bold text-slate-600">
+                              {idx + 1}
+                            </td>
+                            <td className="py-2 px-3 font-bold text-slate-900">
+                              {pt.pt_name || 'ไม่ระบุชื่อ'}
+                            </td>
+                            <td className="py-2 px-2 text-center text-slate-700">
+                              {pt.age ? `${pt.age} ปี` : '-'}
+                            </td>
+                            <td className="py-2 px-3 text-center">
+                              <span className={`inline-block px-2.5 py-0.5 rounded-lg text-xs font-black border ${badgeClass}`}>
+                                {triageColorOnly}
+                              </span>
+                            </td>
+                            <td className="py-2 px-3 text-center text-slate-700">
+                              {pt.transport && pt.transport !== '-' ? pt.transport : '-'}
+                            </td>
+                            <td className="py-2 px-3 text-slate-800">
+                              {pt.diag && pt.diag !== '-' ? pt.diag : (pt.injury_info || '-')}
+                            </td>
+                            <td className="py-2 px-2 text-center font-bold text-slate-900">
+                              {isDC ? '✓' : ''}
+                            </td>
+                            <td className="py-2 px-2 text-center font-bold text-slate-900">
+                              {isAdmit ? '✓' : ''}
+                            </td>
+                            <td className="py-2 px-3 text-center text-slate-800 truncate max-w-[120px]">
+                              {referHosp || '-'}
+                            </td>
+                            <td className="py-2 px-2 text-center font-bold text-rose-700">
+                              {deadText ? `✓ (${deadText})` : ''}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* MODAL BODY (Scrollable on screen, Full on print) */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 print:p-0 print:overflow-visible">
-          {/* TAB 1: FORM & CHECKLIST EDITOR */}
-          {activeTab === 'form' && (
-            <div className="space-y-5 print:hidden max-w-4xl mx-auto pb-4">
-              <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-4 shadow-2xs">
-                <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
-                  <Sliders size={18} className="text-indigo-600" />
-                  <h3 className="text-sm font-black text-slate-800">
-                    บริเวณที่เกิดเหตุ (อุบัติเหตุจราจร) [ติ๊กเลือกได้หลายข้อ]
-                  </h3>
-                </div>
+        {/* MODAL FOOTER ACTION BAR */}
+        <div className="px-6 py-4 bg-slate-100 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-5 py-2.5 text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-200 rounded-xl transition cursor-pointer"
+          >
+            ปิดหน้าต่าง
+          </button>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                  {ROAD_OPTIONS.map((opt) => {
-                    const isChecked = roadConditions.includes(opt);
-                    return (
-                      <button
-                        type="button"
-                        key={opt}
-                        onClick={() => toggleRoad(opt)}
-                        className={`flex items-center gap-2 p-2.5 rounded-xl border text-xs font-bold transition cursor-pointer select-none text-left ${
-                          isChecked
-                            ? 'bg-indigo-50 border-indigo-500 text-indigo-950 font-black shadow-2xs'
-                            : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
-                        }`}
-                      >
-                        {isChecked ? (
-                          <CheckSquare size={16} className="text-indigo-600 shrink-0" />
-                        ) : (
-                          <Square size={16} className="text-slate-400 shrink-0" />
-                        )}
-                        <span>{opt}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-4 shadow-2xs">
-                <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
-                  <ShieldAlert size={18} className="text-emerald-600" />
-                  <h3 className="text-sm font-black text-slate-800">
-                    การจัดการ [ติ๊กเลือกได้หลายข้อ]
-                  </h3>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {MANAGEMENT_OPTIONS.map((opt) => {
-                    const isChecked = managementActions.includes(opt);
-                    return (
-                      <button
-                        type="button"
-                        key={opt}
-                        onClick={() => toggleManagement(opt)}
-                        className={`flex items-center gap-2 p-2.5 rounded-xl border text-xs font-bold transition cursor-pointer select-none text-left ${
-                          isChecked
-                            ? 'bg-emerald-50 border-emerald-500 text-emerald-950 font-black shadow-2xs'
-                            : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
-                        }`}
-                      >
-                        {isChecked ? (
-                          <CheckSquare size={16} className="text-emerald-600 shrink-0" />
-                        ) : (
-                          <Square size={16} className="text-slate-400 shrink-0" />
-                        )}
-                        <span>{opt}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-3 shadow-2xs">
-                <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
-                  <Ambulance size={18} className="text-amber-600" />
-                  <label htmlFor="ems-input" className="text-sm font-black text-slate-800">
-                    ชุดปฏิบัติการฉุกเฉินที่ออกปฏิบัติการ
-                  </label>
-                </div>
-                <input
-                  id="ems-input"
-                  type="text"
-                  value={emsUnits}
-                  onChange={(e) => setEmsUnits(e.target.value)}
-                  placeholder="เช่น EMS รพ.เถิน, กู้ภัยเถินบุรี, กู้ภัยออมบุญ"
-                  className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                />
-              </div>
-
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={handleSaveMetadata}
-                  disabled={saving}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 active:scale-98 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer"
-                >
-                  <Save size={15} />
-                  <span>{saving ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('preview')}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:scale-98 text-white text-xs font-black rounded-xl shadow-xs transition cursor-pointer"
-                >
-                  <FileText size={15} />
-                  <span>ดูตัวอย่างเอกสาร A4</span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 2 / PRINTABLE VIEW: PIXEL-PERFECT A4 PORTRAIT DOCUMENT */}
-          {(activeTab === 'preview' || true) && (
-            <div
-              id="incident-report-printable-document"
-              ref={printRef}
-              className={`${activeTab === 'form' ? 'hidden print:block' : 'block'} bg-white mx-auto text-slate-900 font-sans max-w-[210mm] p-6 sm:p-8 border border-slate-200 shadow-lg rounded-2xl print:max-w-none print:p-0 print:border-none print:shadow-none print:rounded-none`}
-              style={{ minHeight: '297mm' }}
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleSaveMetadata}
+              disabled={saving}
+              className="flex items-center gap-2 px-5 py-2.5 bg-slate-800 hover:bg-slate-900 active:scale-98 text-white text-xs sm:text-sm font-bold rounded-xl shadow-xs transition cursor-pointer"
             >
-              {/* PRINT CSS STYLES */}
-              <style>{`
-                @media print {
-                  @page {
-                    size: A4 portrait;
-                    margin: 8mm 8mm 8mm 8mm;
-                  }
-                  
-                  *, *::before, *::after {
-                    box-sizing: border-box !important;
-                    -webkit-print-color-adjust: exact !important;
-                    print-color-adjust: exact !important;
-                    color-adjust: exact !important;
-                  }
+              <Save size={16} />
+              <span>{saving ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}</span>
+            </button>
 
-                  html, body {
-                    margin: 0 !important;
-                    padding: 0 !important;
-                    background: white !important;
-                    color: #000 !important;
-                    font-size: 10pt !important;
-                    font-family: 'Sarabun', 'Noto Sans Thai', system-ui, -apple-system, sans-serif !important;
-                  }
-
-                  /* Hide non-printable elements */
-                  body * {
-                    visibility: hidden !important;
-                  }
-
-                  #incident-report-printable-document,
-                  #incident-report-printable-document * {
-                    visibility: visible !important;
-                  }
-
-                  #incident-report-printable-document {
-                    display: block !important;
-                    position: absolute !important;
-                    left: 0 !important;
-                    top: 0 !important;
-                    width: 100% !important;
-                    max-width: 100% !important;
-                    margin: 0 !important;
-                    padding: 0 !important;
-                    border: none !important;
-                    box-shadow: none !important;
-                    background: white !important;
-                  }
-
-                  .print\\:hidden, .no-print {
-                    display: none !important;
-                  }
-
-                  table {
-                    width: 100% !important;
-                    table-layout: fixed !important;
-                    border-collapse: collapse !important;
-                  }
-
-                  thead {
-                    display: table-header-group !important;
-                  }
-
-                  tbody {
-                    display: table-row-group !important;
-                  }
-
-                  tr {
-                    page-break-inside: avoid !important;
-                    break-inside: avoid !important;
-                  }
-                }
-              `}</style>
-
-              {/* 1. DOCUMENT TITLE & LOGO */}
-              <div className="text-center pb-2 border-b-2 border-slate-900">
-                <img
-                  src="/logo.jpg"
-                  alt="ตราสัญลักษณ์"
-                  className="w-14 h-14 sm:w-16 sm:h-16 object-contain mx-auto mb-1"
-                />
-                <h1 className="text-base sm:text-lg font-black text-slate-950 tracking-tight leading-snug">
-                  แบบรายงานอุบัติเหตุหมู่/สาธารณภัย ในโรงพยาบาลเถิน จังหวัดลำปาง
-                </h1>
-                <p className="text-xs font-bold text-slate-700 mt-0.5">
-                  โรงพยาบาลเถิน จังหวัดลำปาง โทรศัพท์ 054292275
-                </p>
-              </div>
-
-              {/* 2. INCIDENT METADATA HEADER */}
-              <div className="text-xs text-slate-900 font-medium py-2.5 space-y-1 border-b border-slate-300">
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <div>
-                    <strong>เหตุการณ์:</strong> <span className="font-bold underline decoration-slate-400 underline-offset-2">{incident?.title || '-'}</span>
-                  </div>
-                  <div>
-                    <strong>วัน-เวลาที่เกิดเหตุ:</strong> <span>{timeframeText}</span>
-                  </div>
-                </div>
-
-                <div>
-                  <strong>สถานที่เกิดเหตุ (ถนน, ตำบล, อำเภอ, จังหวัด)(รายละเอียด):</strong>{' '}
-                  <span>{incident?.location || '-'}</span>
-                </div>
-
-                {/* Road Conditions Checkboxes */}
-                <div>
-                  <strong className="mr-1">บริเวณที่เกิดเหตุ(อุบัติเหตุจราจร):</strong>
-                  <span className="space-x-2 text-[11px] leading-relaxed">
-                    {ROAD_OPTIONS.map((opt) => (
-                      <span key={opt} className="inline-flex items-center gap-0.5">
-                        <span className="font-mono text-xs font-black">
-                          {roadConditions.includes(opt) ? '[✓]' : '[ ]'}
-                        </span>
-                        <span>{opt}</span>
-                      </span>
-                    ))}
-                  </span>
-                </div>
-
-                {/* Management Actions Checkboxes */}
-                <div>
-                  <strong className="mr-1">การจัดการ:</strong>
-                  <span className="space-x-2 text-[11px] leading-relaxed">
-                    {MANAGEMENT_OPTIONS.map((opt) => (
-                      <span key={opt} className="inline-flex items-center gap-0.5">
-                        <span className="font-mono text-xs font-black">
-                          {managementActions.includes(opt) ? '[✓]' : '[ ]'}
-                        </span>
-                        <span>{opt}</span>
-                      </span>
-                    ))}
-                  </span>
-                </div>
-
-                <div>
-                  <strong>ชุดปฎิบัติการฉุกเฉินที่ออกปฏิบัติการ:</strong>{' '}
-                  <span className="font-bold">{emsUnits || '-'}</span>
-                </div>
-              </div>
-
-              {/* 3. PATIENTS TABLE SECTION */}
-              <div className="pt-2.5">
-                <h2 className="text-xs sm:text-sm font-black text-slate-950 mb-1.5">
-                  ข้อมูลผู้บาดเจ็บ
-                </h2>
-
-                <div className="w-full overflow-hidden border border-slate-900 rounded-xs">
-                  <table className="w-full text-left border-collapse table-fixed text-[10px] sm:text-[11px]">
-                    <colgroup>
-                      <col style={{ width: '4%' }} />
-                      <col style={{ width: '16.5%' }} />
-                      <col style={{ width: '5.5%' }} />
-                      <col style={{ width: '11.5%' }} />
-                      <col style={{ width: '10%' }} />
-                      <col style={{ width: '17%' }} />
-                      <col style={{ width: '4.5%' }} />
-                      <col style={{ width: '4.5%' }} />
-                      <col style={{ width: '11.5%' }} />
-                      <col style={{ width: '5%' }} />
-                      <col style={{ width: '5%' }} />
-                      <col style={{ width: '5%' }} />
-                    </colgroup>
-                    <thead>
-                      {/* Sub-Header Row 1 */}
-                      <tr className="bg-slate-100 text-slate-950 font-bold border-b border-slate-900 text-center">
-                        <th rowSpan="2" className="border border-slate-900 p-1 text-center align-middle">ลำดับ</th>
-                        <th rowSpan="2" className="border border-slate-900 p-1 text-left align-middle">ชื่อสกุล</th>
-                        <th rowSpan="2" className="border border-slate-900 p-0.5 text-center align-middle">อายุ (ปี)</th>
-                        <th rowSpan="2" className="border border-slate-900 p-1 text-center align-middle">Triage Sieve</th>
-                        <th rowSpan="2" className="border border-slate-900 p-1 text-center align-middle">พาหนะ</th>
-                        <th rowSpan="2" className="border border-slate-900 p-1 text-left align-middle">วินิจฉัยเบื้องต้น</th>
-                        <th colSpan="6" className="border border-slate-900 p-1 bg-slate-200 text-center font-black">ผลการรักษา</th>
-                      </tr>
-
-                      {/* Sub-Header Row 2 */}
-                      <tr className="bg-slate-100 text-slate-950 font-bold border-b border-slate-900 text-center text-[9px] sm:text-[10px]">
-                        <th className="border border-slate-900 p-0.5 text-center align-middle">D/C</th>
-                        <th className="border border-slate-900 p-0.5 text-center align-middle">Admit</th>
-                        <th className="border border-slate-900 p-1 text-center align-middle">Refer (ระบุ รพ.)</th>
-                        <th className="border border-slate-900 p-0.5 text-center align-middle">จุดเกิดเหตุ</th>
-                        <th className="border border-slate-900 p-0.5 text-center align-middle">ระหว่างส่ง</th>
-                        <th className="border border-slate-900 p-0.5 text-center align-middle">ใน รพ.</th>
-                      </tr>
-                    </thead>
-
-                    <tbody className="divide-y divide-slate-800">
-                      {patients.length === 0 ? (
-                        <tr>
-                          <td colSpan="12" className="border border-slate-900 p-3 text-center text-slate-500 italic">
-                            ไม่พบข้อมูลผู้บาดเจ็บในช่วงเวลาที่ระบุ
-                          </td>
-                        </tr>
-                      ) : (
-                        patients.map((pt, idx) => {
-                          const status = (pt.current_status || '').toLowerCase();
-                          const isDC = status.includes('กลับบ้าน') || status.includes('d/c') || status.includes('discharge');
-                          const isAdmit = status.includes('admit') || status.includes('นอนโรงพยาบาล') || status.includes('ตึก');
-
-                          let referHosp = '';
-                          if (status.includes('ส่งต่อ') || status.includes('refer')) {
-                            referHosp = pt.current_status.replace(/^ส่งต่อ:\s*/i, '').replace(/^refer:\s*/i, '').trim();
-                          }
-
-                          const isDead = pt.triage_color === 'black' || pt.triage_color === 'white' || status.includes('เสียชีวิต') || status.includes('ตาย');
-                          const isDeadScene = isDead && (status.includes('ก่อนถึง') || pt.dead_before_arrive || status.includes('จุดเกิดเหตุ'));
-                          const isDeadHospital = isDead && (status.includes('ใน รพ') || pt.dead_in_hospital || status.includes('ในโรงพยาบาล'));
-                          const isDeadTransport = isDead && !isDeadScene && !isDeadHospital;
-
-                          let triageLabel = pt.triage_level || '-';
-                          let triageClass = 'text-slate-950 font-bold';
-                          if (pt.triage_color === 'red') {
-                            triageLabel = 'วิกฤต (แดง)';
-                            triageClass = 'text-rose-700 font-black';
-                          } else if (pt.triage_color === 'yellow') {
-                            triageLabel = 'เร่งด่วน (เหลือง)';
-                            triageClass = 'text-amber-800 font-black';
-                          } else if (pt.triage_color === 'green') {
-                            triageLabel = 'ไม่เร่งด่วน (เขียว)';
-                            triageClass = 'text-emerald-800 font-bold';
-                          } else if (pt.triage_color === 'black' || pt.triage_color === 'white') {
-                            triageLabel = 'เสียชีวิต (ดำ)';
-                            triageClass = 'text-slate-950 font-black';
-                          }
-
-                          return (
-                            <tr key={pt.id || idx}>
-                              <td className="border border-slate-900 p-1 text-center font-mono align-middle">
-                                {idx + 1}
-                              </td>
-                              <td className="border border-slate-900 p-1 font-bold align-middle break-words text-left leading-tight">
-                                {pt.pt_name || 'ไม่ระบุชื่อ'}
-                              </td>
-                              <td className="border border-slate-900 p-0.5 text-center align-middle">
-                                {pt.age || '-'}
-                              </td>
-                              <td className={`border border-slate-900 p-0.5 text-center align-middle text-[9px] sm:text-[10px] ${triageClass}`}>
-                                {triageLabel}
-                              </td>
-                              <td className="border border-slate-900 p-0.5 text-center align-middle text-[9px] sm:text-[10px] break-words">
-                                {pt.transport && pt.transport !== '-' ? pt.transport : '-'}
-                              </td>
-                              <td className="border border-slate-900 p-1 align-middle text-[9px] sm:text-[10px] break-words text-left leading-tight">
-                                {pt.diag && pt.diag !== '-' ? pt.diag : (pt.injury_info || '-')}
-                              </td>
-                              <td className="border border-slate-900 p-0.5 text-center font-bold text-slate-950 align-middle">
-                                {isDC ? '✓' : ''}
-                              </td>
-                              <td className="border border-slate-900 p-0.5 text-center font-bold text-slate-950 align-middle">
-                                {isAdmit ? '✓' : ''}
-                              </td>
-                              <td className="border border-slate-900 p-0.5 text-center font-medium text-[9px] sm:text-[10px] align-middle break-words leading-tight">
-                                {referHosp || '-'}
-                              </td>
-                              <td className="border border-slate-900 p-0.5 text-center font-bold text-rose-700 align-middle">
-                                {isDeadScene ? '✓' : ''}
-                              </td>
-                              <td className="border border-slate-900 p-0.5 text-center font-bold text-rose-700 align-middle">
-                                {isDeadTransport ? '✓' : ''}
-                              </td>
-                              <td className="border border-slate-900 p-0.5 text-center font-bold text-rose-700 align-middle">
-                                {isDeadHospital ? '✓' : ''}
-                              </td>
-                            </tr>
-                          );
-                        })
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* 4. SUMMARY STATISTICS FOOTER */}
-              <div className="mt-3 p-2.5 border border-slate-800 rounded bg-slate-50 text-xs text-slate-900 space-y-1">
-                <div className="font-bold flex flex-wrap items-center justify-between">
-                  <span>
-                    <strong>สรุปผลผู้บาดเจ็บทั้งหมด:</strong>{' '}
-                    <span className="text-xs sm:text-sm font-black text-slate-950 underline decoration-slate-400">
-                      {totalCount} คน
-                    </span>{' '}
-                    (รับการตรวจรักษาใน รพ.: <strong>{regCount}</strong> คน, ไม่ประสงค์ตรวจรักษา: <strong>{refuseCount}</strong> คน)
-                  </span>
-                </div>
-                <div className="text-[11px] text-slate-800 font-medium flex flex-wrap items-center gap-2.5 pt-1 border-t border-slate-300">
-                  <span><strong>สถิติตามระดับความรุนแรง:</strong></span>
-                  <span className="text-rose-700 font-bold">วิกฤต (แดง): {summary?.red || 0} คน</span>
-                  <span>|</span>
-                  <span className="text-amber-800 font-bold">เร่งด่วน (เหลือง): {summary?.yellow || 0} คน</span>
-                  <span>|</span>
-                  <span className="text-emerald-800 font-bold">ไม่เร่งด่วน (เขียว): {summary?.green || 0} คน</span>
-                  <span>|</span>
-                  <span className="text-slate-950 font-bold">เสียชีวิต (ดำ): {summary?.black || 0} คน</span>
-                </div>
-              </div>
-
-              {/* 5. REPORT FOOTER NOTICE */}
-              <div className="mt-4 pt-2 border-t border-slate-300 text-[9px] text-slate-500 flex justify-between items-center">
-                <span>ระบบศูนย์บัญชาการอุบัติเหตุหมู่ (MCI Command) • โรงพยาบาลเถิน จ.ลำปาง</span>
-                <span>พิมพ์เมื่อ: {new Date().toLocaleDateString('th-TH')} {new Date().toLocaleTimeString('th-TH')}</span>
-              </div>
-            </div>
-          )}
+            <button
+              type="button"
+              onClick={handleDownloadExcel}
+              disabled={downloadingExcel}
+              className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white text-xs sm:text-sm font-black rounded-xl shadow-md shadow-emerald-600/20 transition cursor-pointer"
+            >
+              <FileSpreadsheet size={18} />
+              <span>{downloadingExcel ? 'กำลังสร้างไฟล์ Excel...' : '📥 ดาวน์โหลดรายงาน Excel (.xlsx)'}</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

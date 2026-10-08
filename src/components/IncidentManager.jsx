@@ -479,7 +479,7 @@ export default function IncidentManager() {
               className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white text-sm font-black rounded-2xl shadow-md shadow-emerald-600/20 transition cursor-pointer"
             >
               <FileSpreadsheet size={18} />
-              <span>ส่งออกรายงาน (Excel/PDF)</span>
+              <span>ส่งออกรายงาน (Excel)</span>
             </button>
           )}
 
@@ -939,7 +939,7 @@ export default function IncidentManager() {
                   className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white text-sm font-black rounded-2xl shadow-sm transition cursor-pointer"
                 >
                   <FileSpreadsheet size={16} />
-                  <span>📄 ออกรายงานอุบัติเหตุหมู่ (Excel / PDF)</span>
+                  <span>📄 ส่งออกรายงานอุบัติเหตุหมู่ (Excel)</span>
                 </button>
 
                 <button
