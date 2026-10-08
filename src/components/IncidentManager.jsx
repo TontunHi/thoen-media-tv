@@ -471,20 +471,6 @@ export default function IncidentManager() {
             <Plus size={18} className="stroke-[2.5]" />
             <span>สร้างเหตุใหม่</span>
           </button>
-
-          {selectedIncidentId && (
-            <a
-              href={`/tv-incident?id=${selectedIncidentId}`}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 active:scale-98 text-white text-sm font-bold rounded-2xl shadow-sm transition cursor-pointer"
-              title="เปิดจอทีวีเต็มจอสำหรับขึ้นจอ TV"
-            >
-              <Tv size={17} className="text-teal-400" />
-              <span>เปิดจอ TV</span>
-              <ExternalLink size={13} className="text-slate-400" />
-            </a>
-          )}
         </div>
       </div>
 
