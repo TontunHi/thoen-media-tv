@@ -151,27 +151,6 @@
       fill: none;
     }
 
-    /* Unmute banner hint */
-    .unmute-hint {
-      position: absolute;
-      bottom: 24px;
-      right: 24px;
-      padding: 8px 16px;
-      background: rgba(239, 68, 68, 0.85);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 9999px;
-      font-size: 12px;
-      font-weight: bold;
-      color: #ffffff;
-      z-index: 15;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
-      animation: pulse 2s infinite;
-    }
-
     /* Empty / Waiting state */
     .waiting-screen {
       position: absolute;
@@ -264,11 +243,6 @@
       <div class="badge-pill clock-pill" id="digital-clock">--:--:--</div>
     </div>
 
-    <!-- Unmute hint (if audio is muted) -->
-    <div id="unmute-banner" class="unmute-hint" style="display: none;">
-      <span>🔇 แตะ/คลิกหน้าจอเพื่อเปิดเสียง</span>
-    </div>
-
     <!-- Bottom Controls Bar -->
     <div id="bottom-controls" class="bottom-controls">
       <span id="item-counter" style="font-family: monospace; font-weight: bold;">0 / 0</span>
@@ -297,6 +271,8 @@
     </div>
   </div>
 
+  <!-- YouTube Iframe API -->
+  <script src="https://www.youtube.com/iframe_api"></script>
   <!-- Socket.io client (asynchronously loaded with fallback) -->
   <script src="/socket.io/socket.io.js" onerror="window.__socketIoFailed=true;"></script>
 
@@ -342,7 +318,6 @@
       var waitingClockTextEl = document.getElementById('waiting-clock-text');
       var itemCounterEl = document.getElementById('item-counter');
       var bottomControlsEl = document.getElementById('bottom-controls');
-      var unmuteBannerEl = document.getElementById('unmute-banner');
       var btnMuteEl = document.getElementById('btn-mute');
       var btnFullscreenEl = document.getElementById('btn-fullscreen');
       var iconVolOn = document.getElementById('icon-vol-on');
@@ -418,12 +393,68 @@
         var filePath = item.file_path || '';
 
         if (fileType === 'youtube') {
-          var iframeYt = document.createElement('iframe');
-          iframeYt.className = 'media-frame';
-          iframeYt.src = getYouTubeEmbedUrl(filePath, true, isMuted);
-          iframeYt.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen';
-          iframeYt.allowFullscreen = true;
-          layer.appendChild(iframeYt);
+          var yId = extractYouTubeId(filePath);
+          if (yId && window.YT && window.YT.Player) {
+            var ytContainer = document.createElement('div');
+            ytContainer.className = 'media-frame';
+            layer.appendChild(ytContainer);
+            try {
+              var ytPlayer = new window.YT.Player(ytContainer, {
+                videoId: yId,
+                playerVars: {
+                  autoplay: 1,
+                  mute: isMuted ? 1 : 0,
+                  controls: 0,
+                  rel: 0,
+                  modestbranding: 1,
+                  enablejsapi: 1,
+                  playsinline: 1,
+                  origin: window.location.origin
+                },
+                events: {
+                  onReady: function (e) {
+                    try {
+                      if (!isMuted) {
+                        e.target.unMute();
+                        e.target.setVolume(100);
+                      }
+                      e.target.playVideo();
+                    } catch (err) {}
+                  },
+                  onStateChange: function (e) {
+                    if (e.data === window.YT.PlayerState.PLAYING) {
+                      try {
+                        if (!isMuted) {
+                          e.target.unMute();
+                          e.target.setVolume(100);
+                        }
+                      } catch (err) {}
+                    } else if (e.data === window.YT.PlayerState.ENDED) {
+                      if (onVideoEnd) onVideoEnd();
+                    }
+                  },
+                  onError: function () {
+                    if (onVideoEnd) setTimeout(onVideoEnd, 2000);
+                  }
+                }
+              });
+              layer.__ytPlayer = ytPlayer;
+            } catch (err) {
+              var iframeYt = document.createElement('iframe');
+              iframeYt.className = 'media-frame';
+              iframeYt.src = getYouTubeEmbedUrl(filePath, true, isMuted);
+              iframeYt.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen';
+              iframeYt.allowFullscreen = true;
+              layer.appendChild(iframeYt);
+            }
+          } else {
+            var iframeYt = document.createElement('iframe');
+            iframeYt.className = 'media-frame';
+            iframeYt.src = getYouTubeEmbedUrl(filePath, true, isMuted);
+            iframeYt.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen';
+            iframeYt.allowFullscreen = true;
+            layer.appendChild(iframeYt);
+          }
         } else if (fileType === 'facebook') {
           var iframeFb = document.createElement('iframe');
           iframeFb.className = 'media-frame';
@@ -460,17 +491,31 @@
           videoEl.src = filePath;
           videoEl.autoplay = true;
           videoEl.muted = isMuted;
+          videoEl.volume = 1.0;
           videoEl.setAttribute('playsinline', '');
           videoEl.onended = onVideoEnd;
           videoEl.onerror = onMediaError;
           layer.appendChild(videoEl);
 
-          // Try unmuted autoplay with fallback to muted on strict browser policy
-          videoEl.play().catch(function () {
-            videoEl.muted = true;
-            videoEl.play().catch(function () {});
-            showUnmuteBanner(true);
-          });
+          // Force unmuted playback with graceful fallback
+          var playPromise = videoEl.play();
+          if (playPromise !== undefined) {
+            playPromise.then(function () {
+              if (!isMuted) {
+                videoEl.muted = false;
+                videoEl.volume = 1.0;
+              }
+            }).catch(function () {
+              // Fallback: start muted then immediately unmute after first frame
+              videoEl.muted = true;
+              videoEl.play().then(function () {
+                if (!isMuted) {
+                  videoEl.muted = false;
+                  videoEl.volume = 1.0;
+                }
+              }).catch(function () {});
+            });
+          }
         } else {
           // Default Image
           var imgEl = document.createElement('img');
@@ -484,6 +529,12 @@
 
       // 6. Garbage collection for inactive layer (prevents memory leak 24/7)
       function cleanupLayer(layer) {
+        if (layer.__ytPlayer && typeof layer.__ytPlayer.destroy === 'function') {
+          try {
+            layer.__ytPlayer.destroy();
+          } catch (e) {}
+          layer.__ytPlayer = null;
+        }
         var videos = layer.getElementsByTagName('video');
         for (var i = 0; i < videos.length; i++) {
           try {
@@ -563,18 +614,22 @@
 
         // Schedule next transition if not controlled by video onended
         var fileType = currentItem.file_type || '';
-        var isStreamType = fileType === 'youtube' || fileType === 'facebook' || fileType === 'stream';
 
         if (fileType === 'image') {
           var durationSec = parseInt(currentItem.duration_seconds) || 10;
           slideTimer = setTimeout(advanceNext, Math.max(durationSec, 1) * 1000);
-        } else if (isStreamType) {
+        } else if (fileType === 'stream') {
           var streamDuration = parseInt(currentItem.duration_seconds) || 0;
           if (activeItems.length > 1 && streamDuration > 0) {
             slideTimer = setTimeout(advanceNext, Math.max(streamDuration, 1) * 1000);
           }
-          // If streamDuration is 0 or single item: play continuously!
+        } else if (fileType === 'youtube' || fileType === 'facebook') {
+          var customDuration = parseInt(currentItem.duration_seconds) || 0;
+          if (customDuration > 0) {
+            slideTimer = setTimeout(advanceNext, customDuration * 1000);
+          }
         }
+        // NOTE: For fileType === 'video' (MP4 etc.), NEVER set slideTimer so it plays 100% until onVideoEnd!
       }
 
       function advanceNext() {
@@ -630,7 +685,6 @@
 
           if (topHeaderEl) topHeaderEl.style.display = 'none';
           if (bottomControlsEl) bottomControlsEl.style.display = 'none';
-          if (unmuteBannerEl) unmuteBannerEl.style.display = 'none';
 
           if (incidentLayerEl) {
             incidentLayerEl.style.display = 'block';
@@ -730,15 +784,8 @@
       }
 
       // 11. Global Audio and Fullscreen Interaction handlers
-      function showUnmuteBanner(show) {
-        if (unmuteBannerEl) {
-          unmuteBannerEl.style.display = show ? 'flex' : 'none';
-        }
-      }
-
       function unlockAudio() {
         isMuted = false;
-        showUnmuteBanner(false);
         if (iconVolOn) iconVolOn.style.display = 'inline';
         if (iconVolOff) iconVolOff.style.display = 'none';
 
@@ -746,7 +793,14 @@
         var videos = activeLayer.getElementsByTagName('video');
         for (var i = 0; i < videos.length; i++) {
           videos[i].muted = false;
+          videos[i].volume = 1.0;
           videos[i].play().catch(function () {});
+        }
+        if (activeLayer.__ytPlayer && typeof activeLayer.__ytPlayer.unMute === 'function') {
+          try {
+            activeLayer.__ytPlayer.unMute();
+            activeLayer.__ytPlayer.setVolume(100);
+          } catch (e) {}
         }
       }
 
@@ -759,8 +813,18 @@
         var videos = activeLayer.getElementsByTagName('video');
         for (var i = 0; i < videos.length; i++) {
           videos[i].muted = isMuted;
+          if (!isMuted) videos[i].volume = 1.0;
         }
-        showUnmuteBanner(isMuted);
+        if (activeLayer.__ytPlayer) {
+          try {
+            if (isMuted) {
+              activeLayer.__ytPlayer.mute();
+            } else {
+              activeLayer.__ytPlayer.unMute();
+              activeLayer.__ytPlayer.setVolume(100);
+            }
+          } catch (e) {}
+        }
       }
 
       function toggleFullscreen() {
@@ -794,12 +858,12 @@
       }
 
       // Event Listeners
-      window.addEventListener('click', unlockAudio, { once: true });
-      window.addEventListener('touchstart', unlockAudio, { once: true });
+      window.addEventListener('click', unlockAudio);
+      window.addEventListener('touchstart', unlockAudio);
+      window.addEventListener('keydown', unlockAudio);
       window.addEventListener('mousemove', onUserActivity);
       window.addEventListener('touchstart', onUserActivity);
 
-      if (unmuteBannerEl) unmuteBannerEl.addEventListener('click', unlockAudio);
       if (btnMuteEl) btnMuteEl.addEventListener('click', toggleMute);
       if (btnFullscreenEl) btnFullscreenEl.addEventListener('click', toggleFullscreen);
 
