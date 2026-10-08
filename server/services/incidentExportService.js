@@ -138,6 +138,17 @@ async function generateIncidentExcelWorkbook(incident, summary, patients = []) {
   const allRoadTypes = ['ทางตรง', 'ทางโค้ง', 'ทางแยก', 'ตัดหน้ากระชั้นชิด', 'ผิวทางชำรุด', 'ลงเขา', 'ฝนตก', 'ถนนลื่น'];
   const roadStr = allRoadTypes.map(rt => `[${roadConds.includes(rt) ? '✓' : ' '}] ${rt}`).join('   ');
 
+  // Helper for incident frequency (ความถี่ของสถานที่เกิดเหตุ/เดือน)
+  const freq = (incident.incident_frequency || '').trim();
+  const freqDetail = (incident.frequency_detail || '').trim();
+  const isFirst = freq === 'ครั้งแรก';
+  const isSecond = freq === 'ครั้งที่ 2' || freq === 'ครั้งที่2';
+  const isThird = freq === 'ครั้งที่ 3' || freq === 'ครั้งที่3';
+  const isMoreThanThree = freq.includes('มากกว่า') || freq.includes('more');
+
+  const moreDetailText = isMoreThanThree && freqDetail ? ` (ระบุ: ${freqDetail})` : ' (ระบุ).........................';
+  const freqStr = `[${isFirst ? '✓' : ' '}] ครั้งแรก   [${isSecond ? '✓' : ' '}] ครั้งที่ 2   [${isThird ? '✓' : ' '}] ครั้งที่ 3   [${isMoreThanThree ? '✓' : ' '}] มากกว่า3 ครั้ง/ เดือน${moreDetailText}`;
+
   const allMgmtTypes = ['ใช้แผนอุบัติเหตุหมู่', 'รายงานศูนย์รับแจ้งเหตุ', 'รายงาน สสจ.', 'รายงาน สพฉ.(ศูนย์นเรนทร)'];
   const mgmtStr = allMgmtTypes.map(mt => `[${mgmtActions.includes(mt) ? '✓' : ' '}] ${mt}`).join('   ');
 
@@ -186,79 +197,87 @@ async function generateIncidentExcelWorkbook(incident, summary, patients = []) {
   r8.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
   sheet.getRow(8).height = 22;
 
-  // 9. MANAGEMENT ACTIONS (CHECKBOXES)
+  // 9. INCIDENT FREQUENCY (ความถี่ของสถานที่เกิดเหตุ/เดือน)
   sheet.mergeCells('A9:L9');
   const r9 = sheet.getCell('A9');
-  r9.value = `การจัดการ:  ${mgmtStr}`;
+  r9.value = `ความถี่ของสถานที่เกิดเหตุ/เดือน:  ${freqStr}`;
   r9.font = { name: 'Sarabun', size: 10, color: { argb: 'FF374151' } };
   r9.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
   sheet.getRow(9).height = 22;
 
-  // 10. EMS UNITS
+  // 10. MANAGEMENT ACTIONS (CHECKBOXES)
   sheet.mergeCells('A10:L10');
   const r10 = sheet.getCell('A10');
-  r10.value = `ชุดปฎิบัติการฉุกเฉินที่ออกปฏิบัติการ:  ${incident.ems_units || '-'}`;
-  r10.font = { name: 'Sarabun', size: 10.5, color: { argb: 'FF374151' } };
+  r10.value = `การจัดการ:  ${mgmtStr}`;
+  r10.font = { name: 'Sarabun', size: 10, color: { argb: 'FF374151' } };
   r10.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
   sheet.getRow(10).height = 22;
 
-  // 11. SECTION HEADER
+  // 11. EMS UNITS
   sheet.mergeCells('A11:L11');
   const r11 = sheet.getCell('A11');
-  r11.value = 'ข้อมูลผู้บาดเจ็บ';
-  r11.font = { name: 'Sarabun', size: 11.5, bold: true, color: { argb: 'FF111827' } };
+  r11.value = `ชุดปฎิบัติการฉุกเฉินที่ออกปฏิบัติการ:  ${incident.ems_units || '-'}`;
+  r11.font = { name: 'Sarabun', size: 10.5, color: { argb: 'FF374151' } };
   r11.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
   sheet.getRow(11).height = 22;
 
-  // 12. TABLE HEADER ROW 1 (Row 12 in Excel: Result of treatment group header)
-  sheet.mergeCells('G12:L12');
-  const r12_G = sheet.getCell('G12');
-  r12_G.value = 'ผลการรักษา';
-  r12_G.font = { name: 'Sarabun', size: 10.5, bold: true };
-  r12_G.alignment = { horizontal: 'center', vertical: 'middle' };
-  sheet.getRow(12).height = 20;
+  // 12. SECTION HEADER
+  sheet.mergeCells('A12:L12');
+  const r12 = sheet.getCell('A12');
+  r12.value = 'ข้อมูลผู้บาดเจ็บ';
+  r12.font = { name: 'Sarabun', size: 11.5, bold: true, color: { argb: 'FF111827' } };
+  r12.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+  sheet.getRow(12).height = 22;
 
-  // 13. TABLE HEADER ROW 2 (Row 13 in Excel)
-  sheet.mergeCells('A13:A14');
-  sheet.getCell('A13').value = 'ลำดับ';
-
-  sheet.mergeCells('B13:B14');
-  sheet.getCell('B13').value = 'ชื่อสกุล';
-
-  sheet.mergeCells('C13:C14');
-  sheet.getCell('C13').value = 'อายุ (ปี)';
-
-  sheet.mergeCells('D13:D14');
-  sheet.getCell('D13').value = 'Triage Sieve';
-
-  sheet.mergeCells('E13:E14');
-  sheet.getCell('E13').value = 'พาหนะผู้บาดเจ็บ';
-
-  sheet.mergeCells('F13:F14');
-  sheet.getCell('F13').value = 'วินิจฉัยเบื้องต้น';
-
-  sheet.mergeCells('G13:G14');
-  sheet.getCell('G13').value = 'D/C';
-
-  sheet.mergeCells('H13:H14');
-  sheet.getCell('H13').value = 'Admit';
-
-  sheet.mergeCells('I13:I14');
-  sheet.getCell('I13').value = 'Refer (ระบุ รพ.)';
-
-  sheet.mergeCells('J13:L13');
-  sheet.getCell('J13').value = 'Dead';
-
+  // 13. TABLE HEADER ROW 1 (Row 13 in Excel: Result of treatment group header)
+  sheet.mergeCells('G13:L13');
+  const r13_G = sheet.getCell('G13');
+  r13_G.value = 'ผลการรักษา';
+  r13_G.font = { name: 'Sarabun', size: 10.5, bold: true };
+  r13_G.alignment = { horizontal: 'center', vertical: 'middle' };
   sheet.getRow(13).height = 20;
 
-  // 14. TABLE HEADER ROW 3 (Row 14 in Excel: Dead sub-headers)
-  sheet.getCell('J14').value = 'จุดเกิดเหตุ';
-  sheet.getCell('K14').value = 'ระหว่างนำส่ง';
-  sheet.getCell('L14').value = 'ใน รพ.';
+  // 14. TABLE HEADER ROW 2 (Row 14 in Excel)
+  sheet.mergeCells('A14:A15');
+  sheet.getCell('A14').value = 'ลำดับ';
+
+  sheet.mergeCells('B14:B15');
+  sheet.getCell('B14').value = 'ชื่อสกุล';
+
+  sheet.mergeCells('C14:C15');
+  sheet.getCell('C14').value = 'อายุ (ปี)';
+
+  sheet.mergeCells('D14:D15');
+  sheet.getCell('D14').value = 'Triage Sieve';
+
+  sheet.mergeCells('E14:E15');
+  sheet.getCell('E14').value = 'พาหนะผู้บาดเจ็บ';
+
+  sheet.mergeCells('F14:F15');
+  sheet.getCell('F14').value = 'วินิจฉัยเบื้องต้น';
+
+  sheet.mergeCells('G14:G15');
+  sheet.getCell('G14').value = 'D/C';
+
+  sheet.mergeCells('H14:H15');
+  sheet.getCell('H14').value = 'Admit';
+
+  sheet.mergeCells('I14:I15');
+  sheet.getCell('I14').value = 'Refer (ระบุ รพ.)';
+
+  sheet.mergeCells('J14:L14');
+  sheet.getCell('J14').value = 'Dead';
+
   sheet.getRow(14).height = 20;
 
-  // Apply borders and styling to table header rows (Rows 12, 13, 14)
-  for (let r = 12; r <= 14; r++) {
+  // 15. TABLE HEADER ROW 3 (Row 15 in Excel: Dead sub-headers)
+  sheet.getCell('J15').value = 'จุดเกิดเหตุ';
+  sheet.getCell('K15').value = 'ระหว่างนำส่ง';
+  sheet.getCell('L15').value = 'ใน รพ.';
+  sheet.getRow(15).height = 20;
+
+  // Apply borders and styling to table header rows (Rows 13, 14, 15)
+  for (let r = 13; r <= 15; r++) {
     for (let c = 1; c <= 12; c++) {
       const cell = sheet.getRow(r).getCell(c);
       cell.border = thinBorder;
@@ -268,8 +287,8 @@ async function generateIncidentExcelWorkbook(incident, summary, patients = []) {
     }
   }
 
-  // 15. PATIENT DATA ROWS
-  let currentRow = 15;
+  // 16. PATIENT DATA ROWS
+  let currentRow = 16;
   patients.forEach((pt, idx) => {
     const row = sheet.getRow(currentRow);
     row.height = 21;

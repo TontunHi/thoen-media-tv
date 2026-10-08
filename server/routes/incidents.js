@@ -212,6 +212,8 @@ router.post('/', authenticateToken, async (req, res) => {
     end_time,
     refuse_treatment_count,
     road_conditions,
+    incident_frequency,
+    frequency_detail,
     management_actions,
     ems_units,
     notes,
@@ -228,8 +230,8 @@ router.post('/', authenticateToken, async (req, res) => {
     const mgmtActStr = Array.isArray(management_actions) ? JSON.stringify(management_actions) : (management_actions || '[]');
 
     const [result] = await pool.query(`
-      INSERT INTO incidents (title, location, incident_date, end_date, start_time, end_time, refuse_treatment_count, road_conditions, management_actions, ems_units, notes, is_auto_sync)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO incidents (title, location, incident_date, end_date, start_time, end_time, refuse_treatment_count, road_conditions, incident_frequency, frequency_detail, management_actions, ems_units, notes, is_auto_sync)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       title.trim(),
       location ? location.trim() : '',
@@ -239,6 +241,8 @@ router.post('/', authenticateToken, async (req, res) => {
       end_time || '',
       parseInt(refuse_treatment_count) || 0,
       roadCondStr,
+      incident_frequency ? incident_frequency.trim() : '',
+      frequency_detail ? frequency_detail.trim() : '',
       mgmtActStr,
       ems_units ? ems_units.trim() : '',
       notes || '',
@@ -314,6 +318,8 @@ router.put('/:id', authenticateToken, async (req, res) => {
     end_time,
     refuse_treatment_count,
     road_conditions,
+    incident_frequency,
+    frequency_detail,
     management_actions,
     ems_units,
     notes,
@@ -337,6 +343,8 @@ router.put('/:id', authenticateToken, async (req, res) => {
       updates.push('road_conditions = ?');
       params.push(Array.isArray(road_conditions) ? JSON.stringify(road_conditions) : (road_conditions || '[]'));
     }
+    if (incident_frequency !== undefined) { updates.push('incident_frequency = ?'); params.push(incident_frequency ? incident_frequency.trim() : ''); }
+    if (frequency_detail !== undefined) { updates.push('frequency_detail = ?'); params.push(frequency_detail ? frequency_detail.trim() : ''); }
     if (management_actions !== undefined) {
       updates.push('management_actions = ?');
       params.push(Array.isArray(management_actions) ? JSON.stringify(management_actions) : (management_actions || '[]'));

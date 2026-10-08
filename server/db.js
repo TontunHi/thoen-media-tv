@@ -212,6 +212,12 @@ async function initDB() {
     try {
       await connection.query('ALTER TABLE incidents ADD COLUMN ems_units VARCHAR(255) DEFAULT \'\';');
     } catch (e) {}
+    try {
+      await connection.query('ALTER TABLE incidents ADD COLUMN incident_frequency VARCHAR(100) DEFAULT \'\';');
+    } catch (e) {}
+    try {
+      await connection.query('ALTER TABLE incidents ADD COLUMN frequency_detail VARCHAR(255) DEFAULT \'\';');
+    } catch (e) {}
 
     // Incident Patients table (รายชื่อผู้ประสบเหตุ/ผู้บาดเจ็บ)
     await connection.query(`
