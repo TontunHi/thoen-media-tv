@@ -2,18 +2,30 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useParams } from 'react-router-dom';
 import { api } from '../services/api';
 import { getSocket } from '../services/socket';
-import { Maximize2, Minimize2, Tv, AlertCircle, Volume2, VolumeX, RefreshCw } from 'lucide-react';
+import { Maximize2, Minimize2, Tv, AlertCircle, Volume2, VolumeX } from 'lucide-react';
 import { getYouTubeEmbedUrl, getFacebookEmbedUrl, extractYouTubeId } from '../utils/mediaHelper';
 import Hls from 'hls.js';
 import IncidentTvScreen from './IncidentTvScreen';
 
 /**
- * Dedicated YouTube Player with automatic unmuting and error recovery
+ * Dedicated YouTube Player with robust autoplay fallback, dynamic unmute, and seamless single-item looping
  */
-function YouTubePlayer({ videoUrl, isMuted, onEnded }) {
+function YouTubePlayer({
+  videoUrl,
+  isMuted,
+  isAudioUnlocked,
+  onEnded,
+  isSingleItem,
+  playerInstanceRef,
+  onRequireAudioHint,
+}) {
   const containerRef = useRef(null);
   const playerRef = useRef(null);
   const videoId = useMemo(() => extractYouTubeId(videoUrl), [videoUrl]);
+  const isAudioUnlockedRef = useRef(isAudioUnlocked);
+  isAudioUnlockedRef.current = isAudioUnlocked;
+  const isMutedRef = useRef(isMuted);
+  isMutedRef.current = isMuted;
 
   useEffect(() => {
     if (!videoId || !containerRef.current) return;
@@ -23,38 +35,66 @@ function YouTubePlayer({ videoUrl, isMuted, onEnded }) {
     const initYT = () => {
       if (!window.YT || !window.YT.Player || !containerRef.current || isCancelled) return;
       try {
+        const shouldMute = !isAudioUnlockedRef.current || isMutedRef.current;
         player = new window.YT.Player(containerRef.current, {
           videoId,
           playerVars: {
             autoplay: 1,
-            mute: isMuted ? 1 : 0,
-            controls: 1,
+            mute: shouldMute ? 1 : 0,
+            controls: 0,
             rel: 0,
             modestbranding: 1,
             enablejsapi: 1,
             playsinline: 1,
             origin: window.location.origin,
             iv_load_policy: 3,
+            loop: isSingleItem ? 1 : 0,
+            playlist: isSingleItem ? videoId : undefined,
           },
           events: {
             onReady: (event) => {
+              if (isCancelled) return;
               try {
-                if (!isMuted) {
+                if (isAudioUnlockedRef.current && !isMutedRef.current) {
                   event.target.unMute();
                   event.target.setVolume(100);
+                } else {
+                  event.target.mute();
                 }
                 event.target.playVideo();
               } catch (e) {}
-            },
-            onStateChange: (event) => {
-              if (event.data === window.YT.PlayerState.PLAYING) {
+
+              // Autoplay Watchdog: ensure video is actively playing
+              setTimeout(() => {
+                if (isCancelled || !event.target || typeof event.target.getPlayerState !== 'function') return;
                 try {
-                  if (!isMuted) {
-                    event.target.unMute();
-                    event.target.setVolume(100);
+                  const state = event.target.getPlayerState();
+                  // 1 = PLAYING, 3 = BUFFERING
+                  if (state !== window.YT.PlayerState.PLAYING && state !== window.YT.PlayerState.BUFFERING) {
+                    console.log('YouTube Autoplay Watchdog: starting safe muted playback');
+                    event.target.mute();
+                    event.target.playVideo();
+                    if (onRequireAudioHint) onRequireAudioHint();
                   }
                 } catch (e) {}
+              }, 1000);
+            },
+            onStateChange: (event) => {
+              if (isCancelled) return;
+              if (event.data === window.YT.PlayerState.PLAYING) {
+                if (isAudioUnlockedRef.current && !isMutedRef.current) {
+                  try {
+                    event.target.unMute();
+                    event.target.setVolume(100);
+                  } catch (e) {}
+                }
               } else if (event.data === window.YT.PlayerState.ENDED) {
+                if (isSingleItem) {
+                  try {
+                    event.target.seekTo(0, true);
+                    event.target.playVideo();
+                  } catch (e) {}
+                }
                 if (onEnded) onEnded();
               }
             },
@@ -64,6 +104,7 @@ function YouTubePlayer({ videoUrl, isMuted, onEnded }) {
           },
         });
         playerRef.current = player;
+        if (playerInstanceRef) playerInstanceRef.current = player;
       } catch (err) {
         console.warn('YouTube Iframe Player init error:', err);
       }
@@ -88,13 +129,30 @@ function YouTubePlayer({ videoUrl, isMuted, onEnded }) {
           player.destroy();
         } catch (e) {}
       }
+      if (playerRef.current === player) playerRef.current = null;
+      if (playerInstanceRef && playerInstanceRef.current === player) playerInstanceRef.current = null;
     };
-  }, [videoId, isMuted, onEnded]);
+  }, [videoId, isSingleItem, onEnded, onRequireAudioHint, playerInstanceRef]);
+
+  // Dynamically update audio without re-instantiating player
+  useEffect(() => {
+    if (playerRef.current && typeof playerRef.current.getPlayerState === 'function') {
+      try {
+        if (isMuted || !isAudioUnlocked) {
+          playerRef.current.mute();
+        } else {
+          playerRef.current.unMute();
+          playerRef.current.setVolume(100);
+          playerRef.current.playVideo();
+        }
+      } catch (e) {}
+    }
+  }, [isMuted, isAudioUnlocked]);
 
   if (!videoId) {
     return (
       <iframe
-        src={videoUrl}
+        src={getYouTubeEmbedUrl(videoUrl, true, isMuted || !isAudioUnlocked)}
         title="YouTube Video"
         className="w-full h-full border-0"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
@@ -111,9 +169,21 @@ function YouTubePlayer({ videoUrl, isMuted, onEnded }) {
 }
 
 /**
- * Dedicated Facebook Video Player with automatic unmuting and finishedPlaying detection
+ * Dedicated Facebook Video Player with automatic unmuting and finishedPlaying loop detection
  */
-function FacebookPlayer({ videoUrl, isMuted, onEnded }) {
+function FacebookPlayer({
+  videoUrl,
+  isMuted,
+  isAudioUnlocked,
+  onEnded,
+  isSingleItem,
+  playerInstanceRef,
+}) {
+  const isAudioUnlockedRef = useRef(isAudioUnlocked);
+  isAudioUnlockedRef.current = isAudioUnlocked;
+  const isMutedRef = useRef(isMuted);
+  isMutedRef.current = isMuted;
+
   useEffect(() => {
     let isCancelled = false;
 
@@ -123,12 +193,21 @@ function FacebookPlayer({ videoUrl, isMuted, onEnded }) {
         window.FB.XFBML.parse();
         window.FB.Event.subscribe('xfbml.ready', function (msg) {
           if (msg.type === 'video' && !isCancelled) {
+            if (playerInstanceRef) playerInstanceRef.current = msg.instance;
             try {
-              if (!isMuted) {
+              if (isAudioUnlockedRef.current && !isMutedRef.current) {
                 msg.instance.unmute();
+              } else {
+                msg.instance.mute();
               }
               msg.instance.play();
               msg.instance.subscribe('finishedPlaying', function () {
+                if (isSingleItem) {
+                  try {
+                    msg.instance.seek(0);
+                    msg.instance.play();
+                  } catch (e) {}
+                }
                 if (onEnded) onEnded();
               });
             } catch (e) {}
@@ -152,12 +231,12 @@ function FacebookPlayer({ videoUrl, isMuted, onEnded }) {
     return () => {
       isCancelled = true;
     };
-  }, [videoUrl, isMuted, onEnded]);
+  }, [videoUrl, isSingleItem, onEnded, playerInstanceRef]);
 
   return (
     <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center">
       <iframe
-        src={getFacebookEmbedUrl(videoUrl, true, isMuted)}
+        src={getFacebookEmbedUrl(videoUrl, true, isMuted || !isAudioUnlocked)}
         title="Facebook Video"
         className="w-full h-full border-0"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
@@ -178,12 +257,12 @@ export default function TvPlayer() {
   const [error, setError] = useState('');
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isMuted, setIsMuted] = useState(false);
+  const [isAudioUnlocked, setIsAudioUnlocked] = useState(false);
   const [showAudioHint, setShowAudioHint] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(false);
-  const [cycleTick, setCycleTick] = useState(0);
 
-  const isAudioUnlockedRef = useRef(true);
+  const isAudioUnlockedRef = useRef(false);
   const videoRef = useRef(null);
   const timerRef = useRef(null);
   const controlsTimeoutRef = useRef(null);
@@ -213,18 +292,6 @@ export default function TvPlayer() {
           xfbml: true,
           version: 'v20.0',
         });
-
-        window.FB.Event.subscribe('xfbml.ready', function (msg) {
-          if (msg.type === 'video') {
-            fbPlayerRef.current = msg.instance;
-            try {
-              msg.instance.unmute();
-              msg.instance.play();
-            } catch (e) {
-              console.log('FB player auto-unmute attempt:', e);
-            }
-          }
-        });
       };
 
       const js = document.createElement('script');
@@ -236,18 +303,19 @@ export default function TvPlayer() {
     }
   }, []);
 
-  // Unlock all Audio Subsystems
+  // Unlock all Audio Subsystems on user gesture
   const unlockAudio = useCallback(() => {
     isAudioUnlockedRef.current = true;
+    setIsAudioUnlocked(true);
     setIsMuted(false);
     setShowAudioHint(false);
 
     try {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (AudioCtx) {
-        const ctx = new AudioCtx();
-        if (ctx.state === 'suspended') {
-          ctx.resume().catch(() => {});
+        if (!window.__audioCtx) window.__audioCtx = new AudioCtx();
+        if (window.__audioCtx.state === 'suspended') {
+          window.__audioCtx.resume().catch(() => {});
         }
       }
     } catch (e) {}
@@ -269,24 +337,38 @@ export default function TvPlayer() {
     if (fbPlayerRef.current && typeof fbPlayerRef.current.unmute === 'function') {
       try {
         fbPlayerRef.current.unmute();
+        fbPlayerRef.current.play();
       } catch (e) {}
     }
   }, []);
 
-  // Listen to any user interaction gesture to unlock audio permanently across the whole session
-  useEffect(() => {
-    try {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (AudioCtx) {
-        const ctx = new AudioCtx();
-        if (ctx.state === 'suspended') {
-          ctx.resume().catch(() => {});
-        }
-      }
-    } catch (e) {}
-
-    const handleGesture = () => {
+  // Toggle Mute / Unmute
+  const toggleMute = useCallback(() => {
+    if (isMuted) {
       unlockAudio();
+    } else {
+      setIsMuted(true);
+      setShowAudioHint(false);
+      if (videoRef.current) videoRef.current.muted = true;
+      if (ytPlayerRef.current && typeof ytPlayerRef.current.mute === 'function') {
+        try {
+          ytPlayerRef.current.mute();
+        } catch (e) {}
+      }
+      if (fbPlayerRef.current && typeof fbPlayerRef.current.mute === 'function') {
+        try {
+          fbPlayerRef.current.mute();
+        } catch (e) {}
+      }
+    }
+  }, [isMuted, unlockAudio]);
+
+  // Listen to any user interaction gesture to unlock audio across the session
+  useEffect(() => {
+    const handleGesture = () => {
+      if (!isAudioUnlockedRef.current) {
+        unlockAudio();
+      }
     };
     const events = ['click', 'touchstart', 'touchend', 'keydown', 'keyup', 'keypress', 'mousedown', 'pointerdown', 'wheel', 'focus', 'pageshow'];
     events.forEach((evt) => window.addEventListener(evt, handleGesture, { passive: true }));
@@ -352,7 +434,7 @@ export default function TvPlayer() {
       if (timerRef.current) clearTimeout(timerRef.current);
       if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
     };
-  }, [slug]);
+  }, [slug, loadTvData]);
 
   // Check if an item is active according to schedule at the given time
   const isItemActiveNow = useCallback((item, now) => {
@@ -379,14 +461,13 @@ export default function TvPlayer() {
   const currentItem = validItems[currentIndex] || validItems[0];
   const currentItemId = currentItem?.id;
 
-  // Advance to next item or restart cycle for single-item playlists
+  // Advance to next item or seamlessly loop single item
   const nextItem = useCallback(() => {
     const list = validItemsRef.current;
     if (!list || list.length === 0) return;
 
     if (list.length === 1) {
-      // For a single item, re-trigger playback cycle (re-evaluate schedules and loop)
-      setCycleTick((c) => c + 1);
+      // For a single item, replay directly without resetting or destroying DOM
       if (videoRef.current) {
         videoRef.current.currentTime = 0;
         videoRef.current.play().catch((err) => console.log('Video replay handled:', err));
@@ -397,34 +478,36 @@ export default function TvPlayer() {
     setCurrentIndex((prev) => (prev + 1) % list.length);
   }, []);
 
-  // Video autoplay: immediately play smoothly without getting stuck or paused
+  // HTML5 Video Autoplay & Safe Muted Fallback
   useEffect(() => {
     if (currentItem?.file_type === 'video' && videoRef.current) {
       const videoEl = videoRef.current;
-      videoEl.muted = isMuted;
-      videoEl.volume = 1.0;
 
-      const playPromise = videoEl.play();
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => {
-            if (!isMuted && !videoEl.muted) {
-              isAudioUnlockedRef.current = true;
+      if (!isAudioUnlocked || isMuted) {
+        videoEl.muted = true;
+        videoEl.play().catch(() => {});
+        if (!isMuted && !isAudioUnlocked) {
+          setShowAudioHint(true);
+        }
+      } else {
+        videoEl.muted = false;
+        videoEl.volume = 1.0;
+        const playPromise = videoEl.play();
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
               setShowAudioHint(false);
-            }
-          })
-          .catch((err) => {
-            console.warn('Initial unmuted play rejected by browser policy, starting safe muted playback:', err);
-            videoEl.muted = true;
-            videoEl.play().catch(() => {});
-            if (!isMuted) {
-              isAudioUnlockedRef.current = false;
+            })
+            .catch((err) => {
+              console.warn('Initial unmuted play rejected by browser policy, starting safe muted playback:', err);
+              videoEl.muted = true;
+              videoEl.play().catch(() => {});
               setShowAudioHint(true);
-            }
-          });
+            });
+        }
       }
     }
-  }, [currentItemId, cycleTick, currentItem?.file_type, isMuted]);
+  }, [currentItemId, currentItem?.file_type, isMuted, isAudioUnlocked]);
 
   // HLS (.m3u8) Direct Stream playback support (OBS / Live Streaming server / CCTV)
   useEffect(() => {
@@ -447,8 +530,8 @@ export default function TvPlayer() {
       hls.attachMedia(videoRef.current);
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         if (videoRef.current) {
-          videoRef.current.muted = isMuted;
-          videoRef.current.play().catch((e) => console.log('HLS play unmuted attempt:', e));
+          videoRef.current.muted = !isAudioUnlocked || isMuted;
+          videoRef.current.play().catch((e) => console.log('HLS play attempt:', e));
         }
       });
       hls.on(Hls.Events.ERROR, (event, data) => {
@@ -466,12 +549,12 @@ export default function TvPlayer() {
       };
     } else if (videoRef.current.canPlayType('application/vnd.apple.mpegurl')) {
       videoRef.current.src = streamUrl;
-      videoRef.current.muted = isMuted;
+      videoRef.current.muted = !isAudioUnlocked || isMuted;
       videoRef.current.play().catch(() => {});
     }
-  }, [currentItemId, cycleTick, isMuted, currentItem?.file_type, currentItem?.file_path, nextItem]);
+  }, [currentItemId, isMuted, isAudioUnlocked, currentItem?.file_type, currentItem?.file_path, nextItem]);
 
-  // Handle slide transition when item or cycle tick changes
+  // Handle slide duration timer (only for images and timed web streams)
   useEffect(() => {
     if (!currentItem) return;
 
@@ -493,13 +576,12 @@ export default function TvPlayer() {
         }, durationMs);
       }
     }
-    // 3. For 'video', 'youtube', and 'facebook':
-    // NEVER cut off by a timer! They will play continuously until the video finishes (onEnded event).
+    // Note: Video, YouTube, and Facebook media play continuously until they complete (onEnded)
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [currentItemId, currentItem?.file_type, currentItem?.duration_seconds, cycleTick, nextItem, validItems.length]);
+  }, [currentItemId, currentItem?.file_type, currentItem?.duration_seconds, nextItem, validItems.length]);
 
   // Adjust index if out of bounds when validItems list changes
   useEffect(() => {
@@ -507,6 +589,19 @@ export default function TvPlayer() {
       setCurrentIndex(0);
     }
   }, [validItems.length, currentIndex]);
+
+  // Toggle Fullscreen
+  const toggleFullscreen = useCallback(() => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+      setIsFullscreen(true);
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+        setIsFullscreen(false);
+      }
+    }
+  }, []);
 
   // Smart TV Remote and Keyboard Shortcuts
   useEffect(() => {
@@ -516,7 +611,7 @@ export default function TvPlayer() {
       }
       const key = e.key || '';
       if (key === 'm' || key === 'M' || key === 'AudioVolumeMute') {
-        setIsMuted((prev) => !prev);
+        toggleMute();
       } else if (key === 'f' || key === 'F') {
         toggleFullscreen();
       } else if (key === 'ArrowRight' || key === 'ChannelUp' || key === 'MediaTrackNext') {
@@ -527,20 +622,7 @@ export default function TvPlayer() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [unlockAudio, isMuted, nextItem, validItems.length]);
-
-  // Toggle Fullscreen
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => {});
-      setIsFullscreen(true);
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-        setIsFullscreen(false);
-      }
-    }
-  };
+  }, [unlockAudio, isMuted, toggleMute, toggleFullscreen, nextItem, validItems.length]);
 
   // Handle mouse move to show bottom controls momentarily
   const handleMouseMove = () => {
@@ -610,26 +692,43 @@ export default function TvPlayer() {
         <div className="w-full h-full flex items-center justify-center bg-black">
           {currentItem.file_type === 'youtube' ? (
             <YouTubePlayer
-              key={`${currentItem.id}-${cycleTick}`}
+              key={currentItem.id}
               videoUrl={currentItem.file_path}
               isMuted={isMuted}
+              isAudioUnlocked={isAudioUnlocked}
               onEnded={nextItem}
+              isSingleItem={validItems.length === 1}
+              onRequireAudioHint={() => {
+                if (!isMuted) setShowAudioHint(true);
+              }}
+              playerInstanceRef={ytPlayerRef}
             />
           ) : currentItem.file_type === 'facebook' ? (
             <FacebookPlayer
-              key={`${currentItem.id}-${cycleTick}`}
+              key={currentItem.id}
               videoUrl={currentItem.file_path}
               isMuted={isMuted}
+              isAudioUnlocked={isAudioUnlocked}
               onEnded={nextItem}
+              isSingleItem={validItems.length === 1}
+              playerInstanceRef={fbPlayerRef}
             />
           ) : currentItem.file_type === 'stream' && currentItem.file_path?.includes('.m3u8') ? (
             <video
               ref={videoRef}
-              key={`${currentItem.id}-${cycleTick}`}
+              key={currentItem.id}
               autoPlay
-              muted={isMuted}
+              muted={!isAudioUnlocked || isMuted}
               playsInline
-              onEnded={nextItem}
+              loop={validItems.length === 1}
+              onEnded={() => {
+                if (validItems.length > 1) {
+                  nextItem();
+                } else if (videoRef.current) {
+                  videoRef.current.currentTime = 0;
+                  videoRef.current.play().catch(() => {});
+                }
+              }}
               onError={(e) => {
                 console.error('HLS Stream error:', e);
                 setTimeout(nextItem, 2000);
@@ -639,7 +738,7 @@ export default function TvPlayer() {
           ) : currentItem.file_type === 'stream' ? (
             <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center">
               <iframe
-                key={`${currentItem.id}-${cycleTick}`}
+                key={currentItem.id}
                 src={currentItem.file_path}
                 title={currentItem.media_name}
                 className="w-full h-full border-0"
@@ -650,22 +749,29 @@ export default function TvPlayer() {
           ) : currentItem.file_type === 'video' ? (
             <video
               ref={videoRef}
-              key={`${currentItem.id}-${cycleTick}`}
+              key={currentItem.id}
               src={currentItem.file_path}
               autoPlay
-              muted={isMuted}
+              muted={!isAudioUnlocked || isMuted}
               playsInline
-              onEnded={nextItem}
+              loop={validItems.length === 1}
+              onEnded={() => {
+                if (validItems.length > 1) {
+                  nextItem();
+                } else if (videoRef.current) {
+                  videoRef.current.currentTime = 0;
+                  videoRef.current.play().catch(() => {});
+                }
+              }}
               onError={(e) => {
                 console.error('Video error (possibly moved or removed):', e);
-                // Evict failed media and advance to avoid black screen
                 setTimeout(nextItem, 1000);
               }}
               className="w-full h-full object-contain"
             />
           ) : (
             <img
-              key={`${currentItem.id}-${cycleTick}`}
+              key={currentItem.id}
               src={currentItem.file_path}
               alt={currentItem.media_name}
               onError={(e) => {
@@ -715,21 +821,7 @@ export default function TvPlayer() {
 
         {(currentItem?.file_type === 'video' || ['youtube', 'facebook', 'stream'].includes(currentItem?.file_type)) && (
           <button
-            onClick={() => {
-              const nextMuted = !isMuted;
-              setIsMuted(nextMuted);
-              if (videoRef.current) videoRef.current.muted = nextMuted;
-              if (fbPlayerRef.current) {
-                try {
-                  if (nextMuted) {
-                    fbPlayerRef.current.mute();
-                  } else {
-                    fbPlayerRef.current.unmute();
-                    fbPlayerRef.current.play();
-                  }
-                } catch (e) {}
-              }
-            }}
+            onClick={toggleMute}
             className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800 transition cursor-pointer"
             title={isMuted ? 'เปิดเสียง' : 'ปิดเสียง'}
           >

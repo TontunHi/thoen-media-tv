@@ -305,7 +305,7 @@
       var currentIndex = 0;
       var activeLayerIndex = 0;
       var isMuted = false;
-      var isAudioUnlocked = true;
+      var isAudioUnlocked = false;
       var slideTimer = null;
       var syncTimer = null;
       var clockTimer = null;
@@ -380,8 +380,8 @@
       // 3. Media URL helpers
       function extractYouTubeId(url) {
         if (!url) return '';
-        var match = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/);
-        return (match && match[2].length === 11) ? match[2] : '';
+        var match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|live\/|shorts\/))([\w-]{11})/);
+        return match ? match[1] : '';
       }
 
       function getYouTubeEmbedUrl(url, autoplay, muted) {
@@ -389,13 +389,15 @@
         if (!id) return url;
         var auto = autoplay ? 1 : 0;
         var mute = muted ? 1 : 0;
-        return 'https://www.youtube-nocookie.com/embed/' + id + '?autoplay=' + auto + '&mute=' + mute + '&controls=0&rel=0&modestbranding=1&enablejsapi=1&playsinline=1';
+        return 'https://www.youtube-nocookie.com/embed/' + id + '?autoplay=' + auto + '&mute=' + mute + '&controls=0&rel=0&modestbranding=1&enablejsapi=1&playsinline=1&iv_load_policy=3';
       }
 
       function getFacebookEmbedUrl(url, autoplay, muted) {
-        var auto = autoplay ? 'true' : 'false';
-        var mute = muted ? 'true' : 'false';
-        return 'https://www.facebook.com/plugins/video.php?href=' + encodeURIComponent(url) + '&show_text=false&autoplay=' + auto + '&mute=' + mute;
+        if (!url || typeof url !== 'string') return '';
+        if (url.indexOf('facebook.com/plugins/video.php') !== -1) return url;
+        var auto = autoplay ? '1' : '0';
+        var mute = muted ? '1' : '0';
+        return 'https://www.facebook.com/plugins/video.php?href=' + encodeURIComponent(url) + '&show_text=0&autoplay=' + auto + '&mute=' + mute + '&muted=' + mute + '&allowfullscreen=true&width=1280';
       }
 
       // 4. Schedule evaluation
@@ -426,9 +428,12 @@
 
         var fileType = item.file_type || '';
         var filePath = item.file_path || '';
+        var isSingle = activeItems.length === 1;
 
         if (fileType === 'youtube') {
           var yId = extractYouTubeId(filePath);
+          var shouldMute = isMuted || !isAudioUnlocked;
+
           if (yId && window.YT && window.YT.Player) {
             var ytContainer = document.createElement('div');
             ytContainer.className = 'media-frame';
@@ -438,34 +443,61 @@
                 videoId: yId,
                 playerVars: {
                   autoplay: 1,
-                  mute: isMuted ? 1 : 0,
+                  mute: shouldMute ? 1 : 0,
                   controls: 0,
                   rel: 0,
                   modestbranding: 1,
                   enablejsapi: 1,
                   playsinline: 1,
-                  origin: window.location.origin
+                  origin: window.location.origin,
+                  iv_load_policy: 3,
+                  loop: isSingle ? 1 : 0,
+                  playlist: isSingle ? yId : undefined
                 },
                 events: {
                   onReady: function (e) {
                     try {
-                      if (!isMuted) {
+                      if (isAudioUnlocked && !isMuted) {
                         e.target.unMute();
                         e.target.setVolume(100);
+                      } else {
+                        e.target.mute();
                       }
                       e.target.playVideo();
                     } catch (err) {}
+
+                    // Autoplay Watchdog fallback: ensure video is not frozen due to unmuted policy
+                    setTimeout(function () {
+                      try {
+                        if (e.target && typeof e.target.getPlayerState === 'function') {
+                          var st = e.target.getPlayerState();
+                          if (st !== window.YT.PlayerState.PLAYING && st !== window.YT.PlayerState.BUFFERING) {
+                            console.log('YouTube Autoplay Watchdog: forcing muted play');
+                            e.target.mute();
+                            e.target.playVideo();
+                            if (!isMuted) showAudioHint();
+                          }
+                        }
+                      } catch (ex) {}
+                    }, 1000);
                   },
                   onStateChange: function (e) {
                     if (e.data === window.YT.PlayerState.PLAYING) {
-                      try {
-                        if (!isMuted) {
+                      if (isAudioUnlocked && !isMuted) {
+                        try {
                           e.target.unMute();
                           e.target.setVolume(100);
-                        }
-                      } catch (err) {}
+                        } catch (err) {}
+                      }
                     } else if (e.data === window.YT.PlayerState.ENDED) {
-                      if (onVideoEnd) onVideoEnd();
+                      if (activeItems.length === 1) {
+                        try {
+                          e.target.seekTo(0, true);
+                          e.target.playVideo();
+                        } catch (err) {}
+                      } else {
+                        if (onVideoEnd) onVideoEnd();
+                      }
                     }
                   },
                   onError: function () {
@@ -477,7 +509,7 @@
             } catch (err) {
               var iframeYt = document.createElement('iframe');
               iframeYt.className = 'media-frame';
-              iframeYt.src = getYouTubeEmbedUrl(filePath, true, isMuted);
+              iframeYt.src = getYouTubeEmbedUrl(filePath, true, shouldMute);
               iframeYt.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen';
               iframeYt.allowFullscreen = true;
               layer.appendChild(iframeYt);
@@ -485,16 +517,17 @@
           } else {
             var iframeYt = document.createElement('iframe');
             iframeYt.className = 'media-frame';
-            iframeYt.src = getYouTubeEmbedUrl(filePath, true, isMuted);
+            iframeYt.src = getYouTubeEmbedUrl(filePath, true, shouldMute);
             iframeYt.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen';
             iframeYt.allowFullscreen = true;
             layer.appendChild(iframeYt);
           }
         } else if (fileType === 'facebook') {
+          var shouldMuteFb = isMuted || !isAudioUnlocked;
           var iframeFb = document.createElement('iframe');
           iframeFb.className = 'media-frame';
-          iframeFb.src = getFacebookEmbedUrl(filePath, true, isMuted);
-          iframeFb.allow = 'autoplay; fullscreen';
+          iframeFb.src = getFacebookEmbedUrl(filePath, true, shouldMuteFb);
+          iframeFb.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen';
           iframeFb.allowFullscreen = true;
           layer.appendChild(iframeFb);
         } else if (fileType === 'stream') {
@@ -503,12 +536,20 @@
             vStream.className = 'media-fit';
             vStream.src = filePath;
             vStream.autoplay = true;
-            vStream.muted = isMuted;
+            vStream.muted = isMuted || !isAudioUnlocked;
             vStream.volume = 1.0;
             vStream.setAttribute('playsinline', '');
             vStream.setAttribute('webkit-playsinline', 'true');
             vStream.setAttribute('x5-playsinline', 'true');
-            vStream.onended = onVideoEnd;
+            if (isSingle) vStream.loop = true;
+            vStream.onended = function () {
+              if (activeItems.length === 1) {
+                vStream.currentTime = 0;
+                vStream.play().catch(function () {});
+              } else {
+                if (onVideoEnd) onVideoEnd();
+              }
+            };
             vStream.onerror = onMediaError;
             layer.appendChild(vStream);
             var streamPromise = vStream.play();
@@ -522,7 +563,7 @@
             var iframeWeb = document.createElement('iframe');
             iframeWeb.className = 'media-frame';
             iframeWeb.src = filePath;
-            iframeWeb.allow = 'autoplay; fullscreen';
+            iframeWeb.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen';
             iframeWeb.allowFullscreen = true;
             layer.appendChild(iframeWeb);
           }
@@ -535,11 +576,20 @@
           videoEl.setAttribute('webkit-playsinline', 'true');
           videoEl.setAttribute('x5-playsinline', 'true');
           videoEl.preload = 'auto';
-          videoEl.onended = onVideoEnd;
+          if (isSingle) {
+            videoEl.loop = true;
+          }
+          videoEl.onended = function () {
+            if (activeItems.length === 1) {
+              videoEl.currentTime = 0;
+              videoEl.play().catch(function () {});
+            } else {
+              if (onVideoEnd) onVideoEnd();
+            }
+          };
           videoEl.onerror = onMediaError;
 
-          // Attempt playing with full audio first (unmuted)
-          if (isMuted) {
+          if (isMuted || !isAudioUnlocked) {
             videoEl.muted = true;
           } else {
             videoEl.muted = false;
@@ -551,21 +601,17 @@
           var playPromise = videoEl.play();
           if (playPromise !== undefined) {
             playPromise.then(function () {
-              // Video played successfully
               if (!isMuted && !videoEl.muted) {
                 isAudioUnlocked = true;
                 hideAudioHint();
               }
             }).catch(function (err) {
-              console.warn('Direct unmuted play blocked by browser policy, falling back to muted autoplay:', err);
-              // Fallback: play muted immediately so video never halts on screen
+              console.warn('Direct unmuted play blocked, starting safe muted playback:', err);
               videoEl.muted = true;
               videoEl.play().catch(function (e) {
                 console.error('Muted autoplay fallback failed:', e);
               });
-              // Show unblock hint for TV user
               if (!isMuted) {
-                isAudioUnlocked = false;
                 showAudioHint();
               }
             });
@@ -803,7 +849,6 @@
         };
 
         xhr.onerror = function () {
-          // Offline / Network error resilience: continue playing current items in memory
           console.warn('Network unreachable, continuing with cached playback...');
         };
 
@@ -868,35 +913,27 @@
       }
 
       function toggleMute() {
-        isMuted = !isMuted;
-        if (iconVolOn) iconVolOn.style.display = isMuted ? 'none' : 'inline';
-        if (iconVolOff) iconVolOff.style.display = isMuted ? 'inline' : 'none';
-
-        if (isMuted) {
+        if (isMuted || !isAudioUnlocked) {
+          unlockAudio();
+        } else {
+          isMuted = true;
+          if (iconVolOn) iconVolOn.style.display = 'none';
+          if (iconVolOff) iconVolOff.style.display = 'inline';
           hideAudioHint();
-        }
 
-        layers.forEach(function (layer) {
-          if (!layer) return;
-          var videos = layer.getElementsByTagName('video');
-          for (var i = 0; i < videos.length; i++) {
-            videos[i].muted = isMuted;
-            if (!isMuted) {
-              videos[i].volume = 1.0;
-              if (videos[i].paused) videos[i].play().catch(function () {});
+          layers.forEach(function (layer) {
+            if (!layer) return;
+            var videos = layer.getElementsByTagName('video');
+            for (var i = 0; i < videos.length; i++) {
+              videos[i].muted = true;
             }
-          }
-          if (layer.__ytPlayer) {
-            try {
-              if (isMuted) {
+            if (layer.__ytPlayer && typeof layer.__ytPlayer.mute === 'function') {
+              try {
                 layer.__ytPlayer.mute();
-              } else {
-                layer.__ytPlayer.unMute();
-                layer.__ytPlayer.setVolume(100);
-              }
-            } catch (e) {}
-          }
-        });
+              } catch (e) {}
+            }
+          });
+        }
       }
 
       function toggleFullscreen() {
