@@ -453,11 +453,6 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
                 EMERGENCY MCI
               </span>
             </div>
-            <div className="text-xs text-slate-600 flex items-center gap-2.5 font-bold mt-0.5">
-              <span className="text-slate-950 font-black">โรงพยาบาลเถิน จังหวัดลำปาง</span>
-              <span>•</span>
-              <span className="text-teal-700 font-extrabold">ศูนย์ประสานงานและสั่งการห้องฉุกเฉิน (ER Command)</span>
-            </div>
           </div>
         </div>
 
