@@ -426,11 +426,11 @@ export default function IncidentManager() {
           </div>
           <div>
             <div className="flex flex-wrap items-center gap-2.5">
-              <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
+              <h1 className="text-xl md:text-2xl font-bold text-slate-900 tracking-tight">
                 ศูนย์จัดการอุบัติเหตุหมู่ (MCI Command)
               </h1>
               {incidentData?.is_active === 1 ? (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-600 text-white text-[11px] font-black uppercase tracking-wider shadow-sm animate-pulse">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-600 text-white text-[11px] font-semibold uppercase tracking-wider shadow-sm animate-pulse">
                   <span className="w-2 h-2 rounded-full bg-white" />
                   LIVE ON AIR ({selectedBroadcastTvs.length} จอ)
                 </span>
@@ -476,7 +476,7 @@ export default function IncidentManager() {
             <button
               type="button"
               onClick={() => setShowExportModal(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white text-sm font-black rounded-2xl shadow-md shadow-emerald-600/20 transition cursor-pointer"
+              className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white text-sm font-semibold rounded-2xl shadow-md shadow-emerald-600/20 transition cursor-pointer"
             >
               <FileSpreadsheet size={18} />
               <span>ส่งออกรายงาน (Excel)</span>
@@ -501,16 +501,16 @@ export default function IncidentManager() {
             {/* Red / Critical */}
             <div className="bg-rose-50/90 border-2 border-rose-400/90 hover:border-rose-500 p-4 rounded-3xl shadow-xs flex flex-col justify-between transition-all hover:-translate-y-0.5">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-black text-rose-950 flex items-center gap-1.5">
+                <span className="text-xs font-semibold text-rose-950 flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-rose-600 animate-pulse shadow-sm" />
                   วิกฤต
                 </span>
-                <span className="text-[10px] font-black text-rose-700 bg-rose-100/90 px-2 py-0.5 rounded-md border border-rose-200">
+                <span className="text-[10px] font-semibold text-rose-700 bg-rose-100/90 px-2 py-0.5 rounded-md border border-rose-200">
                   RED
                 </span>
               </div>
               <div className="mt-3 flex items-baseline justify-between">
-                <span className="text-3xl font-mono font-black text-rose-700 tracking-tight">{summary.red}</span>
+                <span className="text-3xl font-mono font-bold text-rose-700 tracking-tight">{summary.red}</span>
                 <span className="text-xs font-bold text-rose-800">คน</span>
               </div>
             </div>
@@ -518,16 +518,16 @@ export default function IncidentManager() {
             {/* Yellow / Urgent */}
             <div className="bg-amber-50/90 border-2 border-amber-400/90 hover:border-amber-500 p-4 rounded-3xl shadow-xs flex flex-col justify-between transition-all hover:-translate-y-0.5">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-black text-amber-950 flex items-center gap-1.5">
+                <span className="text-xs font-semibold text-amber-950 flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-sm" />
                   เร่งด่วน
                 </span>
-                <span className="text-[10px] font-black text-amber-800 bg-amber-100/90 px-2 py-0.5 rounded-md border border-amber-200">
+                <span className="text-[10px] font-semibold text-amber-800 bg-amber-100/90 px-2 py-0.5 rounded-md border border-amber-200">
                   YELLOW
                 </span>
               </div>
               <div className="mt-3 flex items-baseline justify-between">
-                <span className="text-3xl font-mono font-black text-amber-700 tracking-tight">{summary.yellow}</span>
+                <span className="text-3xl font-mono font-bold text-amber-700 tracking-tight">{summary.yellow}</span>
                 <span className="text-xs font-bold text-amber-900">คน</span>
               </div>
             </div>
@@ -535,16 +535,16 @@ export default function IncidentManager() {
             {/* Green / Non-Urgent */}
             <div className="bg-emerald-50/90 border-2 border-emerald-400/90 hover:border-emerald-500 p-4 rounded-3xl shadow-xs flex flex-col justify-between transition-all hover:-translate-y-0.5">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-black text-emerald-950 flex items-center gap-1.5">
+                <span className="text-xs font-semibold text-emerald-950 flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 shadow-sm" />
                   ไม่เร่งด่วน
                 </span>
-                <span className="text-[10px] font-black text-emerald-800 bg-emerald-100/90 px-2 py-0.5 rounded-md border border-emerald-200">
+                <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-100/90 px-2 py-0.5 rounded-md border border-emerald-200">
                   GREEN
                 </span>
               </div>
               <div className="mt-3 flex items-baseline justify-between">
-                <span className="text-3xl font-mono font-black text-emerald-700 tracking-tight">{summary.green}</span>
+                <span className="text-3xl font-mono font-bold text-emerald-700 tracking-tight">{summary.green}</span>
                 <span className="text-xs font-bold text-emerald-900">คน</span>
               </div>
             </div>
@@ -552,16 +552,16 @@ export default function IncidentManager() {
             {/* Black / Dead */}
             <div className="bg-slate-100 border-2 border-slate-700/80 hover:border-slate-800 p-4 rounded-3xl shadow-xs flex flex-col justify-between transition-all hover:-translate-y-0.5">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-black text-slate-950 flex items-center gap-1.5">
+                <span className="text-xs font-semibold text-slate-950 flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-slate-900 shadow-sm" />
                   เสียชีวิต
                 </span>
-                <span className="text-[10px] font-black text-slate-700 bg-slate-200 px-2 py-0.5 rounded-md border border-slate-300">
+                <span className="text-[10px] font-semibold text-slate-700 bg-slate-200 px-2 py-0.5 rounded-md border border-slate-300">
                   DEAD
                 </span>
               </div>
               <div className="mt-3 flex items-baseline justify-between">
-                <span className="text-3xl font-mono font-black text-slate-900 tracking-tight">{summary.black}</span>
+                <span className="text-3xl font-mono font-bold text-slate-900 tracking-tight">{summary.black}</span>
                 <span className="text-xs font-bold text-slate-700">คน</span>
               </div>
             </div>
@@ -569,13 +569,13 @@ export default function IncidentManager() {
             {/* Refuse Treatment */}
             <div className="bg-slate-50 border-2 border-slate-300 hover:border-slate-400 p-4 rounded-3xl shadow-xs flex flex-col justify-between transition-all hover:-translate-y-0.5">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-black text-slate-800">ไม่ประสงค์ตรวจ</span>
-                <span className="text-[10px] font-black text-slate-600 bg-slate-200 px-2 py-0.5 rounded-md border border-slate-300">
+                <span className="text-xs font-semibold text-slate-800">ไม่ประสงค์ตรวจ</span>
+                <span className="text-[10px] font-semibold text-slate-600 bg-slate-200 px-2 py-0.5 rounded-md border border-slate-300">
                   REFUSE
                 </span>
               </div>
               <div className="mt-3 flex items-baseline justify-between">
-                <span className="text-3xl font-mono font-black text-amber-600 tracking-tight">{summary.refuse_treatment}</span>
+                <span className="text-3xl font-mono font-bold text-amber-600 tracking-tight">{summary.refuse_treatment}</span>
                 <span className="text-xs font-bold text-slate-600">คน</span>
               </div>
             </div>
@@ -583,15 +583,15 @@ export default function IncidentManager() {
             {/* Total Patients */}
             <div className="bg-gradient-to-tr from-slate-900 via-indigo-950 to-blue-900 text-white p-4 rounded-3xl shadow-md flex flex-col justify-between transition-all hover:-translate-y-0.5">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-black uppercase tracking-wide text-indigo-200 flex items-center gap-1">
+                <span className="text-xs font-semibold uppercase tracking-wide text-indigo-200 flex items-center gap-1">
                   <Users size={14} className="text-indigo-300" /> รวมทั้งหมด
                 </span>
-                <span className="text-[10px] font-black text-yellow-300 bg-black/40 px-2 py-0.5 rounded-md border border-yellow-300/30">
+                <span className="text-[10px] font-semibold text-yellow-300 bg-black/40 px-2 py-0.5 rounded-md border border-yellow-300/30">
                   TOTAL
                 </span>
               </div>
               <div className="mt-3 flex items-baseline justify-between">
-                <span className="text-3xl font-mono font-black text-yellow-300 tracking-tight">{summary.total}</span>
+                <span className="text-3xl font-mono font-bold text-yellow-300 tracking-tight">{summary.total}</span>
                 <span className="text-xs font-bold text-indigo-200">คน</span>
               </div>
             </div>
@@ -616,11 +616,11 @@ export default function IncidentManager() {
                 </div>
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="text-base font-black tracking-tight">
+                    <h2 className="text-base font-semibold tracking-tight">
                       แผงควบคุมการถ่ายทอดสดจอ TV (Emergency Broadcast Switchboard)
                     </h2>
                     <span
-                      className={`px-2.5 py-0.5 rounded-full text-xs font-extrabold ${
+                      className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
                         isBroadcasting
                           ? 'bg-rose-500/20 text-rose-300 border border-rose-400/50'
                           : 'bg-slate-100 text-slate-600 border border-slate-200'
@@ -641,7 +641,7 @@ export default function IncidentManager() {
                   type="button"
                   onClick={handleToggleBroadcast}
                   disabled={saving}
-                  className={`flex items-center gap-2.5 px-6 py-3 rounded-2xl text-sm font-black shadow-lg transition active:scale-98 cursor-pointer ${
+                  className={`flex items-center gap-2.5 px-6 py-3 rounded-2xl text-sm font-semibold shadow-lg transition active:scale-98 cursor-pointer ${
                     isBroadcasting
                       ? 'bg-white text-rose-700 hover:bg-slate-100 shadow-white/10 border-2 border-white'
                       : 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/30'
@@ -656,13 +656,13 @@ export default function IncidentManager() {
             {/* TV Selection Checkboxes */}
             <div className="pt-4 space-y-2.5">
               <div className="flex items-center justify-between">
-                <span className={`text-xs font-black uppercase tracking-wider ${isBroadcasting ? 'text-slate-300' : 'text-slate-600'}`}>
+                <span className={`text-xs font-semibold uppercase tracking-wider ${isBroadcasting ? 'text-slate-300' : 'text-slate-600'}`}>
                   เลือกจอ TV สำหรับถ่ายทอดสด ({selectedBroadcastTvs.length}/{tvs.length} จอ):
                 </span>
                 <button
                   type="button"
                   onClick={handleSelectAllTvs}
-                  className={`text-xs font-bold underline underline-offset-4 hover:opacity-85 cursor-pointer ${
+                  className={`text-xs font-semibold underline underline-offset-4 hover:opacity-85 cursor-pointer ${
                     isBroadcasting ? 'text-amber-300' : 'text-indigo-600'
                   }`}
                 >
@@ -682,8 +682,8 @@ export default function IncidentManager() {
                         className={`flex items-center gap-3 p-3 rounded-2xl border transition-all cursor-pointer select-none ${
                           isSelected
                             ? isBroadcasting
-                              ? 'bg-rose-900/70 border-rose-400 text-white shadow-sm'
-                              : 'bg-indigo-50 border-indigo-500 text-indigo-950 font-bold shadow-xs'
+                                ? 'bg-rose-900/70 border-rose-400 text-white shadow-sm'
+                                : 'bg-indigo-50 border-indigo-500 text-indigo-950 font-bold shadow-xs'
                             : isBroadcasting
                             ? 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
                             : 'bg-slate-50/90 border-slate-200 text-slate-700 hover:border-slate-300'
@@ -696,7 +696,7 @@ export default function IncidentManager() {
                           className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 cursor-pointer"
                         />
                         <div className="min-w-0 flex-1">
-                          <div className="text-xs font-extrabold truncate flex items-center justify-between">
+                          <div className="text-xs font-semibold truncate flex items-center justify-between">
                             <span>{tv.name}</span>
                             {tv.is_online === 1 && (
                               <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" title="ออนไลน์" />
@@ -722,7 +722,7 @@ export default function IncidentManager() {
                   <Sliders size={20} />
                 </div>
                 <div>
-                  <h2 className="text-base md:text-lg font-black text-slate-800">
+                  <h2 className="text-base md:text-lg font-semibold text-slate-800">
                     การตั้งค่าเหตุการณ์และการกรอง HOSxP
                   </h2>
                   <p className="text-xs text-slate-500">
@@ -742,7 +742,7 @@ export default function IncidentManager() {
             <form onSubmit={handleSaveIncident} className="space-y-5">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="sm:col-span-2">
-                  <label className="block text-xs font-extrabold text-slate-700 mb-1">
+                  <label className="block text-xs font-medium text-slate-700 mb-1">
                     ชื่อเหตุการณ์ / เหตุเกิด *
                   </label>
                   <input
@@ -750,13 +750,13 @@ export default function IncidentManager() {
                     value={formState.title}
                     onChange={(e) => setFormState({ ...formState, title: e.target.value })}
                     placeholder="เช่น รถบัสตกเขาทางหลวง 106"
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-extrabold text-slate-700 mb-1">
+                  <label className="block text-xs font-medium text-slate-700 mb-1">
                     สถานที่เกิดเหตุ
                   </label>
                   <input
@@ -774,17 +774,17 @@ export default function IncidentManager() {
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/80 pb-3">
                   <div className="flex items-center gap-2">
                     <Clock size={17} className="text-indigo-600" />
-                    <span className="text-sm font-black text-slate-800">
+                    <span className="text-sm font-semibold text-slate-800">
                       ช่วงวันและเวลาของเหตุการณ์ (HOSxP Query Timeframe)
                     </span>
                   </div>
                   {formState.end_date || formState.end_time ? (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-black bg-amber-100 text-amber-900 border border-amber-300">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-900 border border-amber-300">
                       <span className="w-2 h-2 rounded-full bg-amber-500" />
                       กำหนดช่วงเวลาสิ้นสุดแล้ว (ปิดเคส)
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-black bg-emerald-100 text-emerald-950 border border-emerald-300">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-950 border border-emerald-300">
                       <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                       ดึงข้อมูลต่อเนื่องจนถึงปัจจุบัน (Live)
                     </span>
@@ -804,7 +804,7 @@ export default function IncidentManager() {
 
                   <div className="md:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-3 pt-0.5">
                     <div>
-                      <label className="block text-xs font-extrabold text-slate-700 mb-1">
+                      <label className="block text-xs font-medium text-slate-700 mb-1">
                         เวลาเริ่มเหตุ (HH:mm)
                       </label>
                       <input
@@ -817,7 +817,7 @@ export default function IncidentManager() {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-extrabold text-slate-700 mb-1">
+                      <label className="block text-xs font-medium text-slate-700 mb-1">
                         ไม่ประสงค์ตรวจ (คน)
                       </label>
                       <input
@@ -834,22 +834,22 @@ export default function IncidentManager() {
                 {/* 2. END DATE & TIME (OPTIONAL - FOR CONCLUDED INCIDENTS) */}
                 <div className="pt-3 border-t border-slate-200/80 space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <label className="flex items-center gap-2.5 cursor-pointer select-none font-extrabold text-xs text-slate-800">
+                    <label className="flex items-center gap-2.5 cursor-pointer select-none font-medium text-xs text-slate-800">
                       <input
                         type="checkbox"
                         checked={Boolean(formState.end_date || formState.end_time)}
                         onChange={(e) => {
-                          if (e.target.checked) {
                             const now = new Date();
                             const currentTimeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-                            setFormState({
-                              ...formState,
-                              end_date: formState.end_date || formState.incident_date || now.toISOString().slice(0, 10),
-                              end_time: formState.end_time || currentTimeStr
-                            });
-                          } else {
-                            setFormState({ ...formState, end_date: '', end_time: '' });
-                          }
+                            if (e.target.checked) {
+                              setFormState({
+                                ...formState,
+                                end_date: formState.end_date || formState.incident_date || now.toISOString().slice(0, 10),
+                                end_time: formState.end_time || currentTimeStr
+                              });
+                            } else {
+                              setFormState({ ...formState, end_date: '', end_time: '' });
+                            }
                         }}
                         className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 cursor-pointer"
                       />
@@ -878,7 +878,7 @@ export default function IncidentManager() {
                       </div>
 
                       <div className="md:col-span-5 pt-0.5">
-                        <label className="block text-xs font-extrabold text-slate-700 mb-1">
+                        <label className="block text-xs font-medium text-slate-700 mb-1">
                           เวลาสิ้นสุดเหตุการณ์ (HH:mm)
                         </label>
                         <input
@@ -894,7 +894,7 @@ export default function IncidentManager() {
                       </div>
                     </div>
                   ) : (
-                    <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl text-xs text-emerald-950 font-bold flex items-center gap-2">
+                    <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl text-xs text-emerald-950 font-semibold flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
                       <span>ขณะนี้ระบบทำงานโหมดถ่ายทอดสด: ดึงข้อมูลผู้ป่วยใหม่จาก HOSxP ต่อเนื่องตั้งแต่เวลาเริ่มเหตุจนถึงปัจจุบัน</span>
                     </div>
@@ -905,7 +905,7 @@ export default function IncidentManager() {
               {/* Auto-Sync Toggle & Connection Status Strip */}
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-2.5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                  <label className="flex items-center gap-2.5 cursor-pointer select-none font-bold text-xs text-slate-900">
+                  <label className="flex items-center gap-2.5 cursor-pointer select-none font-semibold text-xs text-slate-900">
                     <input
                       type="checkbox"
                       checked={formState.is_auto_sync}
@@ -915,7 +915,7 @@ export default function IncidentManager() {
                     <span>⚡ ดึงข้อมูลจาก HOSxP อัตโนมัติ (ต่อเนื่องจนถึงปัจจุบัน)</span>
                   </label>
 
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100/80 border border-emerald-300 text-emerald-950 text-xs font-black shadow-2xs">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100/80 border border-emerald-300 text-emerald-950 text-xs font-semibold shadow-2xs">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                     <span>ซิงค์อัตโนมัติทุก 15 วินาที</span>
                   </div>
@@ -936,7 +936,7 @@ export default function IncidentManager() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-slate-900 hover:bg-slate-800 active:scale-98 text-white text-sm font-bold rounded-2xl shadow-sm transition cursor-pointer"
+                  className="flex items-center gap-2 px-6 py-2.5 bg-slate-900 hover:bg-slate-800 active:scale-98 text-white text-sm font-semibold rounded-2xl shadow-sm transition cursor-pointer"
                 >
                   <Save size={16} />
                   <span>บันทึกและอัปเดตจอ TV ทันที</span>
@@ -952,7 +952,7 @@ export default function IncidentManager() {
             <ShieldAlert size={32} />
           </div>
           <div>
-            <h2 className="text-lg font-black text-slate-900">ยังไม่มีรายงานอุบัติเหตุหมู่</h2>
+            <h2 className="text-lg font-semibold text-slate-900">ยังไม่มีรายงานอุบัติเหตุหมู่</h2>
             <p className="text-slate-500 text-sm max-w-md mx-auto mt-1">
               สร้างรายงานอุบัติเหตุใหม่เพื่อดึงข้อมูลผู้ป่วยจาก HOSxP และสั่งถ่ายทอดสดขึ้นจอ TV ห้องฉุกเฉิน
             </p>
@@ -960,7 +960,7 @@ export default function IncidentManager() {
           <button
             type="button"
             onClick={() => setShowNewModal(true)}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-2xl shadow-md shadow-indigo-600/20 transition cursor-pointer"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-2xl shadow-md shadow-indigo-600/20 transition cursor-pointer"
           >
             <Plus size={18} />
             <span>สร้างรายงานเหตุใหม่</span>
@@ -977,7 +977,7 @@ export default function IncidentManager() {
                 <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold">
                   <ShieldAlert size={20} />
                 </div>
-                <h3 className="text-lg font-black text-slate-900">สร้างรายงานอุบัติเหตุหมู่ใหม่</h3>
+                <h3 className="text-lg font-semibold text-slate-900">สร้างรายงานอุบัติเหตุหมู่ใหม่</h3>
               </div>
               <button
                 type="button"
@@ -991,7 +991,7 @@ export default function IncidentManager() {
 
             <form onSubmit={handleCreateIncident} className="space-y-4">
               <div>
-                <label className="block text-xs font-extrabold text-slate-700 mb-1">
+                <label className="block text-xs font-medium text-slate-700 mb-1">
                   ชื่อเหตุการณ์ / เหตุเกิด *
                 </label>
                 <input
@@ -999,13 +999,13 @@ export default function IncidentManager() {
                   value={newIncidentForm.title}
                   onChange={(e) => setNewIncidentForm({ ...newIncidentForm, title: e.target.value })}
                   placeholder="เช่น รถบัสพลิกคว่ำ ทางหลวง 106"
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-extrabold text-slate-700 mb-1">
+                <label className="block text-xs font-medium text-slate-700 mb-1">
                   สถานที่เกิดเหตุ
                 </label>
                 <input
@@ -1026,7 +1026,7 @@ export default function IncidentManager() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-extrabold text-slate-700 mb-1">
+                  <label className="block text-xs font-medium text-slate-700 mb-1">
                     เวลาเริ่มเหตุ (HH:mm)
                   </label>
                   <input
@@ -1034,12 +1034,12 @@ export default function IncidentManager() {
                     value={newIncidentForm.start_time}
                     onChange={(e) => setNewIncidentForm({ ...newIncidentForm, start_time: e.target.value })}
                     placeholder="เช่น 14:00"
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono font-bold"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono font-semibold"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-extrabold text-slate-700 mb-1">
+                  <label className="block text-xs font-medium text-slate-700 mb-1">
                     ไม่ประสงค์ตรวจ (คน)
                   </label>
                   <input
@@ -1047,12 +1047,12 @@ export default function IncidentManager() {
                     min="0"
                     value={newIncidentForm.refuse_treatment_count}
                     onChange={(e) => setNewIncidentForm({ ...newIncidentForm, refuse_treatment_count: Number(e.target.value) })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-amber-600"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold text-amber-600"
                   />
                 </div>
               </div>
 
-              <label className="flex items-center gap-2.5 p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-950 font-bold text-xs cursor-pointer select-none">
+              <label className="flex items-center gap-2.5 p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-950 font-medium text-xs cursor-pointer select-none">
                 <input
                   type="checkbox"
                   checked={newIncidentForm.is_auto_sync}
@@ -1060,7 +1060,7 @@ export default function IncidentManager() {
                   className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 cursor-pointer"
                 />
                 <div>
-                  <div className="text-xs font-black text-emerald-950">⚡ ดึงข้อมูลผู้ป่วยจาก HOSxP อัตโนมัติ</div>
+                  <div className="text-xs font-semibold text-emerald-950">⚡ ดึงข้อมูลผู้ป่วยจาก HOSxP อัตโนมัติ</div>
                   <div className="text-[11px] font-normal text-emerald-800">กรองจาก วันที่เกิดเหตุ และ เวลาเริ่มเหตุ และดึงเคสใหม่อัตโนมัติทุก 15 วินาที</div>
                 </div>
               </label>
@@ -1069,14 +1069,14 @@ export default function IncidentManager() {
                 <button
                   type="button"
                   onClick={() => setShowNewModal(false)}
-                  className="px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+                  className="px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
                 >
                   ยกเลิก
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl shadow-xs transition cursor-pointer"
+                  className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow-xs transition cursor-pointer"
                 >
                   สร้างเหตุการณ์
                 </button>

@@ -313,7 +313,7 @@ export default function PlaylistManager() {
             <Sparkles size={15} />
             <span>Broadcast Storyboard & Sequence</span>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-3">
             <span>จัดสรร Playlist & ตารางเวลาแสดงผล</span>
           </h2>
           <p className="text-slate-500 text-sm mt-1">
@@ -439,7 +439,7 @@ export default function PlaylistManager() {
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="text-xl font-black text-slate-900 tracking-tight">
+                      <h3 className="text-xl font-bold text-slate-900 tracking-tight">
                         {selectedPlaylist.name}
                       </h3>
                       <button
@@ -543,7 +543,7 @@ export default function PlaylistManager() {
                               title="คลิกค้างแล้วลากเพื่อเปลี่ยนลำดับ (Drag to Reorder)"
                             >
                               <GripVertical size={18} />
-                              <span className="text-[11px] font-black font-mono px-2 py-0.5 rounded-md bg-slate-100 group-hover:bg-teal-50 group-hover:text-teal-700 text-slate-600 transition">
+                              <span className="text-[11px] font-semibold font-mono px-2 py-0.5 rounded-md bg-slate-100 group-hover:bg-teal-50 group-hover:text-teal-700 text-slate-600 transition">
                                 {String(idx + 1).padStart(2, '0')}
                               </span>
                             </div>
@@ -978,7 +978,7 @@ export default function PlaylistManager() {
           <div className="bg-white border border-slate-200 rounded-3xl max-w-3xl w-full p-6 shadow-2xl flex flex-col max-h-[85vh]">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div>
-                <h3 className="text-lg font-black text-slate-900">เลือกสื่อเพื่อเพิ่มลง Playlist</h3>
+                <h3 className="text-lg font-bold text-slate-900">เลือกสื่อเพื่อเพิ่มลง Playlist</h3>
                 <p className="text-xs text-slate-400 mt-0.5">
                   คลิกเพื่อเลือกสื่อที่ต้องการ (เลือกได้พร้อมกันหลายรายการ)
                 </p>

@@ -95,14 +95,14 @@ export default function Sidebar({ onLogout }) {
           />
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="font-extrabold text-base text-slate-900 tracking-tight block truncate">
+              <span className="font-bold text-base text-slate-900 tracking-tight block truncate">
                 THOEN MEDIA
               </span>
-              <span className="px-1.5 py-0.2 bg-teal-50 text-teal-700 text-[10px] font-bold rounded-md border border-teal-200/60 uppercase">
+              <span className="px-1.5 py-0.2 bg-teal-50 text-teal-700 text-[10px] font-semibold rounded-md border border-teal-200/60 uppercase">
                 Studio
               </span>
             </div>
-            <span className="text-[11px] font-medium text-slate-400 block truncate">
+            <span className="text-[11px] font-normal text-slate-400 block truncate">
               โรงพยาบาลเถิน จ.ลำปาง
             </span>
           </div>
@@ -111,7 +111,7 @@ export default function Sidebar({ onLogout }) {
 
       {/* Main Navigation Links */}
       <div className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
-        <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-3 mb-2">
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 px-3 mb-2">
           เมนูหลัก (Studio Control)
         </div>
 
@@ -150,7 +150,7 @@ export default function Sidebar({ onLogout }) {
 
               {item.badge && (
                 <span
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${
+                  className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border shrink-0 ${
                     item.badgeColor || 'bg-slate-100 text-slate-600 border-slate-200'
                   }`}
                 >
@@ -170,7 +170,7 @@ export default function Sidebar({ onLogout }) {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
             </span>
-            <span className="text-[11px] font-bold uppercase tracking-wide text-slate-200">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-200">
               Live Broadcast
             </span>
           </div>
@@ -181,11 +181,11 @@ export default function Sidebar({ onLogout }) {
 
         <div className="grid grid-cols-2 gap-2 pt-2.5 text-center">
           <div className="bg-slate-800/60 p-2 rounded-xl border border-slate-700/50">
-            <div className="text-xs font-extrabold text-white">{stats.totalMedia}</div>
+            <div className="text-xs font-bold text-white">{stats.totalMedia}</div>
             <div className="text-[10px] text-slate-400">ไฟล์สื่อในระบบ</div>
           </div>
           <div className="bg-slate-800/60 p-2 rounded-xl border border-slate-700/50">
-            <div className="text-xs font-extrabold text-white">{stats.totalPlaylists}</div>
+            <div className="text-xs font-bold text-white">{stats.totalPlaylists}</div>
             <div className="text-[10px] text-slate-400">เพลย์ลิสต์</div>
           </div>
         </div>

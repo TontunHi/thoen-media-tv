@@ -201,9 +201,9 @@ export default function IncidentReportModal({ incident, summary, patients = [], 
               <FileSpreadsheet size={22} className="stroke-[2.2]" />
             </div>
             <div>
-              <h2 className="text-base sm:text-lg font-black tracking-tight flex items-center gap-2">
+              <h2 className="text-base sm:text-lg font-bold tracking-tight flex items-center gap-2">
                 <span>ส่งออกรายงานอุบัติเหตุหมู่ (Excel)</span>
-                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-emerald-400 border border-slate-700">
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-800 text-emerald-400 border border-slate-700">
                   .xlsx
                 </span>
               </h2>
@@ -216,7 +216,7 @@ export default function IncidentReportModal({ incident, summary, patients = [], 
               type="button"
               onClick={handleDownloadExcel}
               disabled={downloadingExcel}
-              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white text-xs sm:text-sm font-black rounded-xl shadow-md shadow-emerald-600/20 transition cursor-pointer"
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white text-xs sm:text-sm font-semibold rounded-xl shadow-md shadow-emerald-600/20 transition cursor-pointer"
             >
               <FileSpreadsheet size={16} />
               <span>{downloadingExcel ? 'กำลังสร้างไฟล์...' : 'ดาวน์โหลด Excel (.xlsx)'}</span>
@@ -235,9 +235,9 @@ export default function IncidentReportModal({ incident, summary, patients = [], 
 
         {/* INCIDENT INFO BANNER */}
         <div className="px-6 py-3 bg-emerald-50/80 border-b border-emerald-200/80 flex flex-wrap items-center justify-between gap-3 shrink-0">
-          <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
-            <span className="text-slate-900 font-extrabold">เหตุการณ์:</span>
-            <span className="text-emerald-950 font-black">{incident?.title}</span>
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+            <span className="text-slate-900 font-semibold">เหตุการณ์:</span>
+            <span className="text-emerald-950 font-bold">{incident?.title}</span>
             <span className="text-slate-400">•</span>
             <span>{timeframeText}</span>
           </div>
@@ -256,14 +256,14 @@ export default function IncidentReportModal({ incident, summary, patients = [], 
           <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 space-y-4">
             <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
               <Sliders size={18} className="text-emerald-600" />
-              <h3 className="text-sm font-black text-slate-900">
+              <h3 className="text-sm font-semibold text-slate-900">
                 ข้อมูลประกอบแบบรายงาน (บันทึกลงในไฟล์ Excel)
               </h3>
             </div>
 
             {/* 1. บริเวณที่เกิดเหตุ (อุบัติเหตุจราจร) Checkboxes */}
             <div>
-              <label className="block text-xs font-black text-slate-800 mb-2">
+              <label className="block text-xs font-semibold text-slate-800 mb-2">
                 บริเวณที่เกิดเหตุ (อุบัติเหตุจราจร) :
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -274,7 +274,7 @@ export default function IncidentReportModal({ incident, summary, patients = [], 
                       key={item}
                       type="button"
                       onClick={() => toggleRoad(item)}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold border transition text-left cursor-pointer ${
+                      className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border transition text-left cursor-pointer ${
                         isChecked
                           ? 'bg-emerald-500/10 border-emerald-500 text-emerald-950 shadow-xs'
                           : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
@@ -294,7 +294,7 @@ export default function IncidentReportModal({ incident, summary, patients = [], 
 
             {/* 2. ความถี่ของสถานที่เกิดเหตุ/เดือน */}
             <div>
-              <label className="block text-xs font-black text-slate-800 mb-2">
+              <label className="block text-xs font-semibold text-slate-800 mb-2">
                 ความถี่ของสถานที่เกิดเหตุ/เดือน :
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -310,7 +310,7 @@ export default function IncidentReportModal({ incident, summary, patients = [], 
                       key={opt.value}
                       type="button"
                       onClick={() => setIncidentFrequency(isSelected ? '' : opt.value)}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold border transition text-left cursor-pointer ${
+                      className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border transition text-left cursor-pointer ${
                         isSelected
                           ? 'bg-emerald-500/10 border-emerald-500 text-emerald-950 shadow-xs'
                           : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
@@ -329,7 +329,7 @@ export default function IncidentReportModal({ incident, summary, patients = [], 
 
               {incidentFrequency === 'มากกว่า3 ครั้ง/ เดือน' && (
                 <div className="mt-2.5 flex items-center gap-2">
-                  <span className="text-xs font-bold text-slate-700 whitespace-nowrap">
+                  <span className="text-xs font-semibold text-slate-700 whitespace-nowrap">
                     (ระบุรายละเอียด/จำนวนครั้ง):
                   </span>
                   <input
@@ -337,7 +337,7 @@ export default function IncidentReportModal({ incident, summary, patients = [], 
                     value={frequencyDetail}
                     onChange={(e) => setFrequencyDetail(e.target.value)}
                     placeholder="เช่น 4 ครั้ง หรือ เกิดซ้ำทุกสัปดาห์"
-                    className="flex-1 px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                    className="flex-1 px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                   />
                 </div>
               )}
@@ -345,7 +345,7 @@ export default function IncidentReportModal({ incident, summary, patients = [], 
 
             {/* 3. การจัดการ Checkboxes */}
             <div>
-              <label className="block text-xs font-black text-slate-800 mb-2">
+              <label className="block text-xs font-semibold text-slate-800 mb-2">
                 การจัดการ :
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -356,7 +356,7 @@ export default function IncidentReportModal({ incident, summary, patients = [], 
                       key={item}
                       type="button"
                       onClick={() => toggleManagement(item)}
-                      className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold border transition text-left cursor-pointer ${
+                      className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-semibold border transition text-left cursor-pointer ${
                         isChecked
                           ? 'bg-emerald-500/10 border-emerald-500 text-emerald-950 shadow-xs'
                           : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
@@ -378,7 +378,7 @@ export default function IncidentReportModal({ incident, summary, patients = [], 
             <div>
               <div className="flex items-center gap-2 mb-1.5">
                 <Ambulance size={16} className="text-emerald-600" />
-                <label htmlFor="ems-input" className="text-xs font-black text-slate-800">
+                <label htmlFor="ems-input" className="text-xs font-semibold text-slate-800">
                   ชุดปฏิบัติการฉุกเฉินที่ออกปฏิบัติการ
                 </label>
               </div>
@@ -388,7 +388,7 @@ export default function IncidentReportModal({ incident, summary, patients = [], 
                 value={emsUnits}
                 onChange={(e) => setEmsUnits(e.target.value)}
                 placeholder="เช่น EMS รพ.เถิน, กู้ภัยเถินบุรี, กู้ภัยออมบุญ"
-                className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
               />
             </div>
 
@@ -397,7 +397,7 @@ export default function IncidentReportModal({ incident, summary, patients = [], 
                 type="button"
                 onClick={handleSaveMetadata}
                 disabled={saving}
-                className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 active:scale-98 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer"
+                className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 active:scale-98 text-white text-xs font-semibold rounded-xl shadow-xs transition cursor-pointer"
               >
                 <Save size={14} />
                 <span>{saving ? 'กำลังบันทึก...' : 'บันทึกข้อมูลเพิ่มเติม'}</span>
@@ -408,22 +408,22 @@ export default function IncidentReportModal({ incident, summary, patients = [], 
           {/* SECTION 2: STATS SUMMARY CARDS */}
           <div>
             <div className="flex items-center justify-between mb-2.5">
-              <h3 className="text-xs sm:text-sm font-black text-slate-900 flex items-center gap-2">
+              <h3 className="text-xs sm:text-sm font-semibold text-slate-900 flex items-center gap-2">
                 <Users size={16} className="text-emerald-600" />
                 <span>สรุปข้อมูลสถิติที่จะลงในรายงาน Excel</span>
               </h3>
-              <span className="text-xs font-bold text-slate-500">
+              <span className="text-xs font-medium text-slate-500">
                 รวมทั้งหมด {totalCount} คน (ตรวจรักษาใน รพ. {regCount} คน, ไม่ประสงค์ตรวจ {refuseCount} คน)
               </span>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs font-bold">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs font-semibold">
               <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-950 flex items-center justify-between">
                 <span className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-rose-600" />
                   <span>แดง:</span>
                 </span>
-                <span className="text-base font-black font-mono text-rose-700">{summary?.red || 0} คน</span>
+                <span className="text-base font-bold font-mono text-rose-700">{summary?.red || 0} คน</span>
               </div>
 
               <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-950 flex items-center justify-between">
@@ -431,7 +431,7 @@ export default function IncidentReportModal({ incident, summary, patients = [], 
                   <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
                   <span>เหลือง:</span>
                 </span>
-                <span className="text-base font-black font-mono text-amber-700">{summary?.yellow || 0} คน</span>
+                <span className="text-base font-bold font-mono text-amber-700">{summary?.yellow || 0} คน</span>
               </div>
 
               <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-950 flex items-center justify-between">
@@ -439,7 +439,7 @@ export default function IncidentReportModal({ incident, summary, patients = [], 
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-600" />
                   <span>เขียว:</span>
                 </span>
-                <span className="text-base font-black font-mono text-emerald-700">{summary?.green || 0} คน</span>
+                <span className="text-base font-bold font-mono text-emerald-700">{summary?.green || 0} คน</span>
               </div>
 
               <div className="p-3 bg-slate-100 border border-slate-300 rounded-xl text-slate-900 flex items-center justify-between">
@@ -447,7 +447,7 @@ export default function IncidentReportModal({ incident, summary, patients = [], 
                   <span className="w-2.5 h-2.5 rounded-full bg-slate-900" />
                   <span>ดำ:</span>
                 </span>
-                <span className="text-base font-black font-mono text-slate-900">{summary?.black || 0} คน</span>
+                <span className="text-base font-bold font-mono text-slate-900">{summary?.black || 0} คน</span>
               </div>
             </div>
           </div>
@@ -455,7 +455,7 @@ export default function IncidentReportModal({ incident, summary, patients = [], 
           {/* SECTION 3: PATIENT DATA PREVIEW TABLE */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-xs sm:text-sm font-black text-slate-900">
+              <h3 className="text-xs sm:text-sm font-semibold text-slate-900">
                 ตัวอย่างรายชื่อผู้บาดเจ็บ ({patients.length} ราย)
               </h3>
               <span className="text-[11px] text-slate-500">
@@ -466,7 +466,7 @@ export default function IncidentReportModal({ incident, summary, patients = [], 
             <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
               <div className="overflow-x-auto max-h-72">
                 <table className="w-full text-left border-collapse text-xs">
-                  <thead className="sticky top-0 bg-slate-900 text-white font-black z-10">
+                  <thead className="sticky top-0 bg-slate-900 text-white font-semibold z-10">
                     <tr>
                       <th className="py-2.5 px-3 text-center w-12">ลำดับ</th>
                       <th className="py-2.5 px-3">ชื่อสกุล</th>
@@ -512,17 +512,17 @@ export default function IncidentReportModal({ incident, summary, patients = [], 
 
                         return (
                           <tr key={pt.id || idx} className="hover:bg-slate-50">
-                            <td className="py-2 px-3 text-center font-mono font-bold text-slate-600">
+                            <td className="py-2 px-3 text-center font-mono font-semibold text-slate-600">
                               {idx + 1}
                             </td>
-                            <td className="py-2 px-3 font-bold text-slate-900">
+                            <td className="py-2 px-3 font-semibold text-slate-900">
                               {pt.pt_name || 'ไม่ระบุชื่อ'}
                             </td>
                             <td className="py-2 px-2 text-center text-slate-700">
                               {pt.age ? `${pt.age} ปี` : '-'}
                             </td>
                             <td className="py-2 px-3 text-center">
-                              <span className={`inline-block px-2.5 py-0.5 rounded-lg text-xs font-black border ${badgeClass}`}>
+                              <span className={`inline-block px-2.5 py-0.5 rounded-lg text-xs font-semibold border ${badgeClass}`}>
                                 {triageColorOnly}
                               </span>
                             </td>
@@ -532,16 +532,16 @@ export default function IncidentReportModal({ incident, summary, patients = [], 
                             <td className="py-2 px-3 text-slate-800">
                               {pt.diag && pt.diag !== '-' ? pt.diag : (pt.injury_info || '-')}
                             </td>
-                            <td className="py-2 px-2 text-center font-bold text-slate-900">
+                            <td className="py-2 px-2 text-center font-semibold text-slate-900">
                               {isDC ? '✓' : ''}
                             </td>
-                            <td className="py-2 px-2 text-center font-bold text-slate-900">
+                            <td className="py-2 px-2 text-center font-semibold text-slate-900">
                               {isAdmit ? '✓' : ''}
                             </td>
                             <td className="py-2 px-3 text-center text-slate-800 truncate max-w-[120px]">
                               {referHosp || '-'}
                             </td>
-                            <td className="py-2 px-2 text-center font-bold text-rose-700">
+                            <td className="py-2 px-2 text-center font-semibold text-rose-700">
                               {deadText ? `✓ (${deadText})` : ''}
                             </td>
                           </tr>
@@ -560,7 +560,7 @@ export default function IncidentReportModal({ incident, summary, patients = [], 
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2.5 text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-200 rounded-xl transition cursor-pointer"
+            className="px-5 py-2.5 text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-200 rounded-xl transition cursor-pointer"
           >
             ปิดหน้าต่าง
           </button>
@@ -570,7 +570,7 @@ export default function IncidentReportModal({ incident, summary, patients = [], 
               type="button"
               onClick={handleSaveMetadata}
               disabled={saving}
-              className="flex items-center gap-2 px-5 py-2.5 bg-slate-800 hover:bg-slate-900 active:scale-98 text-white text-xs sm:text-sm font-bold rounded-xl shadow-xs transition cursor-pointer"
+              className="flex items-center gap-2 px-5 py-2.5 bg-slate-800 hover:bg-slate-900 active:scale-98 text-white text-xs sm:text-sm font-semibold rounded-xl shadow-xs transition cursor-pointer"
             >
               <Save size={16} />
               <span>{saving ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}</span>
@@ -580,7 +580,7 @@ export default function IncidentReportModal({ incident, summary, patients = [], 
               type="button"
               onClick={handleDownloadExcel}
               disabled={downloadingExcel}
-              className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white text-xs sm:text-sm font-black rounded-xl shadow-md shadow-emerald-600/20 transition cursor-pointer"
+              className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white text-xs sm:text-sm font-semibold rounded-xl shadow-md shadow-emerald-600/20 transition cursor-pointer"
             >
               <FileSpreadsheet size={18} />
               <span>{downloadingExcel ? 'กำลังสร้างไฟล์ Excel...' : '📥 ดาวน์โหลดรายงาน Excel (.xlsx)'}</span>

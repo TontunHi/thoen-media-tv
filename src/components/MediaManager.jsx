@@ -246,7 +246,7 @@ export default function MediaManager() {
           <div className="w-20 h-20 rounded-3xl bg-white shadow-2xl flex items-center justify-center text-teal-600 mb-4 animate-bounce">
             <Upload size={38} />
           </div>
-          <h3 className="text-2xl font-black text-white drop-shadow">ปล่อยไฟล์ที่นี่เพื่ออัปโหลดทันที</h3>
+          <h3 className="text-2xl font-bold text-white drop-shadow">ปล่อยไฟล์ที่นี่เพื่ออัปโหลดทันที</h3>
           <p className="text-teal-200 text-sm mt-1">
             ไฟล์จะถูกบันทึกไปยังโฟลเดอร์ "{selectedFolder ? selectedFolder.name : 'สื่อทั้งหมด'}"
           </p>
@@ -260,7 +260,7 @@ export default function MediaManager() {
             <Sparkles size={15} />
             <span>Digital Asset Management</span>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-3">
             <span>คลังจัดการสื่อ (Media Assets)</span>
           </h2>
           <p className="text-slate-500 text-sm mt-1">

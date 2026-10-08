@@ -39,14 +39,14 @@ export default function LoginModal({ onLoginSuccess }) {
             className="w-16 h-16 rounded-2xl shadow-xl shadow-indigo-500/25 mb-4"
           />
           <div className="flex items-center gap-1.5 mb-1">
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
               THOEN MEDIA TV
             </h1>
-            <span className="px-1.5 py-0.2 bg-teal-50 text-teal-700 text-[10px] font-black rounded-md border border-teal-200/60 uppercase">
+            <span className="px-1.5 py-0.2 bg-teal-50 text-teal-700 text-[10px] font-semibold rounded-md border border-teal-200/60 uppercase">
               Studio
             </span>
           </div>
-          <p className="text-slate-500 text-xs text-center font-medium">
+          <p className="text-slate-500 text-xs text-center font-normal">
             ระบบบริหารจัดการสื่อโทรทัศน์โรงพยาบาลเถิน จ.ลำปาง
           </p>
         </div>
@@ -60,7 +60,7 @@ export default function LoginModal({ onLoginSuccess }) {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
               ชื่อผู้ใช้งาน (Username)
             </label>
             <div className="relative">
@@ -73,14 +73,14 @@ export default function LoginModal({ onLoginSuccess }) {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
-                className="w-full pl-10 pr-4 py-3 bg-slate-50/60 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent focus:bg-white transition-all text-sm"
+                className="w-full pl-10 pr-4 py-3 bg-slate-50/60 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent focus:bg-white transition-all text-sm font-normal"
                 placeholder="ระบุชื่อผู้ใช้งาน"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
               รหัสผ่าน (Password)
             </label>
             <div className="relative">
@@ -93,7 +93,7 @@ export default function LoginModal({ onLoginSuccess }) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full pl-10 pr-4 py-3 bg-slate-50/60 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent focus:bg-white transition-all text-sm"
+                className="w-full pl-10 pr-4 py-3 bg-slate-50/60 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent focus:bg-white transition-all text-sm font-normal"
                 placeholder="ระบุรหัสผ่าน"
               />
             </div>
@@ -103,7 +103,7 @@ export default function LoginModal({ onLoginSuccess }) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 bg-gradient-to-r from-teal-600 to-indigo-600 hover:from-teal-700 hover:to-indigo-700 disabled:opacity-50 text-white font-bold rounded-xl shadow-lg shadow-teal-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer hover:-translate-y-0.5 text-sm"
+              className="w-full py-3.5 bg-gradient-to-r from-teal-600 to-indigo-600 hover:from-teal-700 hover:to-indigo-700 disabled:opacity-50 text-white font-semibold rounded-xl shadow-lg shadow-teal-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer hover:-translate-y-0.5 text-sm"
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

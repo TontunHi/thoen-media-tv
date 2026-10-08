@@ -74,12 +74,23 @@ export default function TvPlayer() {
     }
   }, []);
 
-  // Global Audio Unlock Listener (Bypasses strict browser autoplay policy upon user tap/click/key)
+  // Initialize AudioContext and Auto-unmute Subsystems for TV Displays
   useEffect(() => {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) {
+        const ctx = new AudioCtx();
+        if (ctx.state === 'suspended') {
+          ctx.resume().catch(() => {});
+        }
+      }
+    } catch (e) {}
+
     const unlockAudio = () => {
       setIsMuted(false);
       if (videoRef.current) {
         videoRef.current.muted = false;
+        videoRef.current.volume = 1.0;
         videoRef.current.play().catch(() => {});
       }
       if (ytPlayerRef.current && typeof ytPlayerRef.current.unMute === 'function') {
@@ -100,11 +111,13 @@ export default function TvPlayer() {
     window.addEventListener('click', unlockAudio, { once: true });
     window.addEventListener('touchstart', unlockAudio, { once: true });
     window.addEventListener('keydown', unlockAudio, { once: true });
+    window.addEventListener('pointerdown', unlockAudio, { once: true });
 
     return () => {
       window.removeEventListener('click', unlockAudio);
       window.removeEventListener('touchstart', unlockAudio);
       window.removeEventListener('keydown', unlockAudio);
+      window.removeEventListener('pointerdown', unlockAudio);
     };
   }, []);
 
@@ -210,19 +223,34 @@ export default function TvPlayer() {
     setCurrentIndex((prev) => (prev + 1) % list.length);
   }, []);
 
-  // Video autoplay unmuted with fallback to muted on strict browser autoplay policy
+  // Video unmuted autoplay: immediately play with full audio without requiring user tap/click
   useEffect(() => {
     if (currentItem?.file_type === 'video' && videoRef.current) {
-      videoRef.current.muted = isMuted;
-      videoRef.current.play().catch((err) => {
-        console.warn('Autoplay unmuted blocked by browser policy, falling back to muted until interaction:', err);
-        if (videoRef.current) {
-          videoRef.current.muted = true;
-          videoRef.current.play().catch(() => {});
-        }
-      });
+      const videoEl = videoRef.current;
+      videoEl.muted = false;
+      videoEl.volume = 1.0;
+
+      const playPromise = videoEl.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            videoEl.muted = false;
+            videoEl.volume = 1.0;
+          })
+          .catch((err) => {
+            console.warn('Initial unmuted play rejected by browser policy, executing immediate auto-unmute sequence:', err);
+            // Fallback: start playback muted, then immediately unmute after first frame
+            videoEl.muted = true;
+            videoEl.play().then(() => {
+              setTimeout(() => {
+                videoEl.muted = false;
+                videoEl.volume = 1.0;
+              }, 120);
+            }).catch(() => {});
+          });
+      }
     }
-  }, [currentItemId, cycleTick, isMuted, currentItem?.file_type]);
+  }, [currentItemId, cycleTick, currentItem?.file_type]);
 
   // HLS (.m3u8) Direct Stream playback support (OBS / Live Streaming server / CCTV)
   useEffect(() => {
@@ -438,8 +466,16 @@ export default function TvPlayer() {
               key={`${currentItem.id}-${cycleTick}`}
               src={currentItem.file_path}
               autoPlay
-              muted={isMuted}
               playsInline
+              onPlaying={(e) => {
+                e.target.muted = false;
+                e.target.volume = 1.0;
+              }}
+              onCanPlay={(e) => {
+                e.target.muted = false;
+                e.target.volume = 1.0;
+                e.target.play().catch(() => {});
+              }}
               onEnded={nextItem}
               onError={(e) => {
                 console.error('Video error (possibly moved or removed):', e);

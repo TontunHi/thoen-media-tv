@@ -139,7 +139,7 @@ export default function TvManager() {
             <Radio size={15} className="animate-pulse" />
             <span>Digital Signage Studio Control</span>
           </div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-3">
             <span>ผังควบคุมจอโทรทัศน์</span>
             <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">
               {tvs.length} เครื่อง
@@ -249,7 +249,7 @@ export default function TvManager() {
                     <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between pointer-events-none">
                       {/* Live Badge */}
                       <div
-                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold tracking-wider border backdrop-blur-md shadow-xs ${
+                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wider border backdrop-blur-md shadow-xs ${
                           isOnline
                             ? 'bg-emerald-950/80 text-emerald-400 border-emerald-500/40 shadow-emerald-500/20'
                             : 'bg-slate-900/80 text-slate-400 border-slate-700'
@@ -289,7 +289,7 @@ export default function TvManager() {
                   {/* TV Info Header */}
                   <div className="flex items-start justify-between gap-2 mb-3">
                     <div className="min-w-0">
-                      <h3 className="font-extrabold text-base text-slate-900 truncate tracking-tight">
+                      <h3 className="font-bold text-base text-slate-900 truncate tracking-tight">
                         {tv.name}
                       </h3>
                       <div className="flex items-center gap-2 mt-1">

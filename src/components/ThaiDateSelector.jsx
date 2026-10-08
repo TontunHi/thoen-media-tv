@@ -129,10 +129,10 @@ export default function ThaiDateSelector({
     <div className={`space-y-1.5 ${className}`}>
       {label && (
         <div className="flex items-center justify-between mb-1">
-          <label className="block text-xs font-extrabold text-slate-700">
+          <label className="block text-xs font-medium text-slate-700">
             {label}
           </label>
-          <span className="text-[11px] font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200">
+          <span className="text-[11px] font-semibold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200">
             วัน / เดือน / ปี (พ.ศ.)
           </span>
         </div>
