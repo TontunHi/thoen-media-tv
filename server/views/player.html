@@ -256,6 +256,12 @@
       </button>
     </div>
 
+    <!-- Audio Hint Banner for Smart TV / Browser autoplay policy fallback -->
+    <div id="audio-hint" style="display:none; position:fixed; bottom:76px; left:50%; transform:translateX(-50%); background:rgba(15, 23, 42, 0.95); border:1px solid rgba(45, 212, 191, 0.6); color:#ffffff; padding:10px 24px; border-radius:9999px; font-size:14px; font-weight:600; z-index:99; box-shadow:0 10px 30px rgba(0,0,0,0.7); align-items:center; gap:10px; cursor:pointer; pointer-events:auto; animation:pulse 2s infinite;">
+      <span style="font-size:18px;">🔊</span>
+      <span>กดปุ่มใดก็ได้บนรีโมท หรือแตะหน้าจอเพื่อเปิดเสียง</span>
+    </div>
+
     <!-- Waiting / Initial Loading Screen -->
     <div id="waiting-screen" class="waiting-screen">
       <div id="loading-spinner" class="spinner"></div>
@@ -299,7 +305,7 @@
       var currentIndex = 0;
       var activeLayerIndex = 0;
       var isMuted = false;
-      var isAudioUnlocked = false;
+      var isAudioUnlocked = true;
       var slideTimer = null;
       var syncTimer = null;
       var clockTimer = null;
@@ -319,12 +325,40 @@
       var waitingClockTextEl = document.getElementById('waiting-clock-text');
       var itemCounterEl = document.getElementById('item-counter');
       var bottomControlsEl = document.getElementById('bottom-controls');
+      var audioHintEl = document.getElementById('audio-hint');
       var btnMuteEl = document.getElementById('btn-mute');
       var btnFullscreenEl = document.getElementById('btn-fullscreen');
       var iconVolOn = document.getElementById('icon-vol-on');
       var iconVolOff = document.getElementById('icon-vol-off');
       var iconFsEnter = document.getElementById('icon-fs-enter');
       var iconFsExit = document.getElementById('icon-fs-exit');
+
+      // Helper to show/hide audio hint banner
+      function showAudioHint() {
+        if (audioHintEl && !isAudioUnlocked && !isMuted) {
+          audioHintEl.style.display = 'inline-flex';
+        }
+      }
+
+      function hideAudioHint() {
+        if (audioHintEl) {
+          audioHintEl.style.display = 'none';
+        }
+      }
+
+      function tryResumeAudioContext() {
+        try {
+          var AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) {
+            if (!window.__audioCtx) {
+              window.__audioCtx = new AudioCtx();
+            }
+            if (window.__audioCtx.state === 'suspended') {
+              window.__audioCtx.resume().catch(function () {});
+            }
+          }
+        } catch (e) {}
+      }
 
       // 2. Clock updater (low CPU footprint)
       function updateClock() {
@@ -404,7 +438,7 @@
                 videoId: yId,
                 playerVars: {
                   autoplay: 1,
-                  mute: (isMuted || !isAudioUnlocked) ? 1 : 0,
+                  mute: isMuted ? 1 : 0,
                   controls: 0,
                   rel: 0,
                   modestbranding: 1,
@@ -415,7 +449,7 @@
                 events: {
                   onReady: function (e) {
                     try {
-                      if (isAudioUnlocked && !isMuted) {
+                      if (!isMuted) {
                         e.target.unMute();
                         e.target.setVolume(100);
                       }
@@ -425,7 +459,7 @@
                   onStateChange: function (e) {
                     if (e.data === window.YT.PlayerState.PLAYING) {
                       try {
-                        if (isAudioUnlocked && !isMuted) {
+                        if (!isMuted) {
                           e.target.unMute();
                           e.target.setVolume(100);
                         }
@@ -443,7 +477,7 @@
             } catch (err) {
               var iframeYt = document.createElement('iframe');
               iframeYt.className = 'media-frame';
-              iframeYt.src = getYouTubeEmbedUrl(filePath, true, isMuted || !isAudioUnlocked);
+              iframeYt.src = getYouTubeEmbedUrl(filePath, true, isMuted);
               iframeYt.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen';
               iframeYt.allowFullscreen = true;
               layer.appendChild(iframeYt);
@@ -451,7 +485,7 @@
           } else {
             var iframeYt = document.createElement('iframe');
             iframeYt.className = 'media-frame';
-            iframeYt.src = getYouTubeEmbedUrl(filePath, true, isMuted || !isAudioUnlocked);
+            iframeYt.src = getYouTubeEmbedUrl(filePath, true, isMuted);
             iframeYt.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen';
             iframeYt.allowFullscreen = true;
             layer.appendChild(iframeYt);
@@ -459,7 +493,7 @@
         } else if (fileType === 'facebook') {
           var iframeFb = document.createElement('iframe');
           iframeFb.className = 'media-frame';
-          iframeFb.src = getFacebookEmbedUrl(filePath, true, isMuted || !isAudioUnlocked);
+          iframeFb.src = getFacebookEmbedUrl(filePath, true, isMuted);
           iframeFb.allow = 'autoplay; fullscreen';
           iframeFb.allowFullscreen = true;
           layer.appendChild(iframeFb);
@@ -469,15 +503,21 @@
             vStream.className = 'media-fit';
             vStream.src = filePath;
             vStream.autoplay = true;
-            vStream.muted = isMuted || !isAudioUnlocked;
+            vStream.muted = isMuted;
+            vStream.volume = 1.0;
             vStream.setAttribute('playsinline', '');
+            vStream.setAttribute('webkit-playsinline', 'true');
+            vStream.setAttribute('x5-playsinline', 'true');
             vStream.onended = onVideoEnd;
             vStream.onerror = onMediaError;
             layer.appendChild(vStream);
-            vStream.play().catch(function () {
-              vStream.muted = true;
-              vStream.play().catch(function () {});
-            });
+            var streamPromise = vStream.play();
+            if (streamPromise !== undefined) {
+              streamPromise.catch(function () {
+                vStream.muted = true;
+                vStream.play().catch(function () {});
+              });
+            }
           } else {
             var iframeWeb = document.createElement('iframe');
             iframeWeb.className = 'media-frame';
@@ -491,27 +531,43 @@
           videoEl.className = 'media-fit';
           videoEl.src = filePath;
           videoEl.autoplay = true;
-          videoEl.muted = isMuted || !isAudioUnlocked;
-          videoEl.volume = 1.0;
           videoEl.setAttribute('playsinline', '');
+          videoEl.setAttribute('webkit-playsinline', 'true');
+          videoEl.setAttribute('x5-playsinline', 'true');
+          videoEl.preload = 'auto';
           videoEl.onended = onVideoEnd;
           videoEl.onerror = onMediaError;
+
+          // Attempt playing with full audio first (unmuted)
+          if (isMuted) {
+            videoEl.muted = true;
+          } else {
+            videoEl.muted = false;
+            videoEl.volume = 1.0;
+          }
+
           layer.appendChild(videoEl);
 
           var playPromise = videoEl.play();
           if (playPromise !== undefined) {
             playPromise.then(function () {
-              // Video is actively playing
-              if (isAudioUnlocked && !isMuted) {
-                videoEl.muted = false;
-                videoEl.volume = 1.0;
+              // Video played successfully
+              if (!isMuted && !videoEl.muted) {
+                isAudioUnlocked = true;
+                hideAudioHint();
               }
             }).catch(function (err) {
-              // If unmuted playback was rejected by browser policy, play muted immediately so video never stops
+              console.warn('Direct unmuted play blocked by browser policy, falling back to muted autoplay:', err);
+              // Fallback: play muted immediately so video never halts on screen
               videoEl.muted = true;
               videoEl.play().catch(function (e) {
-                console.error('Video autoplay failed:', e);
+                console.error('Muted autoplay fallback failed:', e);
               });
+              // Show unblock hint for TV user
+              if (!isMuted) {
+                isAudioUnlocked = false;
+                showAudioHint();
+              }
             });
           }
         } else {
@@ -785,12 +841,15 @@
       function unlockAudio() {
         isAudioUnlocked = true;
         isMuted = false;
+        hideAudioHint();
+        tryResumeAudioContext();
+
         if (iconVolOn) iconVolOn.style.display = 'inline';
         if (iconVolOff) iconVolOff.style.display = 'none';
 
-        var activeLayer = layers[activeLayerIndex];
-        if (activeLayer) {
-          var videos = activeLayer.getElementsByTagName('video');
+        layers.forEach(function (layer) {
+          if (!layer) return;
+          var videos = layer.getElementsByTagName('video');
           for (var i = 0; i < videos.length; i++) {
             videos[i].muted = false;
             videos[i].volume = 1.0;
@@ -798,13 +857,14 @@
               videos[i].play().catch(function () {});
             }
           }
-          if (activeLayer.__ytPlayer && typeof activeLayer.__ytPlayer.unMute === 'function') {
+          if (layer.__ytPlayer && typeof layer.__ytPlayer.unMute === 'function') {
             try {
-              activeLayer.__ytPlayer.unMute();
-              activeLayer.__ytPlayer.setVolume(100);
+              layer.__ytPlayer.unMute();
+              layer.__ytPlayer.setVolume(100);
+              layer.__ytPlayer.playVideo();
             } catch (e) {}
           }
-        }
+        });
       }
 
       function toggleMute() {
@@ -812,24 +872,31 @@
         if (iconVolOn) iconVolOn.style.display = isMuted ? 'none' : 'inline';
         if (iconVolOff) iconVolOff.style.display = isMuted ? 'inline' : 'none';
 
-        var activeLayer = layers[activeLayerIndex];
-        if (activeLayer) {
-          var videos = activeLayer.getElementsByTagName('video');
+        if (isMuted) {
+          hideAudioHint();
+        }
+
+        layers.forEach(function (layer) {
+          if (!layer) return;
+          var videos = layer.getElementsByTagName('video');
           for (var i = 0; i < videos.length; i++) {
             videos[i].muted = isMuted;
-            if (!isMuted) videos[i].volume = 1.0;
+            if (!isMuted) {
+              videos[i].volume = 1.0;
+              if (videos[i].paused) videos[i].play().catch(function () {});
+            }
           }
-          if (activeLayer.__ytPlayer) {
+          if (layer.__ytPlayer) {
             try {
               if (isMuted) {
-                activeLayer.__ytPlayer.mute();
+                layer.__ytPlayer.mute();
               } else {
-                activeLayer.__ytPlayer.unMute();
-                activeLayer.__ytPlayer.setVolume(100);
+                layer.__ytPlayer.unMute();
+                layer.__ytPlayer.setVolume(100);
               }
             } catch (e) {}
           }
-        }
+        });
       }
 
       function toggleFullscreen() {
@@ -862,17 +929,42 @@
         }, 3000);
       }
 
-      // Unlock audio on any interaction gesture across the window
-      var unlockEvents = ['click', 'touchstart', 'touchend', 'keydown', 'mousedown', 'pointerdown'];
+      // Unlock audio on ANY interaction gesture across window (Mouse, Touch, Remote, Keyboard)
+      var unlockEvents = ['click', 'touchstart', 'touchend', 'keydown', 'keyup', 'keypress', 'mousedown', 'pointerdown', 'wheel', 'focus', 'pageshow'];
       unlockEvents.forEach(function (evt) {
-        window.addEventListener(evt, unlockAudio, { passive: true });
+        window.addEventListener(evt, function () {
+          if (!isAudioUnlocked && !isMuted) {
+            unlockAudio();
+          }
+        }, { passive: true });
       });
+
+      if (audioHintEl) {
+        audioHintEl.addEventListener('click', unlockAudio);
+      }
+
+      // Smart TV Remote & Keyboard Shortcuts
+      window.addEventListener('keydown', function (e) {
+        var key = e.key || '';
+        if (key === 'm' || key === 'M' || key === 'AudioVolumeMute') {
+          toggleMute();
+        } else if (key === 'f' || key === 'F') {
+          toggleFullscreen();
+        } else if (key === 'ArrowRight' || key === 'ChannelUp' || key === 'MediaTrackNext') {
+          advanceNext();
+        } else if (key === 'ArrowLeft' || key === 'ChannelDown' || key === 'MediaTrackPrevious') {
+          var prevIdx = (currentIndex - 1 + activeItems.length) % activeItems.length;
+          showSlide(prevIdx);
+        }
+      });
+
       window.addEventListener('mousemove', onUserActivity, { passive: true });
 
       if (btnMuteEl) btnMuteEl.addEventListener('click', toggleMute);
       if (btnFullscreenEl) btnFullscreenEl.addEventListener('click', toggleFullscreen);
 
       // Start initial load and background sync (every 15s)
+      tryResumeAudioContext();
       loadTvPlayback();
       initSocket();
       syncTimer = setInterval(loadTvPlayback, 15000);

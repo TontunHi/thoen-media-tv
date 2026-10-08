@@ -8,6 +8,7 @@ import TvPlayer from './components/TvPlayer';
 import IncidentManager from './components/IncidentManager';
 import IncidentTvScreen from './components/IncidentTvScreen';
 import LoginModal from './components/LoginModal';
+import ErrorBoundary from './components/ErrorBoundary';
 import { api, getAuthToken, setAuthToken } from './services/api';
 
 function ProtectedLayout({ children, onLogout }) {
@@ -66,69 +67,71 @@ export default function App() {
   }
 
   return (
-    <Router>
-      <Routes>
-        {/* Public TV Player Route */}
-        <Route path="/tv/:slug" element={<TvPlayer />} />
+    <ErrorBoundary>
+      <Router>
+        <Routes>
+          {/* Public TV Player Route */}
+          <Route path="/tv/:slug" element={<TvPlayer />} />
 
-        {/* Public TV Incident Fullscreen Display Route */}
-        <Route path="/tv-incident" element={<IncidentTvScreen />} />
-        <Route path="/incident-display" element={<IncidentTvScreen />} />
+          {/* Public TV Incident Fullscreen Display Route */}
+          <Route path="/tv-incident" element={<IncidentTvScreen />} />
+          <Route path="/incident-display" element={<IncidentTvScreen />} />
 
-        {/* Admin Routes with Authentication */}
-        {!isAuthenticated ? (
-          <Route
-            path="*"
-            element={<LoginModal onLoginSuccess={() => setIsAuthenticated(true)} />}
-          />
-        ) : (
-          <>
+          {/* Admin Routes with Authentication */}
+          {!isAuthenticated ? (
             <Route
-              path="/upload"
-              element={
-                <ProtectedLayout onLogout={handleLogout}>
-                  <MediaManager />
-                </ProtectedLayout>
-              }
+              path="*"
+              element={<LoginModal onLoginSuccess={() => setIsAuthenticated(true)} />}
             />
-            <Route path="/media" element={<Navigate to="/upload" replace />} />
+          ) : (
+            <>
+              <Route
+                path="/upload"
+                element={
+                  <ProtectedLayout onLogout={handleLogout}>
+                    <MediaManager />
+                  </ProtectedLayout>
+                }
+              />
+              <Route path="/media" element={<Navigate to="/upload" replace />} />
 
-            <Route
-              path="/playlist"
-              element={
-                <ProtectedLayout onLogout={handleLogout}>
-                  <PlaylistManager />
-                </ProtectedLayout>
-              }
-            />
-            <Route path="/playlists" element={<Navigate to="/playlist" replace />} />
+              <Route
+                path="/playlist"
+                element={
+                  <ProtectedLayout onLogout={handleLogout}>
+                    <PlaylistManager />
+                  </ProtectedLayout>
+                }
+              />
+              <Route path="/playlists" element={<Navigate to="/playlist" replace />} />
 
-            <Route
-              path="/tv"
-              element={
-                <ProtectedLayout onLogout={handleLogout}>
-                  <TvManager />
-                </ProtectedLayout>
-              }
-            />
-            <Route path="/tvs" element={<Navigate to="/tv" replace />} />
+              <Route
+                path="/tv"
+                element={
+                  <ProtectedLayout onLogout={handleLogout}>
+                    <TvManager />
+                  </ProtectedLayout>
+                }
+              />
+              <Route path="/tvs" element={<Navigate to="/tv" replace />} />
 
-            <Route
-              path="/incident"
-              element={
-                <ProtectedLayout onLogout={handleLogout}>
-                  <IncidentManager />
-                </ProtectedLayout>
-              }
-            />
-            <Route path="/incidents" element={<Navigate to="/incident" replace />} />
+              <Route
+                path="/incident"
+                element={
+                  <ProtectedLayout onLogout={handleLogout}>
+                    <IncidentManager />
+                  </ProtectedLayout>
+                }
+              />
+              <Route path="/incidents" element={<Navigate to="/incident" replace />} />
 
-            {/* Default redirect to /upload */}
-            <Route path="/" element={<Navigate to="/upload" replace />} />
-            <Route path="*" element={<Navigate to="/upload" replace />} />
-          </>
-        )}
-      </Routes>
-    </Router>
+              {/* Default redirect to /upload */}
+              <Route path="/" element={<Navigate to="/upload" replace />} />
+              <Route path="*" element={<Navigate to="/upload" replace />} />
+            </>
+          )}
+        </Routes>
+      </Router>
+    </ErrorBoundary>
   );
 }

@@ -5,6 +5,7 @@ const fs = require('fs');
 const fsp = require('fs').promises;
 const { getPool } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
+const { fileExists, fixMulterFilename } = require('../utils/fs');
 const {
   rootUploadDir,
   getRelativeFolderPath,
@@ -12,41 +13,6 @@ const {
 } = require('../utils/folderPath');
 
 const router = express.Router();
-
-// Helper to fix Multer latin1 encoding bug on non-ASCII filenames (e.g. Thai characters)
-function fixMulterFilename(filename) {
-  if (!filename || typeof filename !== 'string') return filename;
-  try {
-    // If the string already contains high unicode characters (> 0xFF, such as Thai \u0E00-\u0E7F),
-    // it is already properly decoded UTF-8.
-    if (/[\u0100-\uFFFF]/.test(filename)) {
-      return filename;
-    }
-    // If it only contains ASCII characters (<= 0x7F), no conversion needed.
-    if (!/[\u0080-\u00FF]/.test(filename)) {
-      return filename;
-    }
-    // Attempt decoding latin1 bytes into UTF-8
-    const decoded = Buffer.from(filename, 'latin1').toString('utf8');
-    // If decoding succeeded without replacement character '\uFFFD', return decoded string
-    if (!decoded.includes('\uFFFD')) {
-      return decoded;
-    }
-    return filename;
-  } catch {
-    return filename;
-  }
-}
-
-// Helper to check if file/directory exists asynchronously
-async function fileExists(p) {
-  try {
-    await fsp.access(p);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {

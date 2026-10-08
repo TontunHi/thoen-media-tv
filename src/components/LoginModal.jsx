@@ -3,8 +3,8 @@ import { api, setAuthToken } from '../services/api';
 import { Lock, User, AlertCircle, Tv, Sparkles, ShieldCheck } from 'lucide-react';
 
 export default function LoginModal({ onLoginSuccess }) {
-  const [username, setUsername] = useState('thoen');
-  const [password, setPassword] = useState('thlp11152');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 

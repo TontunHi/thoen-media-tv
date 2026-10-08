@@ -235,19 +235,47 @@ router.put('/:playlistId/reorder', authenticateToken, async (req, res) => {
     return res.status(400).json({ error: 'items array is required' });
   }
 
+  const pool = getPool();
+  const conn = await pool.getConnection();
+
   try {
-    const pool = getPool();
-    for (const item of items) {
-      await pool.query('UPDATE playlist_items SET display_order = ? WHERE id = ? AND playlist_id = ?', [item.display_order, item.id, playlistId]);
+    await conn.beginTransaction();
+
+    if (items.length > 0) {
+      const ids = [];
+      const cases = [];
+      const params = [];
+
+      for (const item of items) {
+        const itemId = parseInt(item.id, 10);
+        const displayOrder = parseInt(item.display_order, 10);
+        if (!isNaN(itemId) && !isNaN(displayOrder)) {
+          ids.push(itemId);
+          cases.push('WHEN id = ? THEN ?');
+          params.push(itemId, displayOrder);
+        }
+      }
+
+      if (ids.length > 0) {
+        const queryParams = [...params, playlistId, ids];
+        const sql = `UPDATE playlist_items 
+                     SET display_order = CASE ${cases.join(' ')} END 
+                     WHERE playlist_id = ? AND id IN (?)`;
+        await conn.query(sql, queryParams);
+      }
     }
 
-    await pool.query('UPDATE playlists SET updated_at = CURRENT_TIMESTAMP WHERE id = ?', [playlistId]);
-    await notifyTvClients(req, playlistId);
+    await conn.query('UPDATE playlists SET updated_at = CURRENT_TIMESTAMP WHERE id = ?', [playlistId]);
+    await conn.commit();
 
+    await notifyTvClients(req, playlistId);
     res.json({ success: true });
   } catch (error) {
+    await conn.rollback();
     console.error('Error reordering playlist items:', error);
     res.status(500).json({ error: 'Failed to reorder playlist items' });
+  } finally {
+    conn.release();
   }
 });
 

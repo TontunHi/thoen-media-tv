@@ -58,6 +58,9 @@ export const api = {
     }),
   checkAuth: () => request('/auth/me'),
 
+  // Stats
+  getStats: () => request('/stats'),
+
   // Folders
   getFolders: () => request('/folders'),
   createFolder: (name, parent_id) =>

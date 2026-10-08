@@ -1,6 +1,7 @@
 const express = require('express');
 const { getPool } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
+const { calculateIncidentSummary } = require('../utils/incidentSummary');
 
 const router = express.Router();
 
@@ -44,29 +45,13 @@ router.get('/public/:slug', async (req, res) => {
           [incident.id]
         );
 
-        let red = 0, yellow = 0, green = 0, black = 0;
-        patients.forEach((p) => {
-          const col = (p.triage_color || 'green').toLowerCase();
-          if (col === 'red') red++;
-          else if (col === 'yellow') yellow++;
-          else if (col === 'black' || col === 'white') black++;
-          else green++;
-        });
-        const refuseCount = parseInt(incident.refuse_treatment_count) || 0;
+        const summary = calculateIncidentSummary(patients, incident.refuse_treatment_count);
 
         return res.json({
           tv,
           is_incident_mode: true,
           incident,
-          summary: {
-            red,
-            yellow,
-            green,
-            black,
-            refuse_treatment: refuseCount,
-            registered_count: patients.length,
-            total: patients.length + refuseCount
-          },
+          summary,
           patients,
           playlist: null,
           items: []

@@ -2,11 +2,11 @@ const mysql = require('mysql2/promise');
 require('dotenv').config();
 
 const hosxpConfig = {
-  host: process.env.HOSXP_DB_HOST || '192.168.1.4',
+  host: process.env.HOSXP_DB_HOST || '127.0.0.1',
   port: parseInt(process.env.HOSXP_DB_PORT || '3306'),
-  user: process.env.HOSXP_DB_USER || 'guest',
-  password: process.env.HOSXP_DB_PASSWORD || 'guest',
-  database: process.env.HOSXP_DB_NAME || 'hos',
+  user: process.env.HOSXP_DB_USER || '',
+  password: process.env.HOSXP_DB_PASSWORD || process.env.HOSXP_DB_PASS || '',
+  database: process.env.HOSXP_DB_NAME || process.env.HOSXP_DB_DATABASE || 'hos',
   charset: 'utf8mb4',
   dateStrings: true,
   waitForConnections: true,

@@ -1,7 +1,6 @@
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
-
-const JWT_SECRET = process.env.JWT_SECRET || 'thoen_media_tv_secret_key_2026';
+const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? (() => { throw new Error('JWT_SECRET environment variable is required in production'); })() : 'dev_jwt_secret_change_in_production_key');
 
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];

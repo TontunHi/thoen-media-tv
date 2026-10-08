@@ -4,6 +4,7 @@ const fsp = require('fs').promises;
 const path = require('path');
 const { getPool } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
+const { fileExists } = require('../utils/fs');
 const {
   rootUploadDir,
   sanitizeFolderName,
@@ -12,16 +13,6 @@ const {
 } = require('../utils/folderPath');
 
 const router = express.Router();
-
-// Helper to check if path exists asynchronously
-async function fileExists(p) {
-  try {
-    await fsp.access(p);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 // Get all folders
 router.get('/', authenticateToken, async (req, res) => {

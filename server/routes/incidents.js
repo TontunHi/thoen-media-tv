@@ -5,39 +5,9 @@ const { queryHosxpAccidentPatients, mapTriageColor } = require('../hosxpDb');
 const { syncIncidentWithHosxp } = require('../services/incidentSyncService');
 const { generateIncidentExcelWorkbook } = require('../services/incidentExportService');
 
+const { calculateIncidentSummary } = require('../utils/incidentSummary');
+
 const router = express.Router();
-
-/**
- * Helper to compute summary counts for an incident
- */
-function calculateIncidentSummary(patients = [], refuseTreatmentCount = 0) {
-  let red = 0;
-  let yellow = 0;
-  let green = 0;
-  let black = 0;
-
-  patients.forEach((p) => {
-    const col = (p.triage_color || 'green').toLowerCase();
-    if (col === 'red') red++;
-    else if (col === 'yellow') yellow++;
-    else if (col === 'black' || col === 'white') black++;
-    else green++;
-  });
-
-  const registeredCount = patients.length;
-  const refuseCount = parseInt(refuseTreatmentCount) || 0;
-  const totalCount = registeredCount + refuseCount;
-
-  return {
-    red,
-    yellow,
-    green,
-    black,
-    refuse_treatment: refuseCount,
-    registered_count: registeredCount,
-    total: totalCount
-  };
-}
 
 // -------------------------------------------------------------
 // PUBLIC ENDPOINTS (FOR TV SCREENS & PUBLIC DASHBOARD)
@@ -68,11 +38,6 @@ router.get('/active/display', async (req, res) => {
         return res.json({ incident: null, summary: null, patients: [] });
       }
       const inc = latest[0];
-      
-      // Attempt background auto-sync if enabled
-      if (inc.is_auto_sync) {
-        await syncIncidentWithHosxp(inc.id, req.io);
-      }
 
       const [patients] = await pool.query(`
         SELECT * FROM incident_patients 
@@ -84,11 +49,6 @@ router.get('/active/display', async (req, res) => {
     }
 
     const incident = incidents[0];
-
-    // Attempt background auto-sync if enabled
-    if (incident.is_auto_sync) {
-      await syncIncidentWithHosxp(incident.id, req.io);
-    }
 
     const [patients] = await pool.query(`
       SELECT * FROM incident_patients 
@@ -122,11 +82,6 @@ router.get('/display/:id', async (req, res) => {
       return res.status(404).json({ error: 'Incident not found' });
     }
     const incident = incidents[0];
-
-    // Attempt background auto-sync if enabled
-    if (incident.is_auto_sync) {
-      await syncIncidentWithHosxp(incident.id, req.io);
-    }
 
     const [patients] = await pool.query(`
       SELECT * FROM incident_patients 
@@ -642,38 +597,46 @@ router.post('/:id/broadcast', authenticateToken, async (req, res) => {
   const { id } = req.params;
   const { active, tvIds } = req.body;
 
+  const incidentId = parseInt(id, 10);
+  if (isNaN(incidentId) || incidentId <= 0) {
+    return res.status(400).json({ error: 'Valid incident ID is required' });
+  }
+
+  // Strictly sanitize tvIds as an array of positive integers
+  const cleanTvIds = Array.isArray(tvIds)
+    ? tvIds.map(v => parseInt(v, 10)).filter(n => Number.isInteger(n) && n > 0)
+    : [];
+
   try {
     const pool = getPool();
     const isActive = active ? 1 : 0;
-    const selectedTvIds = Array.isArray(tvIds) ? tvIds : [];
 
     // 1. Update incident active status and list of broadcast TVs
     await pool.query('UPDATE incidents SET is_active = ?, broadcast_tvs = ? WHERE id = ?', [
       isActive,
-      JSON.stringify(selectedTvIds),
-      id
+      JSON.stringify(cleanTvIds),
+      incidentId
     ]);
 
     // 2. Clear old broadcast overrides for this incident
-    await pool.query('UPDATE tvs SET is_incident_override = 0, active_incident_id = NULL WHERE active_incident_id = ?', [id]);
+    await pool.query('UPDATE tvs SET is_incident_override = 0, active_incident_id = NULL WHERE active_incident_id = ?', [incidentId]);
 
     // 3. If active, assign override to selected TVs
-    if (isActive && selectedTvIds.length > 0) {
-      const placeholders = selectedTvIds.map(() => '?').join(',');
+    if (isActive && cleanTvIds.length > 0) {
       await pool.query(
-        `UPDATE tvs SET is_incident_override = 1, active_incident_id = ? WHERE id IN (${placeholders})`,
-        [id, ...selectedTvIds]
+        'UPDATE tvs SET is_incident_override = 1, active_incident_id = ? WHERE id IN (?)',
+        [incidentId, cleanTvIds]
       );
     }
 
     // 4. Notify all TV clients and admin consoles
     if (req.io) {
       req.io.emit('tv_config_changed', {});
-      req.io.emit('incident_updated', { incidentId: id, is_active: isActive });
-      req.io.emit('incident_broadcast_toggled', { incidentId: id, is_active: isActive, tvIds: selectedTvIds });
+      req.io.emit('incident_updated', { incidentId, is_active: isActive });
+      req.io.emit('incident_broadcast_toggled', { incidentId, is_active: isActive, tvIds: cleanTvIds });
     }
 
-    res.json({ success: true, is_active: isActive, broadcast_tvs: selectedTvIds });
+    res.json({ success: true, is_active: isActive, broadcast_tvs: cleanTvIds });
   } catch (error) {
     console.error('Error setting incident broadcast:', error);
     res.status(500).json({ error: 'Failed to broadcast incident' });

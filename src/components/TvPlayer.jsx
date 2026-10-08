@@ -178,11 +178,12 @@ export default function TvPlayer() {
   const [error, setError] = useState('');
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isMuted, setIsMuted] = useState(false);
+  const [showAudioHint, setShowAudioHint] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(false);
   const [cycleTick, setCycleTick] = useState(0);
 
-  const isAudioUnlockedRef = useRef(false);
+  const isAudioUnlockedRef = useRef(true);
   const videoRef = useRef(null);
   const timerRef = useRef(null);
   const controlsTimeoutRef = useRef(null);
@@ -239,6 +240,7 @@ export default function TvPlayer() {
   const unlockAudio = useCallback(() => {
     isAudioUnlockedRef.current = true;
     setIsMuted(false);
+    setShowAudioHint(false);
 
     try {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -286,7 +288,7 @@ export default function TvPlayer() {
     const handleGesture = () => {
       unlockAudio();
     };
-    const events = ['click', 'touchstart', 'touchend', 'keydown', 'mousedown', 'pointerdown'];
+    const events = ['click', 'touchstart', 'touchend', 'keydown', 'keyup', 'keypress', 'mousedown', 'pointerdown', 'wheel', 'focus', 'pageshow'];
     events.forEach((evt) => window.addEventListener(evt, handleGesture, { passive: true }));
     return () => {
       events.forEach((evt) => window.removeEventListener(evt, handleGesture));
@@ -294,7 +296,7 @@ export default function TvPlayer() {
   }, [unlockAudio]);
 
   // Load TV Playback data
-  const loadTvData = async (silent = false) => {
+  const loadTvData = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
       const data = await api.getTvPublic(slug);
@@ -309,7 +311,7 @@ export default function TvPlayer() {
     } finally {
       if (!silent) setLoading(false);
     }
-  };
+  }, [slug]);
 
   useEffect(() => {
     loadTvData();
@@ -399,22 +401,26 @@ export default function TvPlayer() {
   useEffect(() => {
     if (currentItem?.file_type === 'video' && videoRef.current) {
       const videoEl = videoRef.current;
-      videoEl.muted = isMuted || !isAudioUnlockedRef.current;
+      videoEl.muted = isMuted;
       videoEl.volume = 1.0;
 
       const playPromise = videoEl.play();
       if (playPromise !== undefined) {
         playPromise
           .then(() => {
-            if (isAudioUnlockedRef.current && !isMuted) {
-              videoEl.muted = false;
-              videoEl.volume = 1.0;
+            if (!isMuted && !videoEl.muted) {
+              isAudioUnlockedRef.current = true;
+              setShowAudioHint(false);
             }
           })
           .catch((err) => {
             console.warn('Initial unmuted play rejected by browser policy, starting safe muted playback:', err);
             videoEl.muted = true;
             videoEl.play().catch(() => {});
+            if (!isMuted) {
+              isAudioUnlockedRef.current = false;
+              setShowAudioHint(true);
+            }
           });
       }
     }
@@ -501,6 +507,27 @@ export default function TvPlayer() {
       setCurrentIndex(0);
     }
   }, [validItems.length, currentIndex]);
+
+  // Smart TV Remote and Keyboard Shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!isAudioUnlockedRef.current && !isMuted) {
+        unlockAudio();
+      }
+      const key = e.key || '';
+      if (key === 'm' || key === 'M' || key === 'AudioVolumeMute') {
+        setIsMuted((prev) => !prev);
+      } else if (key === 'f' || key === 'F') {
+        toggleFullscreen();
+      } else if (key === 'ArrowRight' || key === 'ChannelUp' || key === 'MediaTrackNext') {
+        nextItem();
+      } else if (key === 'ArrowLeft' || key === 'ChannelDown' || key === 'MediaTrackPrevious') {
+        setCurrentIndex((prev) => (prev - 1 + validItems.length) % validItems.length);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [unlockAudio, isMuted, nextItem, validItems.length]);
 
   // Toggle Fullscreen
   const toggleFullscreen = () => {
@@ -626,7 +653,7 @@ export default function TvPlayer() {
               key={`${currentItem.id}-${cycleTick}`}
               src={currentItem.file_path}
               autoPlay
-              muted={isMuted || !isAudioUnlockedRef.current}
+              muted={isMuted}
               playsInline
               onEnded={nextItem}
               onError={(e) => {
@@ -664,6 +691,17 @@ export default function TvPlayer() {
           {currentTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
         </div>
       </div>
+
+      {/* Audio Hint Overlay for TV / Browser autoplay policy fallback */}
+      {showAudioHint && !isMuted && (
+        <button
+          onClick={unlockAudio}
+          className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-slate-900/95 border border-teal-400/60 text-white px-6 py-2.5 rounded-full text-sm font-semibold flex items-center gap-3 shadow-2xl z-50 animate-pulse cursor-pointer hover:bg-slate-800 transition"
+        >
+          <Volume2 className="text-teal-400 w-5 h-5 animate-bounce" />
+          <span>กดปุ่มใดก็ได้บนรีโมท หรือแตะหน้าจอเพื่อเปิดเสียง</span>
+        </button>
+      )}
 
       {/* Interactive Controls Bar (Appears on Mouse Move) */}
       <div

@@ -27,17 +27,12 @@ export default function Sidebar({ onLogout }) {
   // Load quick live stats
   const loadStats = async () => {
     try {
-      const [tvs, media, playlists] = await Promise.all([
-        api.getTvs().catch(() => []),
-        api.getMedia('all').catch(() => []),
-        api.getPlaylists().catch(() => []),
-      ]);
-      const onlineCount = tvs.filter((t) => t.is_online === 1).length;
+      const data = await api.getStats();
       setStats({
-        totalTvs: tvs.length,
-        onlineTvs: onlineCount,
-        totalMedia: media.length,
-        totalPlaylists: playlists.length,
+        totalTvs: data.totalTvs || 0,
+        onlineTvs: data.onlineTvs || 0,
+        totalMedia: data.totalMedia || 0,
+        totalPlaylists: data.totalPlaylists || 0,
       });
     } catch (err) {
       console.error('Failed to load stats:', err);

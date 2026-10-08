@@ -1,12 +1,21 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const rateLimit = require('express-rate-limit');
 const { getPool } = require('../db');
 const { JWT_SECRET, authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 
-router.post('/login', async (req, res) => {
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // Limit each IP to 10 login requests per window
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'มีการพยายามเข้าสู่ระบบมากเกินไป กรุณารอ 15 นาทีแล้วลองใหม่อีกครั้ง (Too many login attempts. Please try again in 15 minutes)' }
+});
+
+router.post('/login', loginLimiter, async (req, res) => {
   const { username, password } = req.body;
 
   if (!username || !password) {
