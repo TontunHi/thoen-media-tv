@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../services/api';
 import { getSocket } from '../services/socket';
-import { Clock, Users, ShieldAlert, Activity, CheckCircle2, XCircle, ArrowUpDown, Radio } from 'lucide-react';
+import { Clock, Users, ShieldAlert, Activity, XCircle } from 'lucide-react';
 
 export default function IncidentTvScreen({ directIncidentId = null }) {
   const { id: paramId } = useParams();
@@ -634,33 +634,6 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
           </div>
         )}
       </main>
-
-      {/* 4. BOTTOM STATUS FOOTER WITH AUTO-SCROLL INDICATOR */}
-      <footer className="px-6 py-2.5 bg-white border-t-2 border-slate-200 flex items-center justify-between text-xs sm:text-sm text-slate-600 font-bold shrink-0">
-        <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse" />
-          <span className="text-slate-900 font-black">เชื่อมต่อฐานข้อมูล HOSxP สดอัตโนมัติ</span>
-          <span className="text-slate-400">•</span>
-          <span className="text-xs text-slate-500 font-medium">สำรวจเคสใหม่อัตโนมัติทุก 15 วินาที</span>
-        </div>
-
-        {/* Auto Scroll Indicator */}
-        {isAutoScrolling ? (
-          <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 px-4 py-1 rounded-full text-indigo-950 text-xs sm:text-sm font-black shadow-xs">
-            <ArrowUpDown size={15} className="text-indigo-600 animate-bounce shrink-0" />
-            <span>เลื่อนอัตโนมัติ (ขึ้น-ลง)</span>
-            <span className="text-indigo-400">•</span>
-            <span className="text-xs font-black text-indigo-700">
-              {scrollDirection === 'down' ? 'กำลังเลื่อนลง...' : scrollDirection === 'up' ? 'กำลังเลื่อนขึ้น...' : 'หยุด 5 วิ'}
-            </span>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3.5 py-1 rounded-full text-slate-700 text-xs font-bold">
-            <CheckCircle2 size={14} className="text-emerald-600" />
-            <span>แสดงผลครบถ้วน {patients.length} รายชื่อ ({isMultiColumn ? 'แบ่ง 2 ฝั่งสมดุล' : 'ตารางเดี่ยวเต็มจอ'})</span>
-          </div>
-        )}
-      </footer>
     </div>
   );
 }
