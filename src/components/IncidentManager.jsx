@@ -805,39 +805,6 @@ export default function IncidentManager() {
                   </div>
                 </div>
 
-                {/* Quick Time Presets Strip */}
-                <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                  <span className="text-[11px] font-bold text-slate-500 mr-1">ตั้งเวลาด่วน:</span>
-                  <button
-                    type="button"
-                    onClick={() => setQuickTime('now')}
-                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition cursor-pointer"
-                  >
-                    ตอนนี้ (Now)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setQuickTime('minus1h')}
-                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition cursor-pointer"
-                  >
-                    1 ชม. ที่แล้ว
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setQuickTime('minus2h')}
-                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition cursor-pointer"
-                  >
-                    2 ชม. ที่แล้ว
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setQuickTime('midnight')}
-                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition cursor-pointer"
-                  >
-                    00:00 (ตั้งแต่เริ่มวัน)
-                  </button>
-                </div>
-
                 {/* Auto-Sync Toggle & Connection Status Strip (Manual Sync Button Removed) */}
                 <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-2.5">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
