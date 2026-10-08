@@ -110,6 +110,63 @@ function YouTubePlayer({ videoUrl, isMuted, onEnded }) {
   );
 }
 
+/**
+ * Dedicated Facebook Video Player with automatic unmuting and finishedPlaying detection
+ */
+function FacebookPlayer({ videoUrl, isMuted, onEnded }) {
+  useEffect(() => {
+    let isCancelled = false;
+
+    const initFB = () => {
+      if (!window.FB || isCancelled) return;
+      try {
+        window.FB.XFBML.parse();
+        window.FB.Event.subscribe('xfbml.ready', function (msg) {
+          if (msg.type === 'video' && !isCancelled) {
+            try {
+              if (!isMuted) {
+                msg.instance.unmute();
+              }
+              msg.instance.play();
+              msg.instance.subscribe('finishedPlaying', function () {
+                if (onEnded) onEnded();
+              });
+            } catch (e) {}
+          }
+        });
+      } catch (e) {}
+    };
+
+    if (window.FB) {
+      initFB();
+    } else {
+      const timer = setInterval(() => {
+        if (window.FB) {
+          clearInterval(timer);
+          initFB();
+        }
+      }, 200);
+      return () => clearInterval(timer);
+    }
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [videoUrl, isMuted, onEnded]);
+
+  return (
+    <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center">
+      <iframe
+        src={getFacebookEmbedUrl(videoUrl, true, isMuted)}
+        title="Facebook Video"
+        className="w-full h-full border-0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
+        allowFullScreen
+      />
+    </div>
+  );
+}
+
 export default function TvPlayer() {
   const { slug } = useParams();
   const [loading, setLoading] = useState(true);
@@ -424,18 +481,14 @@ export default function TvPlayer() {
 
     if (timerRef.current) clearTimeout(timerRef.current);
 
-    const isStreamType = ['youtube', 'facebook', 'stream'].includes(currentItem.file_type);
-
     // 1. Image slides: advance after duration_seconds (default 10s)
     if (currentItem.file_type === 'image') {
       const durationMs = Math.max((currentItem.duration_seconds || 10) * 1000, 1000);
       timerRef.current = setTimeout(() => {
         nextItem();
       }, durationMs);
-    } else if (isStreamType) {
-      // 2. Live Stream slides (YouTube Live, Facebook Live, Web Stream):
-      // If duration_seconds > 0 and playlist has multiple items, rotate after duration.
-      // If duration_seconds is 0 / empty or only 1 item in playlist: PLAY CONTINUOUSLY WITHOUT LIMIT (ไม่มีการจำกัดเวลา)!
+    } else if (currentItem.file_type === 'stream') {
+      // 2. Live Streams (CCTV / Web Stream): rotate after duration_seconds if specified and multiple items exist
       const streamDuration = parseInt(currentItem.duration_seconds);
       if (validItems.length > 1 && streamDuration > 0) {
         const durationMs = Math.max(streamDuration * 1000, 1000);
@@ -444,7 +497,8 @@ export default function TvPlayer() {
         }, durationMs);
       }
     }
-    // 3. Local video slides: advance naturally on `onEnded` event
+    // 3. For 'video', 'youtube', and 'facebook':
+    // NEVER cut off by a timer! They will play continuously until the video finishes (onEnded event).
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
@@ -545,16 +599,12 @@ export default function TvPlayer() {
               onEnded={nextItem}
             />
           ) : currentItem.file_type === 'facebook' ? (
-            <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center">
-              <iframe
-                key={`${currentItem.id}-${cycleTick}`}
-                src={getFacebookEmbedUrl(currentItem.file_path, true, isMuted)}
-                title={currentItem.media_name}
-                className="w-full h-full border-0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
-                allowFullScreen
-              />
-            </div>
+            <FacebookPlayer
+              key={`${currentItem.id}-${cycleTick}`}
+              videoUrl={currentItem.file_path}
+              isMuted={isMuted}
+              onEnded={nextItem}
+            />
           ) : currentItem.file_type === 'stream' && currentItem.file_path?.includes('.m3u8') ? (
             <video
               ref={videoRef}
