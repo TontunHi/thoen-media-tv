@@ -192,10 +192,21 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
     };
   }, [data.patients, loading]);
 
-  // Format Date in Thai
+  // Format Date in Thai (immune to UTC timezone shift)
   const formatThaiDate = (dateStr) => {
     if (!dateStr) return '-';
     try {
+      const parts = String(dateStr).slice(0, 10).split('-');
+      if (parts.length === 3) {
+        const d = parseInt(parts[2], 10);
+        const m = parseInt(parts[1], 10) - 1;
+        const yBE = parseInt(parts[0], 10) + 543;
+        const monthNames = [
+          'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+          'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+        ];
+        return `${d} ${monthNames[m] || ''} ${yBE}`;
+      }
       const d = new Date(dateStr);
       return d.toLocaleDateString('th-TH', {
         year: 'numeric',
@@ -461,20 +472,37 @@ export default function IncidentTvScreen({ directIncidentId = null }) {
               <span className="text-slate-700 font-semibold">({incident.location})</span>
             )}
           </div>
-          <div className="text-xs text-slate-700 mt-0.5 flex flex-wrap items-center justify-center gap-2 font-bold">
-            <span>วันที่: <strong className="text-slate-950">{formatThaiDate(incident.incident_date)}</strong></span>
-            {incident.start_time && (
-              <span>
-                เวลา: <strong className="text-slate-950">{incident.start_time} น.</strong>
+          <div className="text-xs text-slate-700 mt-0.5 flex flex-wrap items-center justify-center gap-1.5 font-bold">
+            {incident.end_date && String(incident.end_date).slice(0, 10) !== String(incident.incident_date).slice(0, 10) ? (
+              /* Case 1: Cross-day timeframe (วัน เวลา ถึง วัน เวลา) */
+              <>
+                <span>วันที่: <strong className="text-slate-950">{formatThaiDate(incident.incident_date)}</strong></span>
+                {incident.start_time && (
+                  <span>เวลา: <strong className="text-slate-950">{incident.start_time} น.</strong></span>
+                )}
+                <span className="text-amber-800 font-black px-1">ถึง</span>
+                <span>วันที่: <strong className="text-slate-950">{formatThaiDate(incident.end_date)}</strong></span>
                 {incident.end_time ? (
-                  <span> ถึง <strong className="text-slate-950">{incident.end_time} น.</strong></span>
+                  <span>เวลา: <strong className="text-slate-950">{incident.end_time} น.</strong></span>
                 ) : (
                   <span className="text-emerald-700 font-extrabold"> (สดถึงปัจจุบัน)</span>
                 )}
-              </span>
-            )}
-            {incident.end_date && String(incident.end_date).slice(0, 10) !== String(incident.incident_date).slice(0, 10) && (
-              <span>ถึงวันที่: <strong className="text-slate-950">{formatThaiDate(incident.end_date)}</strong></span>
+              </>
+            ) : (
+              /* Case 2: Same-day timeframe (วัน เวลา ถึง เวลา หรือ สดถึงปัจจุบัน) */
+              <>
+                <span>วันที่: <strong className="text-slate-950">{formatThaiDate(incident.incident_date)}</strong></span>
+                {incident.start_time && (
+                  <span>
+                    เวลา: <strong className="text-slate-950">{incident.start_time} น.</strong>
+                    {incident.end_time ? (
+                      <span> ถึง <strong className="text-slate-950">{incident.end_time} น.</strong></span>
+                    ) : (
+                      <span className="text-emerald-700 font-extrabold"> (สดถึงปัจจุบัน)</span>
+                    )}
+                  </span>
+                )}
+              </>
             )}
           </div>
         </div>
