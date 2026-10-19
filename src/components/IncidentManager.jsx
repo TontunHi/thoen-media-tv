@@ -924,7 +924,7 @@ export default function IncidentManager() {
                 <div className="text-[11px] text-slate-500 flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-200/70">
                   <span className="flex items-center gap-1 font-medium">
                     <Server size={12} className="text-slate-400" />
-                    <span>เชื่อมต่อฐานข้อมูล HOSxP: <strong>192.168.1.4:3306</strong> (er_pt_type = 2)</span>
+                    <span>เชื่อมต่อฐานข้อมูล HOSxP: <strong>192.168.1.4:3306</strong> (er_accident_type_id = 20: อุบัติเหตุหมู่)</span>
                   </span>
                   <span className="font-semibold text-slate-600">
                     ซิงค์ล่าสุด: {lastSyncTime ? lastSyncTime.toLocaleTimeString('th-TH') : '-'}

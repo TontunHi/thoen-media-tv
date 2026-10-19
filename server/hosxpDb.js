@@ -66,7 +66,7 @@ async function queryHosxpAccidentPatients({ startDate, endDate, startTime, endTi
   const pool = getHosxpPool();
 
   const conditions = [
-    'e.er_pt_type = 2' // อุบัติเหตุ
+    'n.er_accident_type_id = 20' // ประเภทอุบัติเหตุหมู่ (V01-V89)
   ];
   const params = [];
 
@@ -119,14 +119,28 @@ SELECT
         COALESCE(p.fname, ''),
         ' ',
         COALESCE(p.lname, '')
+    ) AS \`ชื่อ-สกุล\`,
+    CONCAT(
+        COALESCE(p.pname, ''),
+        COALESCE(p.fname, ''),
+        ' ',
+        COALESCE(p.lname, '')
     ) AS pt_name,
     TIMESTAMPDIFF(
         YEAR,
         p.birthday,
         e.vstdate
+    ) AS \`อายุ\`,
+    TIMESTAMPDIFF(
+        YEAR,
+        p.birthday,
+        e.vstdate
     ) AS age,
+    COALESCE(el.er_emergency_level_name, 'ไม่ระบุ') AS \`ความเร่งด่วน\`,
     COALESCE(el.er_emergency_level_name, 'ไม่ระบุ') AS triage_level,
+    COALESCE(att.accident_transport_type_name, '-') AS \`พาหนะผู้บาดเจ็บ\`,
     COALESCE(att.accident_transport_type_name, '-') AS transport,
+    COALESCE(n.support_information, '') AS \`ข้อมูลการบาดเจ็บ\`,
     COALESCE(n.support_information, '') AS injury_info,
     CONCAT_WS(
         ', ',
@@ -138,7 +152,19 @@ SELECT
             WHEN n.accident_dead_in_hospital = 'Y'
             THEN 'เสียชีวิตใน รพ.'
         END
-    ) AS dead,
+    ) AS \`dead\`,
+    COALESCE(
+        GROUP_CONCAT(
+            DISTINCT CONCAT(
+                d.icd10,
+                ' ',
+                COALESCE(i.name, '')
+            )
+            ORDER BY d.diag_no
+            SEPARATOR ', '
+        ),
+        'ไม่พบการวินิจฉัย S'
+    ) AS \`วินิจฉัย\`,
     COALESCE(
         GROUP_CONCAT(
             DISTINCT CONCAT(
@@ -151,12 +177,19 @@ SELECT
         ),
         ''
     ) AS diag,
+    COALESCE(dt.name, 'ห้องฉุกเฉิน') AS \`สถานภาพ\`,
     COALESCE(dt.name, 'ห้องฉุกเฉิน') AS er_status,
+    CASE
+        WHEN dt.name = 'ส่งต่อสถานพยาบาลอื่น'
+        THEN COALESCE(h.name, 'ไม่พบสถานพยาบาลที่ส่งต่อ')
+        ELSE '-'
+    END AS \`ส่งต่อ\`,
     CASE
         WHEN dt.name = 'ส่งต่อสถานพยาบาลอื่น'
         THEN COALESCE(h.name, 'ส่งต่อสถานพยาบาลอื่น')
         ELSE '-'
-    END AS refer_to
+    END AS refer_to,
+    et.er_accident_type_name
 FROM er_regist e
 LEFT JOIN ovst o
     ON o.vn = e.vn
@@ -185,6 +218,8 @@ LEFT JOIN (
     ON r.vn = e.vn
 LEFT JOIN hospcode h
     ON h.hospcode = r.hospcode
+LEFT JOIN er_accident_type et
+    ON et.er_accident_type_id = n.er_accident_type_id
 WHERE ${conditions.join(' AND ')}
 GROUP BY
     e.vn,
@@ -204,7 +239,8 @@ GROUP BY
     n.accident_dead_before_arrive,
     n.accident_dead_in_hospital,
     dt.name,
-    h.name
+    h.name,
+    et.er_accident_type_name
 ORDER BY
     e.vstdate ASC,
     o.vsttime ASC,
