@@ -312,6 +312,11 @@
       var controlsHideTimer = null;
       var tvData = null;
       var isFirstLoad = true;
+      // Incremented on every slide change; media callbacks from older slides are ignored.
+      var slideGeneration = 0;
+      // Pending delayed cleanup of the previous layer (after the crossfade).
+      var pendingCleanupTimer = null;
+      var pendingCleanupLayer = null;
 
       // DOM Elements
       var layers = [document.getElementById('layer-0'), document.getElementById('layer-1')];
@@ -422,13 +427,15 @@
       }
 
       // 5. Render media item into a specific DOM layer
+      // onVideoEnd(replayFn): called when playback finishes. Looping is NOT decided here
+      // (a snapshot of activeItems goes stale when scheduled items start/stop); the caller
+      // re-evaluates the schedule at end time and either replays or advances.
       function populateLayer(layer, item, onVideoEnd, onMediaError) {
         layer.innerHTML = '';
         if (!item) return;
 
         var fileType = item.file_type || '';
         var filePath = item.file_path || '';
-        var isSingle = activeItems.length === 1;
 
         if (fileType === 'youtube') {
           var yId = extractYouTubeId(filePath);
@@ -450,9 +457,7 @@
                   enablejsapi: 1,
                   playsinline: 1,
                   origin: window.location.origin,
-                  iv_load_policy: 3,
-                  loop: isSingle ? 1 : 0,
-                  playlist: isSingle ? yId : undefined
+                  iv_load_policy: 3
                 },
                 events: {
                   onReady: function (e) {
@@ -490,18 +495,17 @@
                         } catch (err) {}
                       }
                     } else if (e.data === window.YT.PlayerState.ENDED) {
-                      if (activeItems.length === 1) {
+                      var ytTarget = e.target;
+                      if (onVideoEnd) onVideoEnd(function () {
                         try {
-                          e.target.seekTo(0, true);
-                          e.target.playVideo();
+                          ytTarget.seekTo(0, true);
+                          ytTarget.playVideo();
                         } catch (err) {}
-                      } else {
-                        if (onVideoEnd) onVideoEnd();
-                      }
+                      });
                     }
                   },
                   onError: function () {
-                    if (onVideoEnd) setTimeout(onVideoEnd, 2000);
+                    if (onMediaError) onMediaError();
                   }
                 }
               });
@@ -541,14 +545,11 @@
             vStream.setAttribute('playsinline', '');
             vStream.setAttribute('webkit-playsinline', 'true');
             vStream.setAttribute('x5-playsinline', 'true');
-            if (isSingle) vStream.loop = true;
             vStream.onended = function () {
-              if (activeItems.length === 1) {
+              if (onVideoEnd) onVideoEnd(function () {
                 vStream.currentTime = 0;
                 vStream.play().catch(function () {});
-              } else {
-                if (onVideoEnd) onVideoEnd();
-              }
+              });
             };
             vStream.onerror = onMediaError;
             layer.appendChild(vStream);
@@ -576,16 +577,11 @@
           videoEl.setAttribute('webkit-playsinline', 'true');
           videoEl.setAttribute('x5-playsinline', 'true');
           videoEl.preload = 'auto';
-          if (isSingle) {
-            videoEl.loop = true;
-          }
           videoEl.onended = function () {
-            if (activeItems.length === 1) {
+            if (onVideoEnd) onVideoEnd(function () {
               videoEl.currentTime = 0;
               videoEl.play().catch(function () {});
-            } else {
-              if (onVideoEnd) onVideoEnd();
-            }
+            });
           };
           videoEl.onerror = onMediaError;
 
@@ -638,10 +634,19 @@
         var videos = layer.getElementsByTagName('video');
         for (var i = 0; i < videos.length; i++) {
           try {
+            // Detach handlers FIRST: unloading a <video> fires `error`/`ended`-like events
+            // that would otherwise trigger the old slide's skip logic.
+            videos[i].onended = null;
+            videos[i].onerror = null;
             videos[i].pause();
-            videos[i].src = '';
+            // NOTE: `src = ''` fires MEDIA_ERR_SRC_NOT_SUPPORTED; removeAttribute + load() does not.
+            videos[i].removeAttribute('src');
             videos[i].load();
           } catch (e) {}
+        }
+        var imgs = layer.getElementsByTagName('img');
+        for (var k = 0; k < imgs.length; k++) {
+          imgs[k].onerror = null;
         }
         var iframes = layer.getElementsByTagName('iframe');
         for (var j = 0; j < iframes.length; j++) {
@@ -652,12 +657,32 @@
         layer.innerHTML = '';
       }
 
-      // 7. Advance slide with Double-Buffering crossfade
-      function showSlide(index) {
+      // Stop everything tied to the current slide: its timer, its media callbacks
+      // (via the generation counter) and any delayed cleanup still pending.
+      function stopCurrentSlide() {
         if (slideTimer) {
           clearTimeout(slideTimer);
           slideTimer = null;
         }
+        slideGeneration++;
+        if (pendingCleanupTimer) {
+          clearTimeout(pendingCleanupTimer);
+          pendingCleanupTimer = null;
+          // Run it now so the delayed timer can never wipe a freshly populated layer.
+          if (pendingCleanupLayer) cleanupLayer(pendingCleanupLayer);
+          pendingCleanupLayer = null;
+        }
+      }
+
+      function isSameItem(a, b) {
+        if (!a || !b) return false;
+        if (a.id != null && b.id != null) return a.id === b.id;
+        return a.file_path === b.file_path;
+      }
+
+      // 7. Advance slide with Double-Buffering crossfade
+      function showSlide(index) {
+        stopCurrentSlide();
 
         activeItems = filterActiveItems();
         if (activeItems.length === 0) {
@@ -675,6 +700,7 @@
         if (index >= activeItems.length) index = 0;
         currentIndex = index;
         var currentItem = activeItems[currentIndex];
+        var gen = slideGeneration;
 
         // Update counter
         if (itemCounterEl) {
@@ -690,13 +716,23 @@
         populateLayer(
           nextLayer,
           currentItem,
-          function () {
-            // On video end, advance
+          function (replay) {
+            if (gen !== slideGeneration) return; // stale slide
+            // Re-evaluate the schedule NOW (items may have started/ended while playing)
+            var nowItems = filterActiveItems();
+            if (replay && nowItems.length === 1 && isSameItem(nowItems[0], currentItem)) {
+              activeItems = nowItems;
+              currentIndex = 0;
+              replay();
+              return;
+            }
             advanceNext();
           },
           function () {
+            if (gen !== slideGeneration) return; // stale slide
             // On media load error, quickly skip
             console.warn('Media element failed to load, skipping to next in 1.5s:', currentItem);
+            if (slideTimer) clearTimeout(slideTimer);
             slideTimer = setTimeout(advanceNext, 1500);
           }
         );
@@ -706,8 +742,11 @@
         currentLayer.classList.remove('active');
 
         // Cleanup previous layer after transition (0.6s)
-        setTimeout(function () {
-          cleanupLayer(currentLayer);
+        pendingCleanupLayer = currentLayer;
+        pendingCleanupTimer = setTimeout(function () {
+          pendingCleanupTimer = null;
+          pendingCleanupLayer = null;
+          if (!currentLayer.classList.contains('active')) cleanupLayer(currentLayer);
         }, 650);
 
         activeLayerIndex = nextLayerIndex;
@@ -744,10 +783,7 @@
 
       // 8. Waiting Screen UI
       function renderWaitingScreen(title, desc) {
-        if (slideTimer) {
-          clearTimeout(slideTimer);
-          slideTimer = null;
-        }
+        stopCurrentSlide();
         cleanupLayer(layers[0]);
         cleanupLayer(layers[1]);
         layers[0].classList.remove('active');
@@ -773,10 +809,7 @@
         if (!isCurrentIncidentMode || currentIncidentId !== incId) {
           isCurrentIncidentMode = true;
           currentIncidentId = incId;
-          if (slideTimer) {
-            clearTimeout(slideTimer);
-            slideTimer = null;
-          }
+          stopCurrentSlide();
           cleanupLayer(layers[0]);
           cleanupLayer(layers[1]);
           layers[0].classList.remove('active');
