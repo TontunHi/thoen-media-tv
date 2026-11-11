@@ -13,6 +13,7 @@ const playlistRoutes = require('./routes/playlists');
 const tvRoutes = require('./routes/tvs');
 const incidentRoutes = require('./routes/incidents');
 const statsRoutes = require('./routes/stats');
+const proxyRoutes = require('./routes/proxy');
 
 const rawCorsOrigin = process.env.CORS_ORIGIN;
 const allowedOrigins = rawCorsOrigin && rawCorsOrigin !== '*'
@@ -71,6 +72,7 @@ app.use('/api/playlists', playlistRoutes);
 app.use('/api/tvs', tvRoutes);
 app.use('/api/incidents', incidentRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/proxy-web', proxyRoutes);
 
 // Socket.io Connection logic
 io.on('connection', (socket) => {
@@ -100,7 +102,99 @@ app.use((err, req, res, next) => {
 
 // Standalone Ultra-Lightweight Smart TV Player (Compatible with Samsung Tizen, Aconatic, webOS, etc.)
 app.get('/tv/:slug', (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   res.sendFile(path.join(__dirname, 'views/player.html'));
+});
+
+// Fallback proxy for Next.js assets if requested directly by embedded web pages
+app.use('/_next', async (req, res, next) => {
+  const referer = req.headers['referer'] || '';
+  let targetOrigin = 'http://192.168.1.239';
+  if (referer.includes('/api/proxy-web?url=')) {
+    try {
+      const u = new URL(referer);
+      const targetParam = u.searchParams.get('url');
+      if (targetParam) targetOrigin = new URL(targetParam).origin;
+    } catch (e) {}
+  }
+  try {
+    const targetUrl = `${targetOrigin}/_next${req.url}`;
+    const targetRes = await fetch(targetUrl, {
+      headers: {
+        'User-Agent': req.headers['user-agent'] || '',
+        'Accept': req.headers['accept'] || '*/*'
+      }
+    });
+    const contentType = targetRes.headers.get('content-type');
+    if (contentType) res.setHeader('Content-Type', contentType);
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    const buf = Buffer.from(await targetRes.arrayBuffer());
+    return res.status(targetRes.status).send(buf);
+  } catch (err) {
+    next();
+  }
+});
+
+// Proxy for external API calls from embedded pages (e.g. /api/er/*)
+app.use('/api/er', async (req, res, next) => {
+  const referer = req.headers['referer'] || '';
+  let targetOrigin = 'http://192.168.1.239';
+  if (referer.includes('/api/proxy-web?url=')) {
+    try {
+      const u = new URL(referer);
+      const targetParam = u.searchParams.get('url');
+      if (targetParam) targetOrigin = new URL(targetParam).origin;
+    } catch (e) {}
+  }
+  try {
+    const targetUrl = `${targetOrigin}/api/er${req.url}`;
+    const targetRes = await fetch(targetUrl, {
+      method: req.method,
+      headers: {
+        'User-Agent': req.headers['user-agent'] || '',
+        'Accept': req.headers['accept'] || '*/*'
+      }
+    });
+    const contentType = targetRes.headers.get('content-type');
+    if (contentType) res.setHeader('Content-Type', contentType);
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    const buf = Buffer.from(await targetRes.arrayBuffer());
+    return res.status(targetRes.status).send(buf);
+  } catch (err) {
+    next();
+  }
+});
+
+// Proxy for embedded images (e.g. /images/*)
+app.use('/images', async (req, res, next) => {
+  const referer = req.headers['referer'] || '';
+  let targetOrigin = 'http://192.168.1.239';
+  if (referer.includes('/api/proxy-web?url=')) {
+    try {
+      const u = new URL(referer);
+      const targetParam = u.searchParams.get('url');
+      if (targetParam) targetOrigin = new URL(targetParam).origin;
+    } catch (e) {}
+  }
+  try {
+    const targetUrl = `${targetOrigin}/images${req.url}`;
+    const targetRes = await fetch(targetUrl, {
+      headers: {
+        'User-Agent': req.headers['user-agent'] || '',
+        'Accept': req.headers['accept'] || '*/*'
+      }
+    });
+    if (targetRes.status === 404) return next();
+    const contentType = targetRes.headers.get('content-type');
+    if (contentType) res.setHeader('Content-Type', contentType);
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    const buf = Buffer.from(await targetRes.arrayBuffer());
+    return res.status(targetRes.status).send(buf);
+  } catch (err) {
+    next();
+  }
 });
 
 // SPA Fallback for React Admin routes

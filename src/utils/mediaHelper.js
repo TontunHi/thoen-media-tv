@@ -61,3 +61,14 @@ export function detectMediaType(url) {
   if (lower.startsWith('http://') || lower.startsWith('https://')) return 'stream';
   return 'video';
 }
+
+/**
+ * Returns Web Stream / Page Embed URL (routed through proxy to bypass X-Frame-Options/CORS if it's a webpage).
+ */
+export function getStreamEmbedUrl(url) {
+  if (!url || typeof url !== 'string') return '';
+  const trimmed = url.trim();
+  if (trimmed.includes('.m3u8')) return trimmed;
+  if (trimmed.startsWith('/api/proxy-web')) return trimmed;
+  return `/api/proxy-web?url=${encodeURIComponent(trimmed)}`;
+}

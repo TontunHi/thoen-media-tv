@@ -27,6 +27,7 @@ import {
   getYouTubeThumbnail,
   getYouTubeEmbedUrl,
   getFacebookEmbedUrl,
+  getStreamEmbedUrl,
   detectMediaType,
 } from '../utils/mediaHelper';
 
@@ -1004,6 +1005,14 @@ export default function MediaManager() {
                   src={getFacebookEmbedUrl(previewMedia.file_path, true, false)}
                   className="w-full h-full border-0"
                   allow="autoplay; clipboard-write; encrypted-media; picture-in-picture"
+                  allowFullScreen
+                  title={previewMedia.name}
+                />
+              ) : previewMedia.file_type === 'stream' ? (
+                <iframe
+                  src={getStreamEmbedUrl(previewMedia.file_path)}
+                  className="w-full h-[72vh] border-0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
                   allowFullScreen
                   title={previewMedia.name}
                 />

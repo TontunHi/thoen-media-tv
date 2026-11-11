@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { api } from '../services/api';
 import { getSocket } from '../services/socket';
 import { Maximize2, Minimize2, Tv, AlertCircle, Volume2, VolumeX } from 'lucide-react';
-import { getYouTubeEmbedUrl, getFacebookEmbedUrl, extractYouTubeId } from '../utils/mediaHelper';
+import { getYouTubeEmbedUrl, getFacebookEmbedUrl, extractYouTubeId, getStreamEmbedUrl } from '../utils/mediaHelper';
 import Hls from 'hls.js';
 import IncidentTvScreen from './IncidentTvScreen';
 
@@ -739,7 +739,7 @@ export default function TvPlayer() {
             <div className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center">
               <iframe
                 key={currentItem.id}
-                src={currentItem.file_path}
+                src={getStreamEmbedUrl(currentItem.file_path)}
                 title={currentItem.media_name}
                 className="w-full h-full border-0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
