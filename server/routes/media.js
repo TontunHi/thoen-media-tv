@@ -1,10 +1,9 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
 const fsp = require('fs').promises;
 const { getPool } = require('../db');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, requireRole } = require('../middleware/auth');
 const { fileExists, fixMulterFilename } = require('../utils/fs');
 const {
   rootUploadDir,
@@ -13,6 +12,7 @@ const {
 } = require('../utils/folderPath');
 
 const router = express.Router();
+router.use(authenticateToken, requireRole('admin'));
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -54,6 +54,15 @@ router.post('/upload', authenticateToken, upload.array('files', 10), async (req,
 
     const rawFolderId = req.body.folder_id;
     const folder_id = rawFolderId && rawFolderId !== 'root' && rawFolderId !== 'all' ? parseInt(rawFolderId) : null;
+    const expires_at = req.body.expires_at ? req.body.expires_at : null;
+    let durationsMap = {};
+    if (req.body.durations) {
+      try {
+        durationsMap = typeof req.body.durations === 'string' ? JSON.parse(req.body.durations) : req.body.durations;
+      } catch {
+        durationsMap = {};
+      }
+    }
     const insertedFiles = [];
 
     // Resolve target physical folder
@@ -66,23 +75,26 @@ router.post('/upload', authenticateToken, upload.array('files', 10), async (req,
     for (const file of req.files) {
       const isVideo = file.mimetype.startsWith('video/');
       const file_type = isVideo ? 'video' : 'image';
-      const default_duration = isVideo ? 0 : 10;
       const cleanOriginalName = fixMulterFilename(file.originalname);
+      const customDur = durationsMap[cleanOriginalName] ?? durationsMap[file.originalname];
+      const default_duration = customDur !== undefined && !isNaN(parseInt(customDur))
+        ? Math.max(0, parseInt(customDur))
+        : (isVideo ? 0 : 10);
 
-      // If target folder is not root, move the file physically into the subfolder
       let finalFilePath = `/uploads/${file.filename}`;
       if (relFolderPath) {
         const srcPath = path.join(rootUploadDir, file.filename);
         const destPath = path.join(targetDir, file.filename);
         if (await fileExists(srcPath)) {
           await fsp.rename(srcPath, destPath);
+          filesToCleanup.push(destPath);
         }
         finalFilePath = `/uploads/${relFolderPath}/${file.filename}`;
       }
 
       const [result] = await conn.query(
-        `INSERT INTO media_files (folder_id, name, original_name, file_path, file_type, mime_type, size, default_duration)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO media_files (folder_id, name, original_name, file_path, file_type, mime_type, size, default_duration, expires_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           folder_id,
           cleanOriginalName,
@@ -91,7 +103,8 @@ router.post('/upload', authenticateToken, upload.array('files', 10), async (req,
           file_type,
           file.mimetype,
           file.size,
-          default_duration
+          default_duration,
+          expires_at
         ]
       );
 
@@ -104,7 +117,8 @@ router.post('/upload', authenticateToken, upload.array('files', 10), async (req,
         file_type,
         mime_type: file.mimetype,
         size: file.size,
-        default_duration
+        default_duration,
+        expires_at
       });
     }
 
@@ -164,7 +178,7 @@ router.get('/', authenticateToken, async (req, res) => {
 
 // Create Live / Online stream media item (YouTube, Facebook Live, Web Stream)
 router.post('/stream', authenticateToken, async (req, res) => {
-  const { name, url, folder_id, default_duration, file_type } = req.body;
+  const { name, url, folder_id, default_duration, file_type, expires_at } = req.body;
   if (!name || !name.trim()) {
     return res.status(400).json({ error: 'ชื่อสื่อ (Name) จำเป็นต้องระบุ' });
   }
@@ -187,12 +201,13 @@ router.post('/stream', authenticateToken, async (req, res) => {
   const mime_type = `video/${detectedType}`;
   const targetFolderId = folder_id && folder_id !== 'root' && folder_id !== 'all' ? parseInt(folder_id) : null;
   const duration = default_duration !== undefined && default_duration !== null && !isNaN(parseInt(default_duration)) ? Math.max(0, parseInt(default_duration)) : 0;
+  const cleanExpiresAt = expires_at ? expires_at : null;
 
   try {
     const pool = getPool();
     const [result] = await pool.query(
-      `INSERT INTO media_files (folder_id, name, original_name, file_path, file_type, mime_type, size, default_duration)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO media_files (folder_id, name, original_name, file_path, file_type, mime_type, size, default_duration, expires_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         targetFolderId,
         name.trim(),
@@ -201,7 +216,8 @@ router.post('/stream', authenticateToken, async (req, res) => {
         detectedType,
         mime_type,
         0,
-        duration
+        duration,
+        cleanExpiresAt
       ]
     );
 
@@ -214,7 +230,8 @@ router.post('/stream', authenticateToken, async (req, res) => {
       file_type: detectedType,
       mime_type,
       size: 0,
-      default_duration: duration
+      default_duration: duration,
+      expires_at: cleanExpiresAt
     };
 
     res.status(201).json({ success: true, file: inserted });
@@ -224,10 +241,85 @@ router.post('/stream', authenticateToken, async (req, res) => {
   }
 });
 
+// Create Hospital Announcement Slide media item
+router.post('/announcement', authenticateToken, async (req, res) => {
+  const {
+    name,
+    headline,
+    body,
+    department,
+    theme,
+    footer,
+    folder_id,
+    default_duration,
+    expires_at
+  } = req.body;
+
+  const cleanHeadline = (headline || name || '').trim();
+  if (!cleanHeadline) {
+    return res.status(400).json({ error: 'หัวข้อประกาศ (Headline) จำเป็นต้องระบุ' });
+  }
+
+  const cleanName = (name || cleanHeadline).trim();
+  const targetFolderId = folder_id && folder_id !== 'root' && folder_id !== 'all' ? parseInt(folder_id) : null;
+  const duration = default_duration !== undefined && default_duration !== null && !isNaN(parseInt(default_duration))
+    ? Math.max(5, parseInt(default_duration))
+    : 15;
+  const cleanExpiresAt = expires_at ? expires_at : null;
+  const announcementPayload = {
+    headline: cleanHeadline,
+    body: String(body || '').trim(),
+    department: String(department || 'โรงพยาบาลเถิน จ.ลำปาง').trim(),
+    theme: ['hospital-green', 'urgent-amber', 'info-blue'].includes(theme) ? theme : 'hospital-green',
+    footer: String(footer || '').trim()
+  };
+  const announcementJson = JSON.stringify(announcementPayload);
+  const virtualPath = `announcement://${Date.now()}`;
+
+  try {
+    const pool = getPool();
+    const [result] = await pool.query(
+      `INSERT INTO media_files (folder_id, name, original_name, file_path, file_type, mime_type, size, default_duration, expires_at, announcement_data)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        targetFolderId,
+        cleanName,
+        cleanName,
+        virtualPath,
+        'announcement',
+        'application/x-announcement',
+        Buffer.byteLength(announcementJson, 'utf8'),
+        duration,
+        cleanExpiresAt,
+        announcementJson
+      ]
+    );
+
+    const inserted = {
+      id: result.insertId,
+      folder_id: targetFolderId,
+      name: cleanName,
+      original_name: cleanName,
+      file_path: virtualPath,
+      file_type: 'announcement',
+      mime_type: 'application/x-announcement',
+      size: Buffer.byteLength(announcementJson, 'utf8'),
+      default_duration: duration,
+      expires_at: cleanExpiresAt,
+      announcement_data: announcementJson
+    };
+
+    res.status(201).json({ success: true, file: inserted });
+  } catch (error) {
+    console.error('Error creating announcement slide:', error);
+    res.status(500).json({ error: error.message || 'Failed to create announcement slide' });
+  }
+});
+
 // Update media file (rename or physical folder move)
 router.put('/:id', authenticateToken, async (req, res) => {
   const { id } = req.params;
-  const { name, folder_id, default_duration, file_path } = req.body;
+  const { name, folder_id, default_duration, file_path, expires_at, announcement_data } = req.body;
   const pool = getPool();
   const conn = await pool.getConnection();
 
@@ -252,6 +344,16 @@ router.put('/:id', authenticateToken, async (req, res) => {
     if (default_duration !== undefined) {
       updates.push('default_duration = ?');
       params.push(parseInt(default_duration));
+    }
+
+    if (expires_at !== undefined) {
+      updates.push('expires_at = ?');
+      params.push(expires_at || null);
+    }
+
+    if (announcement_data !== undefined) {
+      updates.push('announcement_data = ?');
+      params.push(typeof announcement_data === 'string' ? announcement_data : JSON.stringify(announcement_data));
     }
 
     if (file_path !== undefined && (currentMedia.file_type === 'youtube' || currentMedia.file_type === 'facebook' || currentMedia.file_type === 'stream')) {

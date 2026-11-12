@@ -16,7 +16,7 @@
       height: 100%;
       background-color: #000000;
       color: #ffffff;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-family: "Sarabun", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       overflow: hidden;
       user-select: none;
       -webkit-user-select: none;
@@ -60,6 +60,71 @@
       background-color: #ffffff;
     }
 
+    /* Built-in Hospital Announcement Card */
+    .announcement-card {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 6vh 7vw;
+      color: #ffffff;
+    }
+    .announcement-theme-hospital-green {
+      background: linear-gradient(135deg, #064e3b 0%, #0f766e 60%, #115e59 100%);
+    }
+    .announcement-theme-urgent-amber {
+      background: linear-gradient(135deg, #78350f 0%, #b45309 60%, #991b1b 100%);
+    }
+    .announcement-theme-info-blue {
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 60%, #1d4ed8 100%);
+    }
+    .announcement-top {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      margin-top: 36px;
+    }
+    .announcement-pill {
+      display: inline-block;
+      padding: 10px 24px;
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.16);
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .announcement-body-wrap {
+      my: auto;
+      max-width: 86vw;
+    }
+    .announcement-headline {
+      font-size: clamp(38px, 4.8vw, 76px);
+      font-weight: 800;
+      line-height: 1.25;
+      margin-bottom: 28px;
+      color: #ffffff;
+      text-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+    }
+    .announcement-text {
+      font-size: clamp(24px, 2.6vw, 44px);
+      font-weight: 500;
+      line-height: 1.55;
+      color: rgba(255, 255, 255, 0.94);
+      white-space: pre-wrap;
+    }
+    .announcement-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 24px;
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+      font-size: 20px;
+      color: rgba(255, 255, 255, 0.85);
+      margin-bottom: 36px;
+    }
+
     /* Top Overlay Header */
     .top-header {
       position: absolute;
@@ -100,10 +165,59 @@
       letter-spacing: 1px;
     }
 
+    /* Bottom Scrolling News Ticker */
+    .tv-ticker {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 52px;
+      background: rgba(15, 23, 42, 0.92);
+      border-top: 2px solid #0d9488;
+      display: none;
+      align-items: center;
+      overflow: hidden;
+      z-index: 15;
+    }
+    .tv-ticker.active {
+      display: flex;
+    }
+    .tv-ticker-badge {
+      flex-shrink: 0;
+      height: 100%;
+      padding: 0 22px;
+      background: #0d9488;
+      color: #ffffff;
+      font-size: 16px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      z-index: 2;
+      box-shadow: 4px 0 12px rgba(0, 0, 0, 0.35);
+    }
+    .tv-ticker-track {
+      flex: 1;
+      overflow: hidden;
+      white-space: nowrap;
+      position: relative;
+    }
+    .tv-ticker-content {
+      display: inline-block;
+      padding-left: 100%;
+      font-size: 20px;
+      font-weight: 600;
+      color: #f8fafc;
+      animation: ticker-scroll 28s linear infinite;
+    }
+    @keyframes ticker-scroll {
+      0% { transform: translate3d(0, 0, 0); }
+      100% { transform: translate3d(-100%, 0, 0); }
+    }
+
     /* Floating Bottom Controls */
     .bottom-controls {
       position: absolute;
-      bottom: 24px;
+      bottom: 64px;
       left: 50%;
       transform: translateX(-50%) translateZ(0);
       display: flex;
@@ -205,7 +319,6 @@
       font-weight: 600;
     }
 
-    /* Loading Spinner */
     .spinner {
       width: 48px;
       height: 48px;
@@ -243,6 +356,14 @@
       <div class="badge-pill clock-pill" id="digital-clock">--:--:--</div>
     </div>
 
+    <!-- Bottom Scrolling News Ticker -->
+    <div id="tv-ticker" class="tv-ticker">
+      <div class="tv-ticker-badge">ประชาสัมพันธ์ รพ.เถิน</div>
+      <div class="tv-ticker-track">
+        <div id="tv-ticker-text" class="tv-ticker-content"></div>
+      </div>
+    </div>
+
     <!-- Bottom Controls Bar -->
     <div id="bottom-controls" class="bottom-controls">
       <span id="item-counter" style="font-family: monospace; font-weight: bold;">0 / 0</span>
@@ -277,6 +398,8 @@
     </div>
   </div>
 
+  <!-- Local HLS.js bundle for .m3u8 live streams on Smart TVs -->
+  <script src="/vendor/hls.min.js" onerror="window.__hlsFailed=true;"></script>
   <!-- YouTube Iframe API -->
   <script src="https://www.youtube.com/iframe_api"></script>
   <!-- Socket.io client (asynchronously loaded with fallback) -->
@@ -286,7 +409,6 @@
     (function () {
       'use strict';
 
-      // 1. Extract Slug from URL (/tv/:slug or /tv/:slug/)
       var pathSegments = window.location.pathname.split('/').filter(Boolean);
       var tvSlug = '';
       for (var i = 0; i < pathSegments.length; i++) {
@@ -299,7 +421,8 @@
         tvSlug = pathSegments[pathSegments.length - 1];
       }
 
-      // State
+      // Explicit Player State Machine: BOOT | WAITING | PLAYING | INCIDENT_OVERRIDE
+      var playerState = 'BOOT';
       var rawItems = [];
       var activeItems = [];
       var currentIndex = 0;
@@ -307,20 +430,20 @@
       var isMuted = false;
       var isAudioUnlocked = false;
       var slideTimer = null;
+      var wakeTimer = null;
       var syncTimer = null;
       var clockTimer = null;
       var controlsHideTimer = null;
       var tvData = null;
       var isFirstLoad = true;
-      // Incremented on every slide change; media callbacks from older slides are ignored.
       var slideGeneration = 0;
-      // Pending delayed cleanup of the previous layer (after the crossfade).
       var pendingCleanupTimer = null;
       var pendingCleanupLayer = null;
 
-      // DOM Elements
       var layers = [document.getElementById('layer-0'), document.getElementById('layer-1')];
       var tvNameEl = document.getElementById('tv-name');
+      var tvTickerEl = document.getElementById('tv-ticker');
+      var tvTickerTextEl = document.getElementById('tv-ticker-text');
       var digitalClockEl = document.getElementById('digital-clock');
       var waitingScreenEl = document.getElementById('waiting-screen');
       var loadingSpinnerEl = document.getElementById('loading-spinner');
@@ -338,7 +461,66 @@
       var iconFsEnter = document.getElementById('icon-fs-enter');
       var iconFsExit = document.getElementById('icon-fs-exit');
 
-      // Helper to show/hide audio hint banner
+      // Register Service Worker for offline media cache on hospital Wi-Fi
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/tv-sw.js').catch(function () {});
+      }
+
+      function precachePlaylistMedia(items) {
+        if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller || !Array.isArray(items)) {
+          return;
+        }
+        var urls = [];
+        for (var idx = 0; idx < items.length; idx++) {
+          var fp = items[idx] && items[idx].file_path;
+          if (fp && fp.indexOf('/uploads/') === 0) {
+            urls.push(fp);
+          }
+        }
+        if (urls.length > 0) {
+          try {
+            navigator.serviceWorker.controller.postMessage({
+              type: 'PRECACHE_URLS',
+              urls: urls
+            });
+          } catch (e) {}
+        }
+      }
+
+      function renderTicker(tv) {
+        if (!tvTickerEl || !tvTickerTextEl) return;
+        var enabled = tv && (tv.ticker_enabled === 1 || tv.ticker_enabled === true);
+        var text = tv && tv.ticker_text ? String(tv.ticker_text).trim() : '';
+        if (enabled && text && playerState !== 'INCIDENT_OVERRIDE') {
+          tvTickerTextEl.textContent = text;
+          tvTickerEl.classList.add('active');
+        } else {
+          tvTickerEl.classList.remove('active');
+        }
+      }
+
+      function sendHeartbeat(logPlay) {
+        if (!tvSlug) return;
+        var currentItem = activeItems[currentIndex] || null;
+        var payload = {
+          current_media_id: currentItem ? (currentItem.media_file_id || currentItem.id) : null,
+          current_media_name: currentItem ? (currentItem.media_name || currentItem.name || '') : '',
+          slide_index: activeItems.length > 0 ? currentIndex + 1 : 0,
+          total_active: activeItems.length,
+          resolution: window.innerWidth + 'x' + window.innerHeight,
+          user_agent: navigator.userAgent || '',
+          state: playerState,
+          log_play: Boolean(logPlay)
+        };
+        try {
+          var xhr = new XMLHttpRequest();
+          xhr.open('POST', '/api/tvs/public/' + encodeURIComponent(tvSlug) + '/heartbeat', true);
+          xhr.setRequestHeader('Content-Type', 'application/json');
+          xhr.timeout = 5000;
+          xhr.send(JSON.stringify(payload));
+        } catch (e) {}
+      }
+
       function showAudioHint() {
         if (audioHintEl && !isAudioUnlocked && !isMuted) {
           audioHintEl.style.display = 'inline-flex';
@@ -365,7 +547,6 @@
         } catch (e) {}
       }
 
-      // 2. Clock updater (low CPU footprint)
       function updateClock() {
         var now = new Date();
         var hours = String(now.getHours());
@@ -382,7 +563,6 @@
       clockTimer = setInterval(updateClock, 1000);
       updateClock();
 
-      // 3. Media URL helpers
       function extractYouTubeId(url) {
         if (!url) return '';
         var match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|live\/|shorts\/))([\w-]{11})/);
@@ -405,17 +585,33 @@
         return 'https://www.facebook.com/plugins/video.php?href=' + encodeURIComponent(url) + '&show_text=0&autoplay=' + auto + '&mute=' + mute + '&muted=' + mute + '&allowfullscreen=true&width=1280';
       }
 
-      // 4. Schedule evaluation
+      function parseDateSafe(val) {
+        if (!val) return null;
+        var d = new Date(String(val).replace(' ', 'T'));
+        return isNaN(d.getTime()) ? null : d;
+      }
+
+      function isWeekdayAllowedNow(daysOfWeek, now) {
+        if (!daysOfWeek || String(daysOfWeek).trim() === '' || String(daysOfWeek).trim() === '0,1,2,3,4,5,6') {
+          return true;
+        }
+        var parts = String(daysOfWeek).split(',');
+        var today = String(now.getDay());
+        for (var idx = 0; idx < parts.length; idx++) {
+          if (parts[idx].trim() === today) return true;
+        }
+        return false;
+      }
+
       function isItemScheduledNow(item, now) {
         if (!item || item.is_active === 0 || item.is_active === false) return false;
-        if (item.start_time) {
-          var start = new Date(String(item.start_time).replace(' ', 'T'));
-          if (!isNaN(start.getTime()) && start > now) return false;
-        }
-        if (item.end_time) {
-          var end = new Date(String(item.end_time).replace(' ', 'T'));
-          if (!isNaN(end.getTime()) && end < now) return false;
-        }
+        var exp = parseDateSafe(item.expires_at);
+        if (exp && now >= exp) return false;
+        if (!isWeekdayAllowedNow(item.days_of_week, now)) return false;
+        var start = parseDateSafe(item.start_time);
+        if (start && start > now) return false;
+        var end = parseDateSafe(item.end_time);
+        if (end && end < now) return false;
         return true;
       }
 
@@ -426,16 +622,98 @@
         });
       }
 
-      // 5. Render media item into a specific DOM layer
-      // onVideoEnd(replayFn): called when playback finishes. Looping is NOT decided here
-      // (a snapshot of activeItems goes stale when scheduled items start/stop); the caller
-      // re-evaluates the schedule at end time and either replays or advances.
+      function scheduleNextBoundaryWake(serverTransitionMs) {
+        if (wakeTimer) {
+          clearTimeout(wakeTimer);
+          wakeTimer = null;
+        }
+        var nowMs = Date.now();
+        var earliestDelay = null;
+        if (typeof serverTransitionMs === 'number' && serverTransitionMs > 0) {
+          earliestDelay = serverTransitionMs;
+        }
+        for (var idx = 0; idx < rawItems.length; idx++) {
+          var item = rawItems[idx];
+          if (!item || item.is_active === 0 || item.is_active === false) continue;
+          var dates = [parseDateSafe(item.start_time), parseDateSafe(item.end_time), parseDateSafe(item.expires_at)];
+          for (var dIdx = 0; dIdx < dates.length; dIdx++) {
+            var dt = dates[dIdx];
+            if (dt && dt.getTime() > nowMs) {
+              var diff = dt.getTime() - nowMs + 100;
+              if (earliestDelay === null || diff < earliestDelay) {
+                earliestDelay = diff;
+              }
+            }
+          }
+        }
+        if (earliestDelay !== null && earliestDelay > 0 && earliestDelay < 2147483647) {
+          wakeTimer = setTimeout(function () {
+            wakeTimer = null;
+            if (playerState !== 'INCIDENT_OVERRIDE') {
+              showSlide(currentIndex);
+            }
+          }, Math.max(200, earliestDelay));
+        }
+      }
+
+      function renderAnnouncementIntoLayer(layer, item) {
+        var payload = item.announcement_data;
+        if (typeof payload === 'string') {
+          try {
+            payload = JSON.parse(payload);
+          } catch (e) {
+            payload = {};
+          }
+        }
+        payload = payload || {};
+        var theme = payload.theme || 'hospital-green';
+        var card = document.createElement('div');
+        card.className = 'announcement-card announcement-theme-' + theme;
+
+        var top = document.createElement('div');
+        top.className = 'announcement-top';
+        var pill = document.createElement('span');
+        pill.className = 'announcement-pill';
+        pill.textContent = payload.department || 'ประกาศโรงพยาบาลเถิน';
+        top.appendChild(pill);
+
+        var bodyWrap = document.createElement('div');
+        bodyWrap.className = 'announcement-body-wrap';
+        var headline = document.createElement('h1');
+        headline.className = 'announcement-headline';
+        headline.textContent = payload.headline || item.media_name || 'ประกาศประชาสัมพันธ์';
+        var bodyText = document.createElement('p');
+        bodyText.className = 'announcement-text';
+        bodyText.textContent = payload.body || '';
+        bodyWrap.appendChild(headline);
+        bodyWrap.appendChild(bodyText);
+
+        var footer = document.createElement('div');
+        footer.className = 'announcement-footer';
+        var leftSpan = document.createElement('span');
+        leftSpan.textContent = 'โรงพยาบาลเถิน จังหวัดลำปาง';
+        var rightSpan = document.createElement('span');
+        rightSpan.textContent = payload.footer || '';
+        footer.appendChild(leftSpan);
+        footer.appendChild(rightSpan);
+
+        card.appendChild(top);
+        card.appendChild(bodyWrap);
+        card.appendChild(footer);
+        layer.appendChild(card);
+      }
+
       function populateLayer(layer, item, onVideoEnd, onMediaError) {
         layer.innerHTML = '';
         if (!item) return;
 
         var fileType = item.file_type || '';
         var filePath = item.file_path || '';
+
+        if (fileType === 'announcement') {
+          renderAnnouncementIntoLayer(layer, item);
+          return;
+        }
 
         if (fileType === 'youtube') {
           var yId = extractYouTubeId(filePath);
@@ -471,13 +749,11 @@
                       e.target.playVideo();
                     } catch (err) {}
 
-                    // Autoplay Watchdog fallback: ensure video is not frozen due to unmuted policy
                     setTimeout(function () {
                       try {
                         if (e.target && typeof e.target.getPlayerState === 'function') {
                           var st = e.target.getPlayerState();
                           if (st !== window.YT.PlayerState.PLAYING && st !== window.YT.PlayerState.BUFFERING) {
-                            console.log('YouTube Autoplay Watchdog: forcing muted play');
                             e.target.mute();
                             e.target.playVideo();
                             if (!isMuted) showAudioHint();
@@ -519,12 +795,12 @@
               layer.appendChild(iframeYt);
             }
           } else {
-            var iframeYt = document.createElement('iframe');
-            iframeYt.className = 'media-frame';
-            iframeYt.src = getYouTubeEmbedUrl(filePath, true, shouldMute);
-            iframeYt.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen';
-            iframeYt.allowFullscreen = true;
-            layer.appendChild(iframeYt);
+            var iframeYtFallback = document.createElement('iframe');
+            iframeYtFallback.className = 'media-frame';
+            iframeYtFallback.src = getYouTubeEmbedUrl(filePath, true, shouldMute);
+            iframeYtFallback.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen';
+            iframeYtFallback.allowFullscreen = true;
+            layer.appendChild(iframeYtFallback);
           }
         } else if (fileType === 'facebook') {
           var shouldMuteFb = isMuted || !isAudioUnlocked;
@@ -538,7 +814,6 @@
           if (filePath.indexOf('.m3u8') !== -1) {
             var vStream = document.createElement('video');
             vStream.className = 'media-fit';
-            vStream.src = filePath;
             vStream.autoplay = true;
             vStream.muted = isMuted || !isAudioUnlocked;
             vStream.volume = 1.0;
@@ -553,18 +828,38 @@
             };
             vStream.onerror = onMediaError;
             layer.appendChild(vStream);
-            var streamPromise = vStream.play();
-            if (streamPromise !== undefined) {
-              streamPromise.catch(function () {
-                vStream.muted = true;
-                vStream.play().catch(function () {});
+
+            if (window.Hls && window.Hls.isSupported()) {
+              var hls = new window.Hls({ enableWorker: true, lowLatencyMode: true });
+              layer.__hlsInstance = hls;
+              hls.loadSource(filePath);
+              hls.attachMedia(vStream);
+              hls.on(window.Hls.Events.MANIFEST_PARSED, function () {
+                vStream.play().catch(function () {
+                  vStream.muted = true;
+                  vStream.play().catch(function () {});
+                });
               });
+              hls.on(window.Hls.Events.ERROR, function (_ev, errData) {
+                if (errData && errData.fatal && onMediaError) {
+                  onMediaError();
+                }
+              });
+            } else {
+              vStream.src = filePath;
+              var streamPromise = vStream.play();
+              if (streamPromise !== undefined) {
+                streamPromise.catch(function () {
+                  vStream.muted = true;
+                  vStream.play().catch(function () {});
+                });
+              }
             }
           } else {
             var iframeWeb = document.createElement('iframe');
             iframeWeb.className = 'media-frame';
             var embedUrl = filePath;
-            if (embedUrl.indexOf('.m3u8') === -1 && !embedUrl.startsWith('/api/proxy-web')) {
+            if (embedUrl.indexOf('.m3u8') === -1 && embedUrl.indexOf('/api/proxy-web') !== 0) {
               embedUrl = '/api/proxy-web?url=' + encodeURIComponent(embedUrl);
             }
             iframeWeb.src = embedUrl;
@@ -605,19 +900,15 @@
                 isAudioUnlocked = true;
                 hideAudioHint();
               }
-            }).catch(function (err) {
-              console.warn('Direct unmuted play blocked, starting safe muted playback:', err);
+            }).catch(function () {
               videoEl.muted = true;
-              videoEl.play().catch(function (e) {
-                console.error('Muted autoplay fallback failed:', e);
-              });
+              videoEl.play().catch(function () {});
               if (!isMuted) {
                 showAudioHint();
               }
             });
           }
         } else {
-          // Default Image
           var imgEl = document.createElement('img');
           imgEl.className = 'media-fit';
           imgEl.src = filePath;
@@ -627,8 +918,13 @@
         }
       }
 
-      // 6. Garbage collection for inactive layer (prevents memory leak 24/7)
       function cleanupLayer(layer) {
+        if (layer.__hlsInstance && typeof layer.__hlsInstance.destroy === 'function') {
+          try {
+            layer.__hlsInstance.destroy();
+          } catch (e) {}
+          layer.__hlsInstance = null;
+        }
         if (layer.__ytPlayer && typeof layer.__ytPlayer.destroy === 'function') {
           try {
             layer.__ytPlayer.destroy();
@@ -638,12 +934,9 @@
         var videos = layer.getElementsByTagName('video');
         for (var i = 0; i < videos.length; i++) {
           try {
-            // Detach handlers FIRST: unloading a <video> fires `error`/`ended`-like events
-            // that would otherwise trigger the old slide's skip logic.
             videos[i].onended = null;
             videos[i].onerror = null;
             videos[i].pause();
-            // NOTE: `src = ''` fires MEDIA_ERR_SRC_NOT_SUPPORTED; removeAttribute + load() does not.
             videos[i].removeAttribute('src');
             videos[i].load();
           } catch (e) {}
@@ -661,8 +954,6 @@
         layer.innerHTML = '';
       }
 
-      // Stop everything tied to the current slide: its timer, its media callbacks
-      // (via the generation counter) and any delayed cleanup still pending.
       function stopCurrentSlide() {
         if (slideTimer) {
           clearTimeout(slideTimer);
@@ -672,7 +963,6 @@
         if (pendingCleanupTimer) {
           clearTimeout(pendingCleanupTimer);
           pendingCleanupTimer = null;
-          // Run it now so the delayed timer can never wipe a freshly populated layer.
           if (pendingCleanupLayer) cleanupLayer(pendingCleanupLayer);
           pendingCleanupLayer = null;
         }
@@ -684,9 +974,9 @@
         return a.file_path === b.file_path;
       }
 
-      // 7. Advance slide with Double-Buffering crossfade
       function showSlide(index) {
         stopCurrentSlide();
+        scheduleNextBoundaryWake();
 
         activeItems = filterActiveItems();
         if (activeItems.length === 0) {
@@ -696,56 +986,52 @@
               ? 'มีสื่อในระบบแต่ยังไม่ถึงเวลาเริ่มแสดง หรือหมดเวลาแสดงผลแล้ว'
               : 'ยังไม่มีสื่อใน Playlist ของจอนี้'
           );
+          sendHeartbeat(false);
           return;
         }
 
+        playerState = 'PLAYING';
         hideWaitingScreen();
+        renderTicker(tvData);
 
-        if (index >= activeItems.length) index = 0;
+        if (index >= activeItems.length || index < 0) index = 0;
         currentIndex = index;
         var currentItem = activeItems[currentIndex];
         var gen = slideGeneration;
 
-        // Update counter
         if (itemCounterEl) {
           itemCounterEl.textContent = (currentIndex + 1) + ' / ' + activeItems.length;
         }
 
-        // Determine next layer
         var nextLayerIndex = (activeLayerIndex + 1) % 2;
         var currentLayer = layers[activeLayerIndex];
         var nextLayer = layers[nextLayerIndex];
 
-        // Populate and crossfade
         populateLayer(
           nextLayer,
           currentItem,
           function (replay) {
-            if (gen !== slideGeneration) return; // stale slide
-            // Re-evaluate the schedule NOW (items may have started/ended while playing)
+            if (gen !== slideGeneration) return;
             var nowItems = filterActiveItems();
             if (replay && nowItems.length === 1 && isSameItem(nowItems[0], currentItem)) {
               activeItems = nowItems;
               currentIndex = 0;
               replay();
+              sendHeartbeat(true);
               return;
             }
             advanceNext();
           },
           function () {
-            if (gen !== slideGeneration) return; // stale slide
-            // On media load error, quickly skip
-            console.warn('Media element failed to load, skipping to next in 1.5s:', currentItem);
+            if (gen !== slideGeneration) return;
             if (slideTimer) clearTimeout(slideTimer);
             slideTimer = setTimeout(advanceNext, 1500);
           }
         );
 
-        // Crossfade layers
         nextLayer.classList.add('active');
         currentLayer.classList.remove('active');
 
-        // Cleanup previous layer after transition (0.6s)
         pendingCleanupLayer = currentLayer;
         pendingCleanupTimer = setTimeout(function () {
           pendingCleanupTimer = null;
@@ -754,11 +1040,10 @@
         }, 650);
 
         activeLayerIndex = nextLayerIndex;
+        sendHeartbeat(true);
 
-        // Schedule next transition if not controlled by video onended
         var fileType = currentItem.file_type || '';
-
-        if (fileType === 'image') {
+        if (fileType === 'image' || fileType === 'announcement') {
           var durationSec = parseInt(currentItem.duration_seconds) || 10;
           slideTimer = setTimeout(advanceNext, Math.max(durationSec, 1) * 1000);
         } else if (fileType === 'stream') {
@@ -772,7 +1057,6 @@
             slideTimer = setTimeout(advanceNext, customDuration * 1000);
           }
         }
-        // NOTE: For fileType === 'video' (MP4 etc.), NEVER set slideTimer so it plays 100% until onVideoEnd!
       }
 
       function advanceNext() {
@@ -785,13 +1069,14 @@
         showSlide(nextIdx);
       }
 
-      // 8. Waiting Screen UI
       function renderWaitingScreen(title, desc) {
+        playerState = 'WAITING';
         stopCurrentSlide();
         cleanupLayer(layers[0]);
         cleanupLayer(layers[1]);
         layers[0].classList.remove('active');
         layers[1].classList.remove('active');
+        renderTicker(tvData);
 
         if (waitingScreenEl) waitingScreenEl.style.display = 'flex';
         if (loadingSpinnerEl) loadingSpinnerEl.style.display = 'none';
@@ -810,6 +1095,8 @@
       var currentIncidentId = null;
 
       function renderIncidentScreen(incId) {
+        playerState = 'INCIDENT_OVERRIDE';
+        renderTicker(null);
         if (!isCurrentIncidentMode || currentIncidentId !== incId) {
           isCurrentIncidentMode = true;
           currentIncidentId = incId;
@@ -827,6 +1114,7 @@
             incidentLayerEl.style.display = 'block';
             incidentLayerEl.innerHTML = '<iframe src="/tv-incident' + (incId ? '?id=' + encodeURIComponent(incId) : '') + '" style="width:100%; height:100%; border:0; background:#fff;" allow="autoplay; fullscreen"></iframe>';
           }
+          sendHeartbeat(false);
         }
       }
 
@@ -843,7 +1131,6 @@
         }
       }
 
-      // 9. Load TV playback data from API
       function loadTvPlayback() {
         if (!tvSlug) return;
         var xhr = new XMLHttpRequest();
@@ -860,7 +1147,6 @@
                 tvNameEl.textContent = tvData.name;
               }
 
-              // Check if TV is in Emergency Incident Override mode
               if (data.is_incident_mode) {
                 var incId = data.incident ? data.incident.id : '';
                 renderIncidentScreen(incId);
@@ -869,11 +1155,19 @@
                 hideIncidentScreen();
               }
 
+              renderTicker(tvData);
+
               var newItems = data.items || [];
               var isChanged = JSON.stringify(newItems) !== JSON.stringify(rawItems);
               rawItems = newItems;
+              precachePlaylistMedia(rawItems);
+              scheduleNextBoundaryWake(data.next_transition_ms);
 
-              if (isFirstLoad || isChanged) {
+              var nowActiveCount = filterActiveItems().length;
+              var wasWaitingAndCanPlay = playerState === 'WAITING' && nowActiveCount > 0;
+              var wasPlayingAndExpired = playerState === 'PLAYING' && nowActiveCount === 0;
+
+              if (isFirstLoad || isChanged || wasWaitingAndCanPlay || wasPlayingAndExpired) {
                 isFirstLoad = false;
                 showSlide(0);
               }
@@ -896,7 +1190,6 @@
         xhr.send();
       }
 
-      // 10. Real-time Socket.io listener (with graceful degradation)
       function initSocket() {
         if (typeof window.io === 'function' && !window.__socketIoFailed) {
           try {
@@ -904,7 +1197,6 @@
             socket.emit('join_tv_room', { slug: tvSlug });
 
             function handleRealtimeUpdate() {
-              console.log('Realtime socket update triggered. Refreshing TV playlist...');
               loadTvPlayback();
             }
 
@@ -913,13 +1205,16 @@
             socket.on('media_deleted', handleRealtimeUpdate);
             socket.on('incident_broadcast_toggled', handleRealtimeUpdate);
             socket.on('incident_updated', handleRealtimeUpdate);
+            socket.on('tv_force_reload', function () {
+              isFirstLoad = true;
+              loadTvPlayback();
+            });
           } catch (err) {
             console.warn('Socket connection skipped, relying on HTTP polling:', err);
           }
         }
       }
 
-      // 11. Global Audio and Fullscreen Interaction handlers
       function unlockAudio() {
         isAudioUnlocked = true;
         isMuted = false;
@@ -994,7 +1289,6 @@
         }
       }
 
-      // Mouse Activity Handler for Auto-hiding Controls
       function onUserActivity() {
         if (bottomControlsEl) bottomControlsEl.classList.add('visible');
         if (controlsHideTimer) clearTimeout(controlsHideTimer);
@@ -1003,7 +1297,6 @@
         }, 3000);
       }
 
-      // Unlock audio on ANY interaction gesture across window (Mouse, Touch, Remote, Keyboard)
       var unlockEvents = ['click', 'touchstart', 'touchend', 'keydown', 'keyup', 'keypress', 'mousedown', 'pointerdown', 'wheel', 'focus', 'pageshow'];
       unlockEvents.forEach(function (evt) {
         window.addEventListener(evt, function () {
@@ -1017,7 +1310,6 @@
         audioHintEl.addEventListener('click', unlockAudio);
       }
 
-      // Smart TV Remote & Keyboard Shortcuts
       window.addEventListener('keydown', function (e) {
         var key = e.key || '';
         if (key === 'm' || key === 'M' || key === 'AudioVolumeMute') {
@@ -1037,7 +1329,6 @@
       if (btnMuteEl) btnMuteEl.addEventListener('click', toggleMute);
       if (btnFullscreenEl) btnFullscreenEl.addEventListener('click', toggleFullscreen);
 
-      // Start initial load and background sync (every 15s)
       tryResumeAudioContext();
       loadTvPlayback();
       initSocket();

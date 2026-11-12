@@ -3,7 +3,7 @@ const fs = require('fs');
 const fsp = require('fs').promises;
 const path = require('path');
 const { getPool } = require('../db');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, requireRole } = require('../middleware/auth');
 const { fileExists } = require('../utils/fs');
 const {
   rootUploadDir,
@@ -13,6 +13,7 @@ const {
 } = require('../utils/folderPath');
 
 const router = express.Router();
+router.use(authenticateToken, requireRole('admin'));
 
 // Get all folders
 router.get('/', authenticateToken, async (req, res) => {

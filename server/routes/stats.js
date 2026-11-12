@@ -13,7 +13,7 @@ router.get('/', authenticateToken, async (req, res) => {
       [mediaRows],
       [playlistRows]
     ] = await Promise.all([
-      pool.query('SELECT COUNT(*) AS total, SUM(CASE WHEN is_online = 1 THEN 1 ELSE 0 END) AS online FROM tvs'),
+      pool.query('SELECT COUNT(*) AS total, SUM(CASE WHEN last_ping IS NOT NULL AND last_ping >= NOW() - INTERVAL 1 MINUTE THEN 1 ELSE 0 END) AS online FROM tvs'),
       pool.query('SELECT COUNT(*) AS total FROM media_files'),
       pool.query('SELECT COUNT(*) AS total FROM playlists')
     ]);

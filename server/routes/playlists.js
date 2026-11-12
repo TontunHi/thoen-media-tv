@@ -1,8 +1,10 @@
 const express = require('express');
 const { getPool } = require('../db');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, requireRole } = require('../middleware/auth');
+const { validateScheduleMiddleware, normalizeDaysOfWeek } = require('../middleware/validate');
 
 const router = express.Router();
+router.use(authenticateToken, requireRole('admin'));
 
 // Helper to broadcast playlist update to relevant TVs via Socket.io
 async function notifyTvClients(req, playlistId) {
@@ -64,7 +66,8 @@ router.get('/:id', authenticateToken, async (req, res) => {
 
     const playlist = playlists[0];
     const [items] = await pool.query(`
-      SELECT pi.*, mf.name as media_name, mf.file_path, mf.file_type, mf.mime_type, mf.size
+      SELECT pi.*, mf.name as media_name, mf.file_path, mf.file_type, mf.mime_type, mf.size,
+             mf.expires_at, mf.announcement_data
       FROM playlist_items pi
       JOIN media_files mf ON pi.media_file_id = mf.id
       WHERE pi.playlist_id = ?
@@ -171,10 +174,10 @@ function formatSqlDateTime(dtStr) {
   return clean;
 }
 
-// Update playlist item (order, duration, start_time, end_time, is_active)
-router.put('/:playlistId/items/:itemId', authenticateToken, async (req, res) => {
+// Update playlist item (order, duration, start_time, end_time, days_of_week, is_active)
+router.put('/:playlistId/items/:itemId', authenticateToken, validateScheduleMiddleware, async (req, res) => {
   const { playlistId, itemId } = req.params;
-  const { display_order, duration_seconds, start_time, end_time, is_active } = req.body;
+  const { display_order, duration_seconds, start_time, end_time, days_of_week, is_active } = req.body;
 
   try {
     const pool = getPool();
@@ -205,6 +208,11 @@ router.put('/:playlistId/items/:itemId', authenticateToken, async (req, res) => 
     if (end_time !== undefined) {
       updates.push('end_time = ?');
       params.push(formatSqlDateTime(end_time));
+    }
+
+    if (days_of_week !== undefined) {
+      updates.push('days_of_week = ?');
+      params.push(normalizeDaysOfWeek(days_of_week));
     }
 
     if (is_active !== undefined) {

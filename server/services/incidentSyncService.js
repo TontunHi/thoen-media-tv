@@ -1,6 +1,36 @@
 const { getPool } = require('../db');
 const { queryHosxpAccidentPatients } = require('../hosxpDb');
 
+function hasPatientChanged(hp, existing) {
+  if (!existing) return true;
+  const norm = (v) => (v === null || v === undefined ? '' : String(v)).trim();
+  const normDash = (v) => {
+    const s = norm(v);
+    return s === '' ? '-' : s;
+  };
+  const isNameChanged = Boolean(norm(hp.pt_name)) && norm(hp.pt_name) !== norm(existing.pt_name);
+  const isTriageChanged = Boolean(norm(hp.triage_color)) && norm(hp.triage_color) !== norm(existing.triage_color);
+  const isLevelChanged = Boolean(norm(hp.triage_level)) && norm(hp.triage_level) !== norm(existing.triage_level);
+  const isStatusChanged = Boolean(norm(hp.current_status)) && norm(hp.current_status) !== norm(existing.current_status);
+  const isInjuryChanged = norm(hp.injury_info) !== norm(existing.injury_info);
+  const isTransportChanged = normDash(hp.transport) !== normDash(existing.transport);
+  const isDiagChanged = normDash(hp.diag) !== normDash(existing.diag);
+  const isSexChanged = Boolean(norm(hp.sex)) && norm(hp.sex) !== norm(existing.sex);
+  const isAgeChanged = Boolean(norm(hp.age)) && norm(hp.age) !== norm(existing.age);
+
+  return Boolean(
+    isNameChanged ||
+    isTriageChanged ||
+    isLevelChanged ||
+    isStatusChanged ||
+    isInjuryChanged ||
+    isTransportChanged ||
+    isDiagChanged ||
+    isSexChanged ||
+    isAgeChanged
+  );
+}
+
 /**
  * Automatically sync an incident with HOSxP based strictly on incident_date and start_time / end_time.
  * Automatically adds new cases, updates existing cases, and removes cases that no longer fall into the time window.
@@ -41,13 +71,12 @@ async function syncIncidentWithHosxp(incidentId, io = null) {
       return { success: false, reason: 'hosxp_query_failed' };
     }
 
-    // Build sets of active HOSxP VNs and HNs
+    // Build set of active HOSxP VNs
     const hosxpVnSet = new Set(hosxpPatients.map((p) => p.vn).filter(Boolean));
-    const hosxpHnSet = new Set(hosxpPatients.map((p) => p.hn).filter(Boolean));
 
     // Fetch existing patients currently stored in this incident
     const [existingPatients] = await pool.query(`
-      SELECT id, tag_number, display_order, vn, hn, pt_name, sex, age, triage_level, triage_color, injury_info, current_status
+      SELECT id, tag_number, display_order, vn, hn, pt_name, sex, age, triage_level, triage_color, injury_info, transport, diag, current_status
       FROM incident_patients 
       WHERE incident_id = ? 
       ORDER BY display_order ASC, id ASC
@@ -89,19 +118,7 @@ async function syncIncidentWithHosxp(incidentId, io = null) {
       const existing = existingByVn.get(hp.vn) || (hp.hn ? existingByHn.get(hp.hn) : null);
 
       if (existing) {
-        // Check if clinical info or names were updated in HOSxP
-        const norm = (v) => (v === null || v === undefined ? '' : String(v)).trim();
-        const isNameChanged = norm(hp.pt_name) && norm(hp.pt_name) !== norm(existing.pt_name);
-        const isTriageChanged = norm(hp.triage_color) && norm(hp.triage_color) !== norm(existing.triage_color);
-        const isLevelChanged = norm(hp.triage_level) && norm(hp.triage_level) !== norm(existing.triage_level);
-        const isStatusChanged = norm(hp.current_status) && norm(hp.current_status) !== norm(existing.current_status);
-        const isInjuryChanged = norm(hp.injury_info) !== norm(existing.injury_info);
-        const isTransportChanged = norm(hp.transport) !== norm(existing.transport);
-        const isDiagChanged = norm(hp.diag) !== norm(existing.diag);
-        const isSexChanged = norm(hp.sex) && norm(hp.sex) !== norm(existing.sex);
-        const isAgeChanged = norm(hp.age) && norm(hp.age) !== norm(existing.age);
-
-        if (isNameChanged || isTriageChanged || isLevelChanged || isStatusChanged || isInjuryChanged || isTransportChanged || isDiagChanged || isSexChanged || isAgeChanged) {
+        if (hasPatientChanged(hp, existing)) {
           await pool.query(`
             UPDATE incident_patients SET
               pt_name = ?,
@@ -269,6 +286,7 @@ function startIncidentAutoSyncWorker(io, intervalMs = 15000) {
 }
 
 module.exports = {
+  hasPatientChanged,
   syncIncidentWithHosxp,
   syncAllActiveIncidents,
   startIncidentAutoSyncWorker

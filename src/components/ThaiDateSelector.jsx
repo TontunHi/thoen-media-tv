@@ -132,8 +132,8 @@ export default function ThaiDateSelector({
           <label className="block text-xs font-medium text-slate-700">
             {label}
           </label>
-          <span className="text-[11px] font-semibold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200">
-            วัน / เดือน / ปี (พ.ศ.)
+          <span className="text-[11px] font-normal text-slate-500">
+            วัน เดือน ปี พ.ศ.
           </span>
         </div>
       )}
@@ -145,7 +145,7 @@ export default function ThaiDateSelector({
           <select
             value={currentDay}
             onChange={(e) => handleDayChange(e.target.value)}
-            className="w-full pl-3 pr-7 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition cursor-pointer shadow-xs"
+            className="w-full h-10 pl-3 pr-7 bg-slate-50 hover:bg-slate-100 border border-slate-200/90 rounded-lg text-sm font-medium text-slate-900 appearance-none focus:outline-none focus:border-teal-700 focus:bg-white cursor-pointer"
             aria-label="เลือกวัน"
             required={required}
           >
@@ -155,7 +155,7 @@ export default function ThaiDateSelector({
               </option>
             ))}
           </select>
-          <ChevronDown size={15} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <ChevronDown size={15} strokeWidth={1.5} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
         </div>
 
         {/* Month Select (5 cols) */}
@@ -163,7 +163,7 @@ export default function ThaiDateSelector({
           <select
             value={currentMonth}
             onChange={(e) => handleMonthChange(e.target.value)}
-            className="w-full pl-3 pr-7 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition cursor-pointer shadow-xs truncate"
+            className="w-full h-10 pl-3 pr-7 bg-slate-50 hover:bg-slate-100 border border-slate-200/90 rounded-lg text-sm font-medium text-slate-900 appearance-none focus:outline-none focus:border-teal-700 focus:bg-white cursor-pointer truncate"
             aria-label="เลือกเดือน"
             required={required}
           >
@@ -173,7 +173,7 @@ export default function ThaiDateSelector({
               </option>
             ))}
           </select>
-          <ChevronDown size={15} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <ChevronDown size={15} strokeWidth={1.5} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
         </div>
 
         {/* Year Select (4 cols) */}
@@ -181,7 +181,7 @@ export default function ThaiDateSelector({
           <select
             value={currentYearBE}
             onChange={(e) => handleYearChange(e.target.value)}
-            className="w-full pl-3 pr-7 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition cursor-pointer shadow-xs"
+            className="w-full h-10 pl-3 pr-7 bg-slate-50 hover:bg-slate-100 border border-slate-200/90 rounded-lg text-sm font-medium text-slate-900 appearance-none focus:outline-none focus:border-teal-700 focus:bg-white cursor-pointer"
             aria-label="เลือกปี พ.ศ."
             required={required}
           >
@@ -191,13 +191,13 @@ export default function ThaiDateSelector({
               </option>
             ))}
           </select>
-          <ChevronDown size={15} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <ChevronDown size={15} strokeWidth={1.5} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
         </div>
       </div>
 
       {/* Clean Thai Date Display Text */}
-      <div className="flex items-center gap-1.5 text-xs text-slate-600 font-bold pt-1">
-        <Calendar size={13} className="text-teal-600 shrink-0" />
+      <div className="flex items-center gap-1.5 text-xs text-slate-500 pt-0.5">
+        <Calendar size={13} strokeWidth={1.5} className="text-teal-700 shrink-0" />
         <span>{thaiDisplayString}</span>
       </div>
     </div>

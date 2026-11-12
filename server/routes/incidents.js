@@ -1,7 +1,7 @@
 const express = require('express');
 const { getPool } = require('../db');
-const { authenticateToken } = require('../middleware/auth');
-const { queryHosxpAccidentPatients, mapTriageColor } = require('../hosxpDb');
+const { authenticateToken, logAudit } = require('../middleware/auth');
+const { queryHosxpAccidentPatients } = require('../hosxpDb');
 const { syncIncidentWithHosxp } = require('../services/incidentSyncService');
 const { generateIncidentExcelWorkbook } = require('../services/incidentExportService');
 
@@ -314,8 +314,11 @@ router.put('/:id', authenticateToken, async (req, res) => {
       await pool.query(`UPDATE incidents SET ${updates.join(', ')} WHERE id = ?`, params);
     }
 
-    // Trigger auto-sync if enabled
-    if (is_auto_sync !== 0) {
+    const shouldAutoSync =
+      is_auto_sync === undefined
+        ? true
+        : Boolean(is_auto_sync) && is_auto_sync !== 0 && is_auto_sync !== '0';
+    if (shouldAutoSync) {
       await syncIncidentWithHosxp(id, req.io);
     }
 
@@ -426,7 +429,7 @@ router.post('/:id/sync-hosxp', authenticateToken, async (req, res) => {
         await pool.query(`
           UPDATE incident_patients SET 
             hn = ?, pt_name = ?, sex = ?, age = ?, triage_level = ?, triage_color = ?, 
-            injury_info = ?, current_status = ?
+            injury_info = ?, transport = ?, diag = ?, current_status = ?
           WHERE incident_id = ? AND vn = ?
         `, [
           pData.hn,
@@ -436,6 +439,8 @@ router.post('/:id/sync-hosxp', authenticateToken, async (req, res) => {
           pData.triage_level,
           pData.triage_color,
           pData.injury_info,
+          pData.transport || '-',
+          pData.diag || '-',
           pData.current_status,
           id,
           vn
@@ -447,8 +452,8 @@ router.post('/:id/sync-hosxp', authenticateToken, async (req, res) => {
 
         await pool.query(`
           INSERT INTO incident_patients 
-            (incident_id, tag_number, display_order, vn, hn, pt_name, sex, age, triage_level, triage_color, injury_info, current_status)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (incident_id, tag_number, display_order, vn, hn, pt_name, sex, age, triage_level, triage_color, injury_info, transport, diag, current_status)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
           id,
           tagNum,
@@ -461,6 +466,8 @@ router.post('/:id/sync-hosxp', authenticateToken, async (req, res) => {
           pData.triage_level,
           pData.triage_color,
           pData.injury_info,
+          pData.transport || '-',
+          pData.diag || '-',
           pData.current_status
         ]);
       }
@@ -483,7 +490,7 @@ router.post('/:id/sync-hosxp', authenticateToken, async (req, res) => {
  */
 router.post('/:id/patients', authenticateToken, async (req, res) => {
   const { id } = req.params;
-  const { tag_number, vn, hn, pt_name, sex, age, triage_level, triage_color, injury_info, current_status, notes } = req.body;
+  const { tag_number, vn, hn, pt_name, sex, age, triage_level, triage_color, injury_info, transport, diag, current_status, notes } = req.body;
 
   if (!tag_number && !pt_name) {
     return res.status(400).json({ error: 'ต้องระบุหมายเลขสายรัด หรือ ชื่อ-สกุล' });
@@ -496,8 +503,8 @@ router.post('/:id/patients', authenticateToken, async (req, res) => {
 
     const [result] = await pool.query(`
       INSERT INTO incident_patients 
-        (incident_id, tag_number, display_order, vn, hn, pt_name, sex, age, triage_level, triage_color, injury_info, current_status, notes)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (incident_id, tag_number, display_order, vn, hn, pt_name, sex, age, triage_level, triage_color, injury_info, transport, diag, current_status, notes)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       id,
       tag_number ? tag_number.trim() : String(nextOrder).padStart(2, '0'),
@@ -510,6 +517,8 @@ router.post('/:id/patients', authenticateToken, async (req, res) => {
       triage_level || 'เขียว',
       triage_color || 'green',
       injury_info || '',
+      transport || '-',
+      diag || '-',
       current_status || 'ห้องฉุกเฉิน (ER)',
       notes || ''
     ]);
@@ -531,7 +540,7 @@ router.post('/:id/patients', authenticateToken, async (req, res) => {
  */
 router.put('/:id/patients/:patientId', authenticateToken, async (req, res) => {
   const { id, patientId } = req.params;
-  const { tag_number, vn, hn, pt_name, sex, age, triage_level, triage_color, injury_info, current_status, notes, display_order } = req.body;
+  const { tag_number, vn, hn, pt_name, sex, age, triage_level, triage_color, injury_info, transport, diag, current_status, notes, display_order } = req.body;
 
   try {
     const pool = getPool();
@@ -547,6 +556,8 @@ router.put('/:id/patients/:patientId', authenticateToken, async (req, res) => {
     if (triage_level !== undefined) { updates.push('triage_level = ?'); params.push(triage_level); }
     if (triage_color !== undefined) { updates.push('triage_color = ?'); params.push(triage_color); }
     if (injury_info !== undefined) { updates.push('injury_info = ?'); params.push(injury_info); }
+    if (transport !== undefined) { updates.push('transport = ?'); params.push(transport || '-'); }
+    if (diag !== undefined) { updates.push('diag = ?'); params.push(diag || '-'); }
     if (current_status !== undefined) { updates.push('current_status = ?'); params.push(current_status); }
     if (notes !== undefined) { updates.push('notes = ?'); params.push(notes); }
     if (display_order !== undefined) { updates.push('display_order = ?'); params.push(parseInt(display_order) || 0); }
@@ -635,6 +646,15 @@ router.post('/:id/broadcast', authenticateToken, async (req, res) => {
       req.io.emit('incident_updated', { incidentId, is_active: isActive });
       req.io.emit('incident_broadcast_toggled', { incidentId, is_active: isActive, tvIds: cleanTvIds });
     }
+
+    await logAudit(
+      pool,
+      req,
+      isActive ? 'INCIDENT_BROADCAST_START' : 'INCIDENT_BROADCAST_STOP',
+      'incident',
+      incidentId,
+      { tvIds: cleanTvIds }
+    );
 
     res.json({ success: true, is_active: isActive, broadcast_tvs: cleanTvIds });
   } catch (error) {

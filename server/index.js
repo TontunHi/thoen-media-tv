@@ -14,6 +14,8 @@ const tvRoutes = require('./routes/tvs');
 const incidentRoutes = require('./routes/incidents');
 const statsRoutes = require('./routes/stats');
 const proxyRoutes = require('./routes/proxy');
+const userRoutes = require('./routes/users');
+const { startBackupScheduler } = require('./services/backupService');
 
 const rawCorsOrigin = process.env.CORS_ORIGIN;
 const allowedOrigins = rawCorsOrigin && rawCorsOrigin !== '*'
@@ -61,6 +63,14 @@ app.use((req, res, next) => {
 // Serve uploaded files statically
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
+// Serve local HLS vendor bundle for Smart TV browsers on intranet
+app.get('/vendor/hls.min.js', (req, res) => {
+  res.sendFile(path.join(__dirname, '../node_modules/hls.js/dist/hls.min.js'));
+});
+
+// Serve public static assets (including /tv-sw.js and hospital logos)
+app.use(express.static(path.join(__dirname, '../public')));
+
 // Serve Vite frontend build statically in production
 app.use(express.static(path.join(__dirname, '../dist')));
 
@@ -73,6 +83,7 @@ app.use('/api/tvs', tvRoutes);
 app.use('/api/incidents', incidentRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/proxy-web', proxyRoutes);
+app.use('/api/users', userRoutes);
 
 // Socket.io Connection logic
 io.on('connection', (socket) => {
@@ -108,19 +119,35 @@ app.get('/tv/:slug', (req, res) => {
   res.sendFile(path.join(__dirname, 'views/player.html'));
 });
 
-// Fallback proxy for Next.js assets if requested directly by embedded web pages
-app.use('/_next', async (req, res, next) => {
+function resolveProxyOriginFromReferer(req) {
+  const defaultOrigin = process.env.DEFAULT_INTRANET_ORIGIN || 'http://192.168.1.239';
   const referer = req.headers['referer'] || '';
-  let targetOrigin = 'http://192.168.1.239';
+  let candidateOrigin = defaultOrigin;
   if (referer.includes('/api/proxy-web?url=')) {
     try {
       const u = new URL(referer);
       const targetParam = u.searchParams.get('url');
-      if (targetParam) targetOrigin = new URL(targetParam).origin;
-    } catch (e) {}
+      if (targetParam) candidateOrigin = new URL(targetParam).origin;
+    } catch {
+      return { ok: false };
+    }
+  }
+  const check = proxyRoutes.isAllowedProxyUrl(candidateOrigin);
+  if (!check.ok) return { ok: false };
+  return { ok: true, origin: check.parsed.origin };
+}
+
+// Fallback proxy for Next.js assets if requested directly by embedded web pages
+app.use('/_next', async (req, res, next) => {
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    return res.status(405).json({ error: 'Method not allowed by proxy policy' });
+  }
+  const resolved = resolveProxyOriginFromReferer(req);
+  if (!resolved.ok) {
+    return res.status(403).json({ error: 'Host not allowed by proxy policy' });
   }
   try {
-    const targetUrl = `${targetOrigin}/_next${req.url}`;
+    const targetUrl = `${resolved.origin}/_next${req.url}`;
     const targetRes = await fetch(targetUrl, {
       headers: {
         'User-Agent': req.headers['user-agent'] || '',
@@ -139,17 +166,15 @@ app.use('/_next', async (req, res, next) => {
 
 // Proxy for external API calls from embedded pages (e.g. /api/er/*)
 app.use('/api/er', async (req, res, next) => {
-  const referer = req.headers['referer'] || '';
-  let targetOrigin = 'http://192.168.1.239';
-  if (referer.includes('/api/proxy-web?url=')) {
-    try {
-      const u = new URL(referer);
-      const targetParam = u.searchParams.get('url');
-      if (targetParam) targetOrigin = new URL(targetParam).origin;
-    } catch (e) {}
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    return res.status(405).json({ error: 'Method not allowed by proxy policy' });
+  }
+  const resolved = resolveProxyOriginFromReferer(req);
+  if (!resolved.ok) {
+    return res.status(403).json({ error: 'Host not allowed by proxy policy' });
   }
   try {
-    const targetUrl = `${targetOrigin}/api/er${req.url}`;
+    const targetUrl = `${resolved.origin}/api/er${req.url}`;
     const targetRes = await fetch(targetUrl, {
       method: req.method,
       headers: {
@@ -169,17 +194,15 @@ app.use('/api/er', async (req, res, next) => {
 
 // Proxy for embedded images (e.g. /images/*)
 app.use('/images', async (req, res, next) => {
-  const referer = req.headers['referer'] || '';
-  let targetOrigin = 'http://192.168.1.239';
-  if (referer.includes('/api/proxy-web?url=')) {
-    try {
-      const u = new URL(referer);
-      const targetParam = u.searchParams.get('url');
-      if (targetParam) targetOrigin = new URL(targetParam).origin;
-    } catch (e) {}
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    return res.status(405).json({ error: 'Method not allowed by proxy policy' });
+  }
+  const resolved = resolveProxyOriginFromReferer(req);
+  if (!resolved.ok) {
+    return res.status(403).json({ error: 'Host not allowed by proxy policy' });
   }
   try {
-    const targetUrl = `${targetOrigin}/images${req.url}`;
+    const targetUrl = `${resolved.origin}/images${req.url}`;
     const targetRes = await fetch(targetUrl, {
       headers: {
         'User-Agent': req.headers['user-agent'] || '',
@@ -216,6 +239,7 @@ async function startServer() {
     
     // Start background HOSxP auto-sync worker for active incidents
     startIncidentAutoSyncWorker(io, 15000);
+    startBackupScheduler();
 
     server.listen(PORT, () => {
       console.log(`=================================================`);

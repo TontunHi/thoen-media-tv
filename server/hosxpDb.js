@@ -153,6 +153,9 @@ SELECT
             THEN 'เสียชีวิตใน รพ.'
         END
     ) AS \`dead\`,
+    n.accident_dead_before_arrive,
+    n.accident_dead_in_hospital,
+    n.accident_admit,
     COALESCE(
         GROUP_CONCAT(
             DISTINCT CONCAT(
@@ -249,58 +252,58 @@ ORDER BY
 
   const [rows] = await pool.query(sql, params);
 
-  // Format rows with calculated triage_color and current_status
-  return rows.map((row) => {
-    const triageColor = mapTriageColor(row.triage_level, row.dead);
-    
-    // Determine combined injury / diag text
-    const injuryParts = [];
-    if (row.injury_info && row.injury_info.trim()) {
-      injuryParts.push(row.injury_info.trim());
-    }
-    if (row.diag && row.diag.trim() && row.diag !== 'ไม่พบการวินิจฉัย S') {
-      injuryParts.push(row.diag.trim());
-    }
-    if (injuryParts.length === 0 && row.transport && row.transport !== '-') {
-      injuryParts.push(`พาหนะ: ${row.transport}`);
-    }
+  return rows.map(formatHosxpPatientRow);
+}
 
-    // Determine current status
-    let currentStatus = 'ห้องฉุกเฉิน (ER)';
-    if (row.dead && row.dead.trim()) {
-      currentStatus = row.dead.trim();
-    } else if (row.refer_to && row.refer_to !== '-') {
-      currentStatus = `ส่งต่อ: ${row.refer_to}`;
-    } else if (row.er_status && row.er_status.trim() && row.er_status !== 'ห้องฉุกเฉิน') {
-      currentStatus = row.er_status.trim();
-    }
+function formatHosxpPatientRow(row) {
+  const triageColor = mapTriageColor(row.triage_level, row.dead);
 
-    return {
-      vn: row.vn,
-      hn: row.hn,
-      vstdate: row.vstdate,
-      vsttime: row.vsttime,
-      pt_name: row.pt_name ? row.pt_name.trim() : 'ไม่ระบุชื่อ',
-      sex: row.sex || 'ไม่ระบุ',
-      age: row.age !== null && row.age !== undefined ? String(row.age) : '-',
-      triage_level: row.triage_level,
-      triage_color: triageColor,
-      transport: row.transport && row.transport !== '-' ? row.transport : '-',
-      diag: row.diag && row.diag.trim() ? row.diag : (row.injury_info && row.injury_info.trim() ? row.injury_info : '-'),
-      injury_info: injuryParts.join(' / ') || 'อุบัติเหตุ',
-      current_status: currentStatus,
-      raw_status: row.er_status,
-      dead: row.dead,
-      dead_before_arrive: row.accident_dead_before_arrive === 'Y',
-      dead_in_hospital: row.accident_dead_in_hospital === 'Y',
-      accident_admit: row.accident_admit === 'Y',
-      refer_to: row.refer_to
-    };
-  });
+  const injuryParts = [];
+  if (row.injury_info && row.injury_info.trim()) {
+    injuryParts.push(row.injury_info.trim());
+  }
+  if (row.diag && row.diag.trim() && row.diag !== 'ไม่พบการวินิจฉัย S') {
+    injuryParts.push(row.diag.trim());
+  }
+  if (injuryParts.length === 0 && row.transport && row.transport !== '-') {
+    injuryParts.push(`พาหนะ: ${row.transport}`);
+  }
+
+  let currentStatus = 'ห้องฉุกเฉิน (ER)';
+  if (row.dead && row.dead.trim()) {
+    currentStatus = row.dead.trim();
+  } else if (row.refer_to && row.refer_to !== '-') {
+    currentStatus = `ส่งต่อ: ${row.refer_to}`;
+  } else if (row.er_status && row.er_status.trim() && row.er_status !== 'ห้องฉุกเฉิน') {
+    currentStatus = row.er_status.trim();
+  }
+
+  return {
+    vn: row.vn,
+    hn: row.hn,
+    vstdate: row.vstdate,
+    vsttime: row.vsttime,
+    pt_name: row.pt_name ? row.pt_name.trim() : 'ไม่ระบุชื่อ',
+    sex: row.sex || 'ไม่ระบุ',
+    age: row.age !== null && row.age !== undefined ? String(row.age) : '-',
+    triage_level: row.triage_level,
+    triage_color: triageColor,
+    transport: row.transport && row.transport !== '-' ? row.transport : '-',
+    diag: row.diag && row.diag.trim() ? row.diag : (row.injury_info && row.injury_info.trim() ? row.injury_info : '-'),
+    injury_info: injuryParts.join(' / ') || 'อุบัติเหตุ',
+    current_status: currentStatus,
+    raw_status: row.er_status,
+    dead: row.dead,
+    dead_before_arrive: row.accident_dead_before_arrive === 'Y',
+    dead_in_hospital: row.accident_dead_in_hospital === 'Y',
+    accident_admit: row.accident_admit === 'Y',
+    refer_to: row.refer_to
+  };
 }
 
 module.exports = {
   getHosxpPool,
   queryHosxpAccidentPatients,
+  formatHosxpPatientRow,
   mapTriageColor
 };

@@ -1,21 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
-  Tv,
   Folder,
   ListVideo,
   Monitor,
   LogOut,
-  Radio,
-  Layers,
-  HardDrive,
   ShieldCheck,
   ShieldAlert,
-  ChevronRight,
 } from 'lucide-react';
 import { api } from '../services/api';
 
-export default function Sidebar({ onLogout }) {
+export default function Sidebar({ onLogout, user = { username: 'admin', role: 'admin' } }) {
   const location = useLocation();
   const [stats, setStats] = useState({
     totalTvs: 0,
@@ -24,7 +19,6 @@ export default function Sidebar({ onLogout }) {
     totalPlaylists: 0,
   });
 
-  // Load quick live stats
   const loadStats = async () => {
     try {
       const data = await api.getStats();
@@ -34,8 +28,8 @@ export default function Sidebar({ onLogout }) {
         totalMedia: data.totalMedia || 0,
         totalPlaylists: data.totalPlaylists || 0,
       });
-    } catch (err) {
-      console.error('Failed to load stats:', err);
+    } catch {
+      // Ignore stats error
     }
   };
 
@@ -45,169 +39,169 @@ export default function Sidebar({ onLogout }) {
     return () => clearInterval(interval);
   }, [location.pathname]);
 
-  const navItems = [
+  const isErStaffOnly = user?.role === 'er_staff';
+
+  const allNavItems = [
     {
       path: '/upload',
       label: 'คลังจัดการสื่อ',
-      sublabel: 'Media Assets & Folders',
       icon: Folder,
-      badge: stats.totalMedia ? `${stats.totalMedia} สื่อ` : null,
+      count: stats.totalMedia ? `${stats.totalMedia}` : null,
+      adminOnly: true,
     },
     {
       path: '/playlist',
-      label: 'จัดสรร Playlist',
-      sublabel: 'Broadcast Storyboard',
+      label: 'จัดสรรเพลย์ลิสต์',
       icon: ListVideo,
-      badge: stats.totalPlaylists ? `${stats.totalPlaylists} ลิสต์` : null,
+      count: stats.totalPlaylists ? `${stats.totalPlaylists}` : null,
+      adminOnly: true,
     },
     {
       path: '/tv',
       label: 'ตั้งค่าจอทีวี',
-      sublabel: 'TV Displays & Slugs',
       icon: Monitor,
-      badge: stats.totalTvs ? `${stats.onlineTvs}/${stats.totalTvs} จอ` : null,
-      badgeColor: stats.onlineTvs > 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600',
+      count: stats.totalTvs ? `${stats.onlineTvs}/${stats.totalTvs}` : null,
+      hasLiveDot: stats.onlineTvs > 0,
+      adminOnly: true,
     },
     {
       path: '/incident',
-      label: 'อุบัติเหตุหมู่ (MCI)',
-      sublabel: 'Mass Casualty Incident',
+      label: 'ศูนย์อุบัติเหตุหมู่',
       icon: ShieldAlert,
-      badge: 'พิเศษ',
-      badgeColor: 'bg-rose-50 text-rose-700 border-rose-200',
+      adminOnly: false,
+    },
+    {
+      path: '/system',
+      label: 'ผู้ใช้งานและสำรองข้อมูล',
+      icon: ShieldCheck,
+      adminOnly: true,
     },
   ];
 
+  const navItems = allNavItems.filter((item) => !isErStaffOnly || !item.adminOnly);
+
   return (
-    <aside className="w-72 bg-white border-r border-slate-200/90 flex flex-col h-screen sticky top-0 shrink-0 select-none shadow-xs z-30">
-      {/* Brand Header */}
-      <div className="p-6 border-b border-slate-100">
-        <Link to="/upload" className="flex items-center gap-3.5 group">
+    <aside className="w-64 bg-white border-r border-slate-200/80 flex flex-col h-screen sticky top-0 shrink-0 select-none z-30">
+      <div className="h-16 px-5 border-b border-slate-200/80 flex items-center">
+        <Link to={isErStaffOnly ? '/incident' : '/upload'} className="flex items-center gap-3 min-w-0">
           <img
             src="/favicon.svg"
             alt="Thoen Media TV"
-            className="w-11 h-11 rounded-2xl shadow-md shadow-indigo-500/20 group-hover:scale-105 transition duration-300 shrink-0"
+            className="w-8 h-8 rounded-lg shrink-0"
           />
           <div className="min-w-0">
-            <div className="flex items-center gap-1.5">
-              <span className="font-bold text-base text-slate-900 tracking-tight block truncate">
-                THOEN MEDIA
-              </span>
-              <span className="px-1.5 py-0.2 bg-teal-50 text-teal-700 text-[10px] font-semibold rounded-md border border-teal-200/60 uppercase">
-                Studio
-              </span>
-            </div>
-            <span className="text-[11px] font-normal text-slate-400 block truncate">
-              โรงพยาบาลเถิน จ.ลำปาง
+            <span className="font-medium text-sm text-slate-900 block truncate leading-tight">
+              Thoen Media TV
+            </span>
+            <span className="text-xs text-slate-500 block truncate leading-tight mt-0.5">
+              โรงพยาบาลเถิน
             </span>
           </div>
         </Link>
       </div>
 
-      {/* Main Navigation Links */}
-      <div className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 px-3 mb-2">
-          เมนูหลัก (Studio Control)
+      <div className="flex-1 px-3 py-5 overflow-y-auto">
+        <div className="text-xs font-normal text-slate-500 px-3 mb-2">
+          ระบบควบคุมการออกอากาศ
         </div>
 
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = location.pathname === item.path;
-          return (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={`flex items-center justify-between px-3.5 py-3 rounded-2xl text-sm transition-all duration-200 group ${
-                isActive
-                  ? 'bg-indigo-50/80 text-indigo-700 font-semibold shadow-xs border border-indigo-100'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-              }`}
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <div
-                  className={`w-9 h-9 rounded-xl flex items-center justify-center transition ${
-                    isActive
-                      ? 'bg-indigo-600 text-white shadow-xs shadow-indigo-600/30'
-                      : 'bg-slate-100 text-slate-500 group-hover:bg-slate-200/70 group-hover:text-slate-800'
-                  }`}
-                >
-                  <Icon size={18} />
+        <nav className="space-y-1">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = location.pathname === item.path;
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`h-9 px-3 rounded-lg flex items-center justify-between text-sm transition-colors ${
+                  isActive
+                    ? 'bg-slate-100 text-slate-900 font-medium'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-normal'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="w-4.5 flex items-center justify-center shrink-0">
+                    <Icon
+                      size={16}
+                      strokeWidth={1.5}
+                      className={isActive ? 'text-teal-700' : 'text-slate-500'}
+                    />
+                  </span>
+                  <span className="truncate">{item.label}</span>
                 </div>
-                <div className="truncate">
-                  <div className="text-sm font-semibold truncate leading-tight">
-                    {item.label}
-                  </div>
-                  <div className="text-[11px] font-normal text-slate-400 truncate leading-tight mt-0.5">
-                    {item.sublabel}
-                  </div>
-                </div>
-              </div>
 
-              {item.badge && (
-                <span
-                  className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border shrink-0 ${
-                    item.badgeColor || 'bg-slate-100 text-slate-600 border-slate-200'
-                  }`}
-                >
-                  {item.badge}
-                </span>
-              )}
-            </Link>
-          );
-        })}
+                {(item.count || item.hasLiveDot) && (
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {item.hasLiveDot && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-teal-600" />
+                    )}
+                    {item.count && (
+                      <span className="text-xs font-mono tabular-nums text-slate-500">
+                        {item.count}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </Link>
+            );
+          })}
+        </nav>
       </div>
 
-      {/* Live System Monitor Widget */}
-      <div className="p-4 mx-4 mb-4 bg-gradient-to-br from-slate-900 to-slate-950 rounded-2xl text-white shadow-md shadow-slate-900/10 border border-slate-800">
-        <div className="flex items-center justify-between pb-2.5 border-b border-slate-800/80">
+      <div className="p-3 mx-3 mb-3 bg-slate-50 rounded-xl border border-slate-200/80">
+        <div className="flex items-center justify-between pb-2 border-b border-slate-200/70">
           <div className="flex items-center gap-2">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-            </span>
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-200">
-              Live Broadcast
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${
+                stats.onlineTvs > 0 ? 'bg-teal-600' : 'bg-slate-400'
+              }`}
+            />
+            <span className="text-xs font-medium text-slate-700">
+              สถานะออกอากาศ
             </span>
           </div>
-          <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-800/40">
-            {stats.onlineTvs} จอออนไลน์
+          <span className="text-xs font-mono tabular-nums text-teal-700 font-medium">
+            {stats.onlineTvs}/{stats.totalTvs} จอ
           </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 pt-2.5 text-center">
-          <div className="bg-slate-800/60 p-2 rounded-xl border border-slate-700/50">
-            <div className="text-xs font-bold text-white">{stats.totalMedia}</div>
-            <div className="text-[10px] text-slate-400">ไฟล์สื่อในระบบ</div>
+        <div className="grid grid-cols-2 gap-2 pt-2">
+          <div>
+            <div className="text-xs text-slate-500">สื่อทั้งหมด</div>
+            <div className="text-sm font-mono tabular-nums font-medium text-slate-900">
+              {stats.totalMedia}
+            </div>
           </div>
-          <div className="bg-slate-800/60 p-2 rounded-xl border border-slate-700/50">
-            <div className="text-xs font-bold text-white">{stats.totalPlaylists}</div>
-            <div className="text-[10px] text-slate-400">เพลย์ลิสต์</div>
+          <div>
+            <div className="text-xs text-slate-500">เพลย์ลิสต์</div>
+            <div className="text-sm font-mono tabular-nums font-medium text-slate-900">
+              {stats.totalPlaylists}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* User Profile & Logout Footer */}
-      <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between">
+      <div className="h-14 px-4 border-t border-slate-200/80 flex items-center justify-between">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-8 h-8 rounded-xl bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs">
-            AD
+          <div className="w-7 h-7 rounded-md bg-slate-100 border border-slate-200/80 text-slate-700 flex items-center justify-center font-mono text-xs font-medium uppercase shrink-0">
+            {(user?.username || 'AD').slice(0, 2)}
           </div>
           <div className="truncate">
-            <div className="text-xs font-bold text-slate-800 truncate leading-tight">
-              ผู้ดูแลระบบ
+            <div className="text-xs font-medium text-slate-900 truncate leading-tight">
+              {user?.username || 'admin'}
             </div>
-            <div className="text-[10px] text-slate-400 font-mono truncate">
-              Admin Console
+            <div className="text-[11px] text-slate-500 truncate leading-tight">
+              {isErStaffOnly ? 'เจ้าหน้าที่ห้องฉุกเฉิน' : 'ผู้ดูแลระบบ'}
             </div>
           </div>
         </div>
 
         <button
           onClick={onLogout}
-          className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer"
+          className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors cursor-pointer"
           title="ออกจากระบบ"
         >
-          <LogOut size={16} />
+          <LogOut size={16} strokeWidth={1.5} />
         </button>
       </div>
     </aside>

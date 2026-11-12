@@ -1,11 +1,13 @@
 const migration001 = require('./001_initial_schema');
 const migration002 = require('./002_schema_updates');
 const migration003 = require('./003_seed_and_repair');
+const migration004 = require('./004_rebuild_invariants_and_features');
 
 const migrations = [
   migration001,
   migration002,
-  migration003
+  migration003,
+  migration004
 ];
 
 /**
